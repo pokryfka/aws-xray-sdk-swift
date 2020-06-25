@@ -12,7 +12,7 @@ Add a dependency using [Swift Package Manager](https://swift.org/package-manager
 
 ```
 dependencies: [
-    .package(url: "https://https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.1.0")
+    .package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.1.0")
 ]
 ```
 
@@ -73,7 +73,7 @@ See [`AWSXRayRecorderExample/main.swift`](./Sources/AWSXRayRecorderExample/main.
 > Segments and subsegments can include an annotations object containing one or more fields that X-Ray indexes for use with filter expressions. (...)
 
 ```
-segment.addAnnotation("zip_code", value: 98101)
+segment.setAnnotation("zip_code", value: 98101)
 ```
 
 ### [Metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-metadata)
