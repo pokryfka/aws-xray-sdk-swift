@@ -68,6 +68,22 @@ Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 See [`AWSXRayRecorderExample/main.swift`](./Sources/AWSXRayRecorderExample/main.swift) for a complete example.
 
+### [Annotations](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-annotations)
+
+> Segments and subsegments can include an annotations object containing one or more fields that X-Ray indexes for use with filter expressions. (...)
+
+```
+segment.addAnnotation("zip_code", value: 98101)
+```
+
+### [Metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-metadata)
+
+> Segments and subsegments can include a metadata object containing one or more fields with values of any type, including objects and arrays. X-Ray does not index metadata (...)
+
+```
+segment.setMetadata(["debug": ["test": "Metadata string"]])
+```
+
 ### AWS SDK
 
 Record [AWSClient](https://github.com/swift-aws/aws-sdk-swift) requests with `XRayMiddleware`:
