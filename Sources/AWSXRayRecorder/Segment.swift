@@ -276,7 +276,7 @@ extension XRayRecorder.Segment {
 // MARK: Annotations and Metadata
 
 extension XRayRecorder.Segment {
-    func addAnnotations(_ newElements: Annotations) {
+    func setAnnotations(_ newElements: Annotations) {
         lock.withLock {
             if (annotations?.count ?? 0) > 0 {
                 for (k, v) in newElements {
@@ -288,23 +288,23 @@ extension XRayRecorder.Segment {
         }
     }
 
-    public func addAnnotation(_ key: String, value: Bool) {
-        addAnnotations([key: .bool(value)])
+    public func setAnnotation(_ key: String, value: Bool) {
+        setAnnotations([key: .bool(value)])
     }
 
-    public func addAnnotation(_ key: String, value: Int) {
-        addAnnotations([key: .int(value)])
+    public func setAnnotation(_ key: String, value: Int) {
+        setAnnotations([key: .int(value)])
     }
 
-    public func addAnnotation(_ key: String, value: Float) {
-        addAnnotations([key: .float(value)])
+    public func setAnnotation(_ key: String, value: Float) {
+        setAnnotations([key: .float(value)])
     }
 
-    public func addAnnotation(_ key: String, value: String) {
-        addAnnotations([key: .string(value)])
+    public func setAnnotation(_ key: String, value: String) {
+        setAnnotations([key: .string(value)])
     }
 
-    public func addMetadata(_ newElements: Metadata) {
+    public func setMetadata(_ newElements: Metadata) {
         lock.withLock {
             if (metadata?.count ?? 0) > 0 {
                 for (k, v) in newElements {
