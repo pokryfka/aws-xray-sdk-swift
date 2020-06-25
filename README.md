@@ -10,7 +10,7 @@ Unofficial AWS X-Ray Recorder SDK for Swift.
 
 Add a dependency using [Swift Package Manager](https://swift.org/package-manager/).
 
-```
+```swift
 dependencies: [
     .package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.1.0")
 ]
@@ -20,13 +20,13 @@ dependencies: [
 
 Create an instance of `XRayRecorder`:
 
-```
+```swift
 let recorder = XRayRecorder()
 ```
 
 Begin and end (sub)segments explicitly:
 
-```
+```swift
 let segment = recorder.beginSegment(name: "Segment 1")
 usleep(100_000)
 segment.end()
@@ -34,7 +34,7 @@ segment.end()
 
 use closures for convenience:
 
-```
+```swift
 recorder.segment(name: "Segment 2") { segment in
     try? segment.subsegment(name: "Subsegment 2.1") { segment in
         _ = segment.subsegment(name: "Subsegment 2.1.1 with Result") { _ -> String in
@@ -53,7 +53,7 @@ recorder.segment(name: "Segment 2") { segment in
 
 Emit recorded segments:
 
-```
+```swift
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 let emmiter = XRayEmmiter(eventLoop: group.next())
 
@@ -72,7 +72,7 @@ See [`AWSXRayRecorderExample/main.swift`](./Sources/AWSXRayRecorderExample/main.
 
 > Segments and subsegments can include an annotations object containing one or more fields that X-Ray indexes for use with filter expressions. (...)
 
-```
+```swift
 segment.setAnnotation("zip_code", value: 98101)
 ```
 
@@ -80,7 +80,7 @@ segment.setAnnotation("zip_code", value: 98101)
 
 > Segments and subsegments can include a metadata object containing one or more fields with values of any type, including objects and arrays. X-Ray does not index metadata (...)
 
-```
+```swift
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 ```
 
@@ -88,14 +88,14 @@ segment.setMetadata(["debug": ["test": "Metadata string"]])
 
 Record [AWSClient](https://github.com/swift-aws/aws-sdk-swift) requests with `XRayMiddleware`:
 
-```
+```swift
 let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
             httpClientProvider: .createNew)
 ```
 
 and/or recording [SwiftNIO futures](https://github.com/apple/swift-nio):
 
-```
+```swift
 recorder.segment(name: "List Buckets") {
     s3.listBuckets()
 }
