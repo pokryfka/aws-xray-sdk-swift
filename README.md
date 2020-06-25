@@ -68,7 +68,31 @@ Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 See [`AWSXRayRecorderExample/main.swift`](./Sources/AWSXRayRecorderExample/main.swift) for a complete example.
 
+### AWS SDK
+
+Record [AWSClient](https://github.com/swift-aws/aws-sdk-swift) requests with `XRayMiddleware`:
+
+```
+let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
+            httpClientProvider: .createNew)
+```
+
+and/or recording [SwiftNIO futures](https://github.com/apple/swift-nio):
+
+```
+recorder.segment(name: "List Buckets") {
+    s3.listBuckets()
+}
+```
+
+Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
+
+![Screenshot of the AWS X-Ray console](./images/example_sdk.png?raw=true)
+
+See [`AWSXRayRecorderExampleSDK/main.swift`](./Sources/AWSXRayRecorderExampleSDK/main.swift) for a complete example.
+
 ## References
 
 - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 - [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
+- [AWS SDK Swift](https://github.com/swift-aws/aws-sdk-swift)

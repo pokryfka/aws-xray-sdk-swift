@@ -9,7 +9,9 @@ let package = Package(
     ],
     products: [
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
+        // Examples
         .executable(name: "AWSXRayRecorderExample", targets: ["AWSXRayRecorderExample"]),
+        .executable(name: "AWSXRayRecorderExampleSDK", targets: ["AWSXRayRecorderExampleSDK"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.4")),
@@ -34,10 +36,18 @@ let package = Package(
             name: "AWSXRayRecorderTests",
             dependencies: ["AWSXRayRecorder"]
         ),
+        // Examples
         .target(
             name: "AWSXRayRecorderExample",
             dependencies: [
                 .byName(name: "AWSXRayRecorder"),
+            ]
+        ),
+        .target(
+            name: "AWSXRayRecorderExampleSDK",
+            dependencies: [
+                .byName(name: "AWSXRayRecorder"),
+                .product(name: "AWSS3", package: "aws-sdk-swift"),
             ]
         ),
     ]

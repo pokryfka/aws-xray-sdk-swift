@@ -41,6 +41,14 @@ public class XRayRecorder {
         lock.withLock { self._segments }
     }
 
+    public func removeAll() -> [Segment] {
+        lock.withLock {
+            let allSegments = _segments
+            _segments.removeAll()
+            return allSegments
+        }
+    }
+
     public func removeReady() -> [Segment] {
         lock.withLock {
             let allSegments = _segments
