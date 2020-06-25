@@ -91,8 +91,15 @@ Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 See [`AWSXRayRecorderExampleSDK/main.swift`](./Sources/AWSXRayRecorderExampleSDK/main.swift) for a complete example.
 
+### AWS Lambda
+
+See [`AWSXRayRecorderExampleLambda/main.swift`](./Sources/AWSXRayRecorderExampleLambda/main.swift) for [AWS Lambda](https://aws.amazon.com/lambda/) function example.
+
+Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-template) for more examples and a template  for deploying Lambda functions.
+
 ## References
 
 - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 - [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
 - [AWS SDK Swift](https://github.com/swift-aws/aws-sdk-swift)
+- [Swift AWS Lambda Runtime](https://github.com/swift-server/swift-aws-lambda-runtime)

@@ -10,7 +10,7 @@ public class XRayRecorder {
     private var _traceId = TraceID()
     private var _segments = [Segment]()
 
-    var traceId: TraceID {
+    public var traceId: TraceID {
         get { lock.withLock { _traceId } }
         set { lock.withLockVoid { _traceId = newValue } }
     }
@@ -29,12 +29,14 @@ public class XRayRecorder {
         }
     }
 
-    public func beginSegment(name: String, parentId: String? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        beginSegment(name: name, parentId: parentId, subsegment: false, metadata: metadata)
+    public func beginSegment(name: String, parentId: String? = nil,
+                             aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+        beginSegment(name: name, parentId: parentId, subsegment: false, aws: aws, metadata: metadata)
     }
 
-    public func beginSubsegment(name: String, parentId: String, metadata: Segment.Metadata? = nil) -> Segment {
-        beginSegment(name: name, parentId: parentId, subsegment: true, metadata: metadata)
+    public func beginSubsegment(name: String, parentId: String,
+                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+        beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
     }
 
     public var allSegments: [Segment] {

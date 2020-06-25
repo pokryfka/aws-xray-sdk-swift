@@ -17,7 +17,7 @@ extension XRayRecorder {
     ///
     /// # References
     /// - [Sending trace data to AWS X-Ray - Generating trace IDs](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-traceids)
-    struct TraceID: CustomStringConvertible {
+    public struct TraceID: CustomStringConvertible {
         /// The version number, that is, 1.
         let version: UInt = 1
         /// The time of the original request, in Unix epoch time, in **8 hexadecimal digits**.
@@ -26,14 +26,14 @@ extension XRayRecorder {
         /// A 96-bit identifier for the trace, globally unique, in **24 hexadecimal digits**.
         let identifier: String
 
-        var description: String {
+        public var description: String {
             "\(version)-\(date)-\(identifier)"
         }
     }
 }
 
 extension XRayRecorder.TraceID: Hashable {
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(version)
         hasher.combine(date)
         hasher.combine(identifier)
@@ -41,7 +41,7 @@ extension XRayRecorder.TraceID: Hashable {
 }
 
 extension XRayRecorder.TraceID: Encodable {
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(String(describing: self))
     }
@@ -55,7 +55,7 @@ extension XRayRecorder.TraceID {
     }
 
     /// Creates new Trace ID.
-    init() {
+    public init() {
         let now = Date().timeIntervalSince1970
         date = String(format: "%08x", Int(now))
         identifier = Self.generateIdentifier()
@@ -89,7 +89,7 @@ extension XRayRecorder.TraceID {
 extension XRayRecorder {
     /// # References
     /// - [AWS X-Ray concepts - Sampling](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-sampling)
-    enum SampleDecision: String, Encodable {
+    public enum SampleDecision: String, Encodable {
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
         case unknown = ""
@@ -127,11 +127,11 @@ extension XRayRecorder {
     /// - [AWS X-Ray concepts - Tracing header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
     public struct TraceHeader {
         /// root trace ID
-        let root: TraceID
+        public let root: TraceID
         /// parent segment ID
-        let parentId: String?
+        public let parentId: String?
         /// sampling decision
-        let sampled: XRayRecorder.SampleDecision
+        public let sampled: XRayRecorder.SampleDecision
     }
 }
 

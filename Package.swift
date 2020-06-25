@@ -9,9 +9,11 @@ let package = Package(
     ],
     products: [
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
+        .library(name: "AWSXRayRecorderLambda", targets: ["AWSXRayRecorderLambda"]),
         // Examples
         .executable(name: "AWSXRayRecorderExample", targets: ["AWSXRayRecorderExample"]),
         .executable(name: "AWSXRayRecorderExampleSDK", targets: ["AWSXRayRecorderExampleSDK"]),
+        .executable(name: "AWSXRayRecorderExampleLambda", targets: ["AWSXRayRecorderExampleLambda"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.4")),
@@ -19,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/Flight-School/AnyCodable", from: "0.2.3"),
+        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
     ],
     targets: [
         .target(
@@ -30,6 +33,13 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
                 .product(name: "AnyCodable", package: "AnyCodable"),
+            ]
+        ),
+        .target(
+            name: "AWSXRayRecorderLambda",
+            dependencies: [
+                .byName(name: "AWSXRayRecorder"),
+                .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
             ]
         ),
         .testTarget(
@@ -48,6 +58,14 @@ let package = Package(
             dependencies: [
                 .byName(name: "AWSXRayRecorder"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
+            ]
+        ),
+        .target(
+            name: "AWSXRayRecorderExampleLambda",
+            dependencies: [
+                .byName(name: "AWSXRayRecorderLambda"),
+                .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
+                .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
             ]
         ),
     ]

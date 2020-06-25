@@ -1,3 +1,6 @@
+// TODO: make public?
+// TODO: make thread safe?
+
 extension XRayRecorder.Segment {
     /// The type of AWS resource running your application.
     ///
@@ -21,7 +24,7 @@ extension XRayRecorder.Segment {
     ///
     /// # References
     /// - [AWS X-Ray segment documents - AWS resource data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-aws)
-    struct AWS: Encodable {
+    public struct AWS: Encodable {
         /// If your application sends segments to a different AWS account, record the ID of the account running your application.
         var accountId: String?
 
@@ -72,5 +75,9 @@ extension XRayRecorder.Segment {
         var queueURL: String?
         /// For operations on a DynamoDB table, the name of the table.
         var tableName: String?
+
+        public init(requestId: String? = nil) {
+            self.requestId = requestId
+        }
     }
 }
