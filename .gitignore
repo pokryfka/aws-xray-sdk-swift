@@ -1,3 +1,6 @@
 .build/
-xcuserdata/
 Package.resolved
+
+# Xcode
+xcuserdata/
+.swiftpm/xcode/
