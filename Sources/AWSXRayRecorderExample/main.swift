@@ -1,14 +1,13 @@
 import AWSXRayRecorder
 import NIO
 
-// TODO: parse arguments
-
 func env(_ name: String) -> String? {
     guard let value = getenv(name) else { return nil }
     return String(cString: value)
 }
 
-assert(env("XRAY_ENDPOINT") != nil, "XRAY_ENDPOINT not set")
+let xrayEndpoint = env("XRAY_ENDPOINT") ?? "http://127.0.0.1:2000"
+
 assert(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
 assert(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
@@ -17,7 +16,7 @@ enum ExampleError: Error {
 }
 
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let emmiter = XRayEmmiter(eventLoop: group.next(), endpoint: env("XRAY_ENDPOINT"))
+let emmiter = XRayEmmiter(eventLoop: group.next(), endpoint: xrayEndpoint)
 
 let recorder = XRayRecorder()
 
