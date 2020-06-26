@@ -54,11 +54,7 @@ recorder.segment(name: "Segment 2") { segment in
 Create an instance of `XRayHTTPEmitter`:
 
 ```swift
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-defer {
-    try? group.syncShutdownGracefully()
-}
-let emmiter = XRayHTTPEmitter(eventLoop: group.next(), endpoint: xrayEndpoint)
+let emmiter = XRayHTTPEmitter()
 ```
 
 or `XRayUDPEmitter`
@@ -71,8 +67,6 @@ send the segments:
 
 ```swift
 try emmiter.send(segments: recorder.removeAll()).wait()
-
-try group.syncShutdownGracefully()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):

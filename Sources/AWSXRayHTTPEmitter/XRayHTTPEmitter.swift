@@ -4,24 +4,25 @@ import AWSXRayRecorder
 import Logging
 import NIO
 
+// TODO: retry, test retry policy in XRay HTTP client
+
 @available(*, deprecated)
 public typealias XRayEmmiter = XRayHTTPEmitter
 
 public class XRayHTTPEmitter: XRayEmitter {
-    private let eventLoop: EventLoop
-    private let httpClient: HTTPClient
     private let xray: XRay
 
     private lazy var logger = Logger(label: "XRayEmmiter")
 
-    public init(eventLoop: EventLoop, endpoint: String? = nil) {
-        self.eventLoop = eventLoop
-        httpClient = HTTPClient(eventLoopGroupProvider: .shared(eventLoop))
-        xray = XRay(endpoint: endpoint, httpClientProvider: .shared(httpClient))
+    var eventLoop: EventLoop { xray.client.eventLoopGroup.next() }
+
+    public init(endpoint: String? = nil, httpClientProvider: AWSClient.HTTPClientProvider = .createNew) {
+        xray = XRay(endpoint: endpoint, httpClientProvider: httpClientProvider)
     }
 
-    deinit {
-        try? httpClient.syncShutdown()
+    @available(*, deprecated)
+    public init(eventLoop _: EventLoop, endpoint: String? = nil) {
+        xray = XRay(endpoint: endpoint, httpClientProvider: .createNew)
     }
 
     public func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {

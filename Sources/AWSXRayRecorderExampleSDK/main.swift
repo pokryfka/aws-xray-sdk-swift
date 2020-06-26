@@ -1,3 +1,4 @@
+import AsyncHTTPClient
 import AWSS3
 import AWSXRayHTTPEmitter
 import AWSXRayRecorder
@@ -21,11 +22,16 @@ defer {
     try? group.syncShutdownGracefully()
 }
 
+let httpClient = HTTPClient(eventLoopGroupProvider: .shared(group.next()))
+defer {
+    try? httpClient.syncShutdown()
+}
+
 let emitter: XRayEmitter
 if xrayUseUDP {
     emitter = XRayUDPEmitter()
 } else {
-    emitter = XRayHTTPEmitter(eventLoop: group.next(), endpoint: xrayHttpEndpoint)
+    emitter = XRayHTTPEmitter(endpoint: xrayHttpEndpoint, httpClientProvider: .shared(httpClient))
 }
 
 let recorder = XRayRecorder()
@@ -33,7 +39,7 @@ let recorder = XRayRecorder()
 // TODO: WIP
 
 let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-            httpClientProvider: .createNew)
+            httpClientProvider: .shared(httpClient))
 
 let aFuture = recorder.segment(name: "Segment 1") {
     group.next().submit { usleep(100_000) }.map { _ in }

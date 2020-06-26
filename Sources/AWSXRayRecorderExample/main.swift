@@ -18,16 +18,11 @@ enum ExampleError: Error {
     case test
 }
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-defer {
-    try? group.syncShutdownGracefully()
-}
-
 let emitter: XRayEmitter
 if xrayUseUDP {
     emitter = XRayUDPEmitter()
 } else {
-    emitter = XRayHTTPEmitter(eventLoop: group.next(), endpoint: xrayHttpEndpoint)
+    emitter = XRayHTTPEmitter(endpoint: xrayHttpEndpoint)
 }
 
 let recorder = XRayRecorder()

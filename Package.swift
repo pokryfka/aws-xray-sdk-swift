@@ -54,7 +54,6 @@ let package = Package(
             name: "AWSXRayHTTPEmitter",
             dependencies: [
                 .byName(name: "AWSXRayRecorder"),
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "AWSXRay", package: "aws-sdk-swift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIO", package: "swift-nio"),
@@ -79,7 +78,6 @@ let package = Package(
             name: "AWSXRayRecorderExample",
             dependencies: [
                 .byName(name: "AWSXRayRecorder"),
-                // only one is needed
                 .byName(name: "AWSXRayHTTPEmitter"),
                 .byName(name: "AWSXRayUDPEmitter"),
             ]
@@ -88,17 +86,16 @@ let package = Package(
             name: "AWSXRayRecorderExampleSDK",
             dependencies: [
                 .byName(name: "AWSXRayRecorderSDK"),
-                // only one is needed
                 .byName(name: "AWSXRayHTTPEmitter"),
                 .byName(name: "AWSXRayUDPEmitter"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
         ),
         .target(
             name: "AWSXRayRecorderExampleLambda",
             dependencies: [
                 .byName(name: "AWSXRayRecorderLambda"),
-                // only one is needed
                 .byName(name: "AWSXRayUDPEmitter"),
                 .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
