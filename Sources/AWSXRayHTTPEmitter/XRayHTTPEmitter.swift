@@ -1,9 +1,13 @@
 import AsyncHTTPClient
 import AWSXRay
+import AWSXRayRecorder
 import Logging
 import NIO
 
-public class XRayEmmiter {
+@available(*, deprecated)
+public typealias XRayEmmiter = XRayHTTPEmitter
+
+public class XRayHTTPEmitter: XRayEmitter {
     private let eventLoop: EventLoop
     private let httpClient: HTTPClient
     private let xray: XRay
@@ -20,16 +24,20 @@ public class XRayEmmiter {
         try? httpClient.syncShutdown()
     }
 
-    public func send(segments: [XRayRecorder.Segment], on eventLoop: EventLoop? = nil) -> EventLoopFuture<Void> {
+    public func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {
+        send(segments: [segment])
+    }
+
+    public func send(segments: [XRayRecorder.Segment]) -> EventLoopFuture<Void> {
         guard segments.isEmpty == false else {
-            return (eventLoop ?? self.eventLoop).makeSucceededFuture(())
+            return eventLoop.makeSucceededFuture(())
         }
 
         // TODO: log serialization errors
         let documents = segments.compactMap { try? $0.JSONString() }
 
         logger.info("Sending documents...\n\(documents.joined(separator: ",\n"))")
-        return xray.putTraceSegments(.init(traceSegmentDocuments: documents), on: eventLoop)
+        return xray.putTraceSegments(.init(traceSegmentDocuments: documents))
             .map { result in
                 if let unprocessedTraceSegments = result.unprocessedTraceSegments,
                     !unprocessedTraceSegments.isEmpty {

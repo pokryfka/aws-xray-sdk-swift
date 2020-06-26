@@ -51,13 +51,26 @@ recorder.segment(name: "Segment 2") { segment in
 
 ### Emitting
 
-Emit recorded segments:
+Create an instance of `XRayHTTPEmitter`:
 
 ```swift
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let emmiter = XRayEmmiter(eventLoop: group.next())
+defer {
+    try? group.syncShutdownGracefully()
+}
+let emmiter = XRayHTTPEmitter(eventLoop: group.next(), endpoint: xrayEndpoint)
+```
 
-try emmiter.send(segments: recorder.removeReady()).wait()
+or `XRayUDPEmitter`
+
+```swift
+let emmiter = XRayUDPEmitter()
+```
+
+send the segments:
+
+```swift
+try emmiter.send(segments: recorder.removeAll()).wait()
 
 try group.syncShutdownGracefully()
 ```

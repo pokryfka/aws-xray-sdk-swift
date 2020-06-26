@@ -251,7 +251,7 @@ extension XRayRecorder.Segment {
 // MARK: AWS resource data
 
 extension XRayRecorder.Segment {
-    func setAWS(_ aws: AWS) {
+    public func setAWS(_ aws: AWS) {
         lock.withLock {
             _aws = aws
         }

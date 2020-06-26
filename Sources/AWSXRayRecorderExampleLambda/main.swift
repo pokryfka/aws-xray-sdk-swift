@@ -2,6 +2,7 @@ import AWSLambdaEvents
 import AWSLambdaRuntime
 import AWSXRayRecorder
 import AWSXRayRecorderLambda
+import AWSXRayUDPEmitter
 import NIO
 
 private struct ExampleLambdaHandler: EventLoopLambdaHandler {
@@ -9,18 +10,14 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     typealias Out = Void
 
     private let recorder = XRayRecorder()
-    private let emmiter: XRayEmmiter
-
-    init(eventLoop: EventLoop) {
-        emmiter = XRayEmmiter(eventLoop: eventLoop, endpoint: Lambda.env("XRAY_ENDPOINT"))
-    }
+    private let emmiter = XRayUDPEmitter()
 
     private func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         eventLoop.submit { usleep(100_000) }.map { _ in }
     }
 
-    private func sendXRaySegments(on eventLoop: EventLoop? = nil) -> EventLoopFuture<Void> {
-        emmiter.send(segments: recorder.removeReady(), on: eventLoop)
+    private func sendXRaySegments() -> EventLoopFuture<Void> {
+        emmiter.send(segments: recorder.removeAll())
     }
 
     func handle(context: Lambda.Context, event: In) -> EventLoopFuture<Void> {
@@ -32,4 +29,4 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     }
 }
 
-Lambda.run { context in ExampleLambdaHandler(eventLoop: context.eventLoop) }
+Lambda.run(ExampleLambdaHandler())
