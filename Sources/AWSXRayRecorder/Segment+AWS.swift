@@ -1,4 +1,4 @@
-// TODO: make public?
+// TODO: review access level
 // TODO: make thread safe?
 
 extension XRayRecorder.Segment {
@@ -70,13 +70,15 @@ extension XRayRecorder.Segment {
         /// If the resource is in a region different from your application, record the region. For example, `us-west-2`.
         var region: String?
         /// Unique identifier for the request.
-        var requestId: String?
+        public var requestId: String?
         /// For operations on an Amazon SQS queue, the queue's URL.
         var queueURL: String?
         /// For operations on a DynamoDB table, the name of the table.
         var tableName: String?
 
-        public init(requestId: String? = nil) {
+        public init(operation: String? = nil, region: String? = nil, requestId: String? = nil) {
+            self.operation = operation
+            self.region = region
             self.requestId = requestId
         }
     }

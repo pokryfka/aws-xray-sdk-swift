@@ -1,3 +1,6 @@
+// TODO: review access level
+// TODO: make thread safe?
+
 extension XRayRecorder.Segment {
     enum Namespace: String, Encodable {
         /// AWS SDK calls
@@ -17,7 +20,7 @@ extension XRayRecorder.Segment {
     /// - [AWS X-Ray segment documents - HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http)
     public struct HTTP: Encodable {
         /// Information about a request.
-        struct Request: Encodable {
+        public struct Request: Encodable {
             /// The request method. For example, GET.
             var method: String?
             /// The full URL of the request, compiled from the protocol, hostname, and path of the request.
@@ -34,17 +37,32 @@ extension XRayRecorder.Segment {
             /// If this field is set to `true`, X-Ray considers the trace to be broken until the downstream service uploads a segment with a `parent_id` that
             /// matches the `id` of the subsegment that contains this block.
             var traced: Bool?
+
+            public init(method: String?, url: String?) {
+                self.method = method
+                self.url = url
+            }
         }
 
         /// Information about a response.
-        struct Response: Encodable {
+        public struct Response: Encodable {
             /// number indicating the HTTP status of the response.
             var status: UInt?
             /// number indicating the length of the response body in bytes.
             var contentLength: Int?
+
+            public init(status: UInt?, contentLength: Int?) {
+                self.status = status
+                self.contentLength = contentLength
+            }
         }
 
         var request: Request?
         var response: Response?
+
+        public init(request: Request?, response: Response?) {
+            self.request = request
+            self.response = response
+        }
     }
 }

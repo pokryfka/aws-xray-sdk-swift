@@ -51,15 +51,22 @@ recorder.segment(name: "Segment 2") { segment in
 
 ### Emitting
 
-Emit recorded segments:
+Create an instance of `XRayHTTPEmitter`:
 
 ```swift
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let emmiter = XRayEmmiter(eventLoop: group.next())
+let emmiter = XRayHTTPEmitter()
+```
 
-try emmiter.send(segments: recorder.removeReady()).wait()
+or `XRayUDPEmitter`
 
-try group.syncShutdownGracefully()
+```swift
+let emmiter = XRayUDPEmitter()
+```
+
+send the segments:
+
+```swift
+try emmiter.send(segments: recorder.removeAll()).wait()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
@@ -112,6 +119,12 @@ See [`AWSXRayRecorderExampleSDK/main.swift`](./Sources/AWSXRayRecorderExampleSDK
 See [`AWSXRayRecorderExampleLambda/main.swift`](./Sources/AWSXRayRecorderExampleLambda/main.swift) for [AWS Lambda](https://aws.amazon.com/lambda/) function example.
 
 Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-template) for more examples and a template  for deploying Lambda functions.
+
+## Configuration
+
+The library’s behavior can be configured using environment variables:
+
+- `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
 
 ## References
 

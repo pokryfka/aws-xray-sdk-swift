@@ -1,5 +1,9 @@
+import AsyncHTTPClient
 import AWSS3
+import AWSXRayHTTPEmitter
 import AWSXRayRecorder
+import AWSXRayRecorderSDK
+import AWSXRayUDPEmitter
 import NIO
 
 func env(_ name: String) -> String? {
@@ -7,24 +11,35 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-let xrayEndpoint = env("XRAY_ENDPOINT") ?? "http://127.0.0.1:2000"
+let xrayHttpEndpoint = env("XRAY_ENDPOINT") ?? "http://127.0.0.1:2000"
+let xrayUseUDP = env("XRAY_UDP") == "true"
 
 assert(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
 assert(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
-enum ExampleError: Error {
-    case test
+let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+defer {
+    try? group.syncShutdownGracefully()
 }
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let emmiter = XRayEmmiter(eventLoop: group.next(), endpoint: xrayEndpoint)
+let httpClient = HTTPClient(eventLoopGroupProvider: .shared(group.next()))
+defer {
+    try? httpClient.syncShutdown()
+}
+
+let emitter: XRayEmitter
+if xrayUseUDP {
+    emitter = XRayUDPEmitter()
+} else {
+    emitter = XRayHTTPEmitter(endpoint: xrayHttpEndpoint, httpClientProvider: .shared(httpClient))
+}
 
 let recorder = XRayRecorder()
 
 // TODO: WIP
 
 let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-            httpClientProvider: .createNew)
+            httpClientProvider: .shared(httpClient))
 
 let aFuture = recorder.segment(name: "Segment 1") {
     group.next().submit { usleep(100_000) }.map { _ in }
@@ -46,8 +61,7 @@ let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
 
 try aFuture.and(s3futures)
     .flatMap { _ in
-        emmiter.send(segments: recorder.removeAll())
+        emitter.send(segments: recorder.removeAll())
     }.wait()
 
-try group.syncShutdownGracefully()
 exit(0)

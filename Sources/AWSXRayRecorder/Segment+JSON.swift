@@ -16,7 +16,7 @@ private let jsonEncoder: JSONEncoder = {
 }()
 
 extension XRayRecorder.Segment {
-    func JSONString() throws -> String {
+    public func JSONString() throws -> String {
         try lock.withLock { try jsonEncoder.encode(self) as String }
     }
 }
