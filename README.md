@@ -120,6 +120,12 @@ See [`AWSXRayRecorderExampleLambda/main.swift`](./Sources/AWSXRayRecorderExample
 
 Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-template) for more examples and a template  for deploying Lambda functions.
 
+## Configuration
+
+The library’s behavior can be configured using environment variables:
+
+- `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+
 ## References
 
 - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)

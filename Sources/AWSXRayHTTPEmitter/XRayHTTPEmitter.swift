@@ -6,13 +6,24 @@ import NIO
 
 // TODO: retry, test retry policy in XRay HTTP client
 
+func env(_ name: String) -> String? {
+    guard let value = getenv(name) else { return nil }
+    return String(cString: value)
+}
+
+private let logLevel: Logger.Level = Logger.Level(rawValue: env("XRAY_RECORDER_LOG_LEVEL") ?? "info") ?? .info
+
 @available(*, deprecated)
 public typealias XRayEmmiter = XRayHTTPEmitter
 
 public class XRayHTTPEmitter: XRayEmitter {
     private let xray: XRay
 
-    private lazy var logger = Logger(label: "XRayEmmiter")
+    private lazy var logger: Logger = {
+        var logger = Logger(label: "net.pokryfka.xray_recorder.http")
+        logger.logLevel = logLevel
+        return logger
+    }()
 
     var eventLoop: EventLoop { xray.client.eventLoopGroup.next() }
 
@@ -37,7 +48,8 @@ public class XRayHTTPEmitter: XRayEmitter {
         // TODO: log serialization errors
         let documents = segments.compactMap { try? $0.JSONString() }
 
-        logger.info("Sending documents...\n\(documents.joined(separator: ",\n"))")
+        logger.info("Sending \(documents.count) documents")
+        logger.debug("\(documents.joined(separator: ",\n"))")
         return xray.putTraceSegments(.init(traceSegmentDocuments: documents))
             .map { result in
                 if let unprocessedTraceSegments = result.unprocessedTraceSegments,
