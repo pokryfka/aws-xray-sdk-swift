@@ -11,11 +11,9 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-let xrayHttpEndpoint = env("XRAY_ENDPOINT") ?? "http://127.0.0.1:2000"
-let xrayUseUDP = env("XRAY_UDP") == "true"
-
-assert(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
-assert(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
+let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
+precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
+precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 defer {
@@ -28,10 +26,10 @@ defer {
 }
 
 let emitter: XRayEmitter
-if xrayUseUDP {
-    emitter = XRayUDPEmitter()
+if httpEmitter {
+    emitter = XRayHTTPEmitter()
 } else {
-    emitter = XRayHTTPEmitter(endpoint: xrayHttpEndpoint, httpClientProvider: .shared(httpClient))
+    emitter = XRayUDPEmitter()
 }
 
 let recorder = XRayRecorder()

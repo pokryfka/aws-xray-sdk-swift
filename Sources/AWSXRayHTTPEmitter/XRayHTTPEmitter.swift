@@ -11,8 +11,6 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-private let logLevel: Logger.Level = Logger.Level(rawValue: env("XRAY_RECORDER_LOG_LEVEL") ?? "info") ?? .info
-
 @available(*, deprecated)
 public typealias XRayEmmiter = XRayHTTPEmitter
 
@@ -21,13 +19,17 @@ public class XRayHTTPEmitter: XRayEmitter {
 
     private lazy var logger: Logger = {
         var logger = Logger(label: "net.pokryfka.xray_recorder.http")
-        logger.logLevel = logLevel
+        logger.logLevel = env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
         return logger
     }()
 
     var eventLoop: EventLoop { xray.client.eventLoopGroup.next() }
 
-    public init(endpoint: String? = nil, httpClientProvider: AWSClient.HTTPClientProvider = .createNew) {
+    public init(httpClientProvider: AWSClient.HTTPClientProvider = .createNew) {
+        let endpoint = env("AWS_XRAY_DAEMON_ADDRESS")
+        guard endpoint == nil || endpoint!.starts(with: "http") else {
+            preconditionFailure("Invalid AWS_XRAY_DAEMON_ADDRESS: \(endpoint!)")
+        }
         xray = XRay(endpoint: endpoint, httpClientProvider: httpClientProvider)
     }
 
@@ -50,6 +52,7 @@ public class XRayHTTPEmitter: XRayEmitter {
 
         logger.info("Sending \(documents.count) documents")
         logger.debug("\(documents.joined(separator: ",\n"))")
+        // TODO: check size
         return xray.putTraceSegments(.init(traceSegmentDocuments: documents))
             .map { result in
                 if let unprocessedTraceSegments = result.unprocessedTraceSegments,

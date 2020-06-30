@@ -12,7 +12,7 @@ Add a dependency using [Swift Package Manager](https://swift.org/package-manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.1.0")
+    .package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.2.1")
 ]
 ```
 
@@ -54,19 +54,19 @@ recorder.segment(name: "Segment 2") { segment in
 Create an instance of `XRayHTTPEmitter`:
 
 ```swift
-let emmiter = XRayHTTPEmitter()
+let emitter = XRayHTTPEmitter()
 ```
 
 or `XRayUDPEmitter`
 
 ```swift
-let emmiter = XRayUDPEmitter()
+let emitter = XRayUDPEmitter()
 ```
 
 send the segments:
 
 ```swift
-try emmiter.send(segments: recorder.removeAll()).wait()
+try emitter(segments: recorder.removeAll()).wait()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
@@ -118,13 +118,16 @@ See [`AWSXRayRecorderExampleSDK/main.swift`](./Sources/AWSXRayRecorderExampleSDK
 
 See [`AWSXRayRecorderExampleLambda/main.swift`](./Sources/AWSXRayRecorderExampleLambda/main.swift) for [AWS Lambda](https://aws.amazon.com/lambda/) function example.
 
-Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-template) for more examples and a template  for deploying Lambda functions.
+Enable tracing as described in [Using AWS Lambda with AWS X-Ray](https://docs.aws.amazon.com/lambda/latest/dg/services-xray.html)
+
+Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-template) for more examples and a template for deploying Lambda functions.
 
 ## Configuration
 
 The library’s behavior can be configured using environment variables:
 
 - `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+- `AWS_XRAY_DAEMON_ADDRESS` – the IP address and port of the X-Ray daemon, `127.0.0.1:2000` by default; prefix with `http` to use `HTTP` rather than `UDP`.
 
 ## References
 

@@ -10,14 +10,14 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     typealias Out = Void
 
     private let recorder = XRayRecorder()
-    private let emmiter = XRayUDPEmitter()
+    private let emitter = XRayUDPEmitter()
 
     private func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         eventLoop.submit { usleep(100_000) }.map { _ in }
     }
 
     private func sendXRaySegments() -> EventLoopFuture<Void> {
-        emmiter.send(segments: recorder.removeAll())
+        emitter.send(segments: recorder.removeAll())
     }
 
     func handle(context: Lambda.Context, event: In) -> EventLoopFuture<Void> {

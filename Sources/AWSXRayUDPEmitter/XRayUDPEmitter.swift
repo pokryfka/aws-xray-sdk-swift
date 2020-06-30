@@ -9,25 +9,40 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-private let logLevel: Logger.Level = Logger.Level(rawValue: env("XRAY_RECORDER_LOG_LEVEL") ?? "INFO") ?? .info
-
 /// # References
 /// - [Sending segment documents to the X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-daemon)
+/// - [Using AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
 public class XRayUDPEmitter: XRayEmitter {
-    public static let defaultAddress = try! SocketAddress(ipAddress: "127.0.0.1", port: 2000)
-
+    static let defaultAddress = try! SocketAddress(ipAddress: "127.0.0.1", port: 2000)
+    
     static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
 
     private let udpClient: UDPClient
 
     private lazy var logger: Logger = {
         var logger = Logger(label: "net.pokryfka.xray_recorder.udp")
-        logger.logLevel = logLevel
+        logger.logLevel = env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
         return logger
     }()
 
-    public init(address: SocketAddress = XRayUDPEmitter.defaultAddress) {
+    public init(address: SocketAddress) {
         udpClient = UDPClient(eventLoopGroupProvider: .createNew, address: address)
+    }
+    
+    public convenience init() {
+        if let endpoint = env("AWS_XRAY_DAEMON_ADDRESS") {
+            let ipPort = endpoint.split(separator: ":")
+            guard
+                ipPort.count == 2,
+                let port = Int(ipPort[1]),
+                let address = try? SocketAddress(ipAddress: String(ipPort[0]), port: port)
+            else {
+                preconditionFailure("Invalid AWS_XRAY_DAEMON_ADDRESS: \(endpoint)")
+            }
+            self.init(address: address)
+        } else {
+            self.init(address: XRayUDPEmitter.defaultAddress)
+        }
     }
 
     deinit {
@@ -40,6 +55,7 @@ public class XRayUDPEmitter: XRayEmitter {
 
     public func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {
         do {
+            // TODO: check size
             let string = "\(Self.segmentHeader)\(try segment.JSONString())"
             logger.info("Sending segment")
             logger.debug("\(string)")

@@ -8,21 +8,21 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-let xrayHttpEndpoint = env("XRAY_ENDPOINT") ?? "http://127.0.0.1:2000"
-let xrayUseUDP = env("XRAY_UDP") == "true"
-
-assert(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
-assert(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
-
+let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
+if httpEmitter {
+    precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
+    precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
+}
+    
 enum ExampleError: Error {
     case test
 }
 
 let emitter: XRayEmitter
-if xrayUseUDP {
-    emitter = XRayUDPEmitter()
+if httpEmitter {
+    emitter = XRayHTTPEmitter()
 } else {
-    emitter = XRayHTTPEmitter(endpoint: xrayHttpEndpoint)
+    emitter = XRayUDPEmitter()
 }
 
 let recorder = XRayRecorder()
@@ -48,6 +48,7 @@ recorder.segment(name: "Segment 2") { segment in
     }
 }
 
-try emitter.send(segments: recorder.removeAll()).wait()
+try emitter.send(segments: recorder.removeAll())
+    .wait()
 
 exit(0)
