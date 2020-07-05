@@ -56,7 +56,7 @@ extension XRayRecorder.TraceID {
 
     /// Creates new Trace ID.
     public init() {
-        let now = timeIntervalSince1970()
+        let now = Timestamp().secondsSinceEpoch
         date = String(format: "%08x", Int(now))
         identifier = Self.generateIdentifier()
     }

@@ -170,7 +170,7 @@ extension XRayRecorder {
             self.name = name
             id = Self.generateId()
             self.traceId = traceId
-            startTime = timeIntervalSince1970()
+            startTime = Timestamp().secondsSinceEpoch
             inProgress = true
             self.parentId = parentId
             type = subsegment && parentId != nil ? .subsegment : nil
@@ -210,7 +210,7 @@ extension XRayRecorder {
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment, ends subsegments if not ended.
     public func end() {
-        let now = timeIntervalSince1970()
+        let now = Timestamp().secondsSinceEpoch
         end(date: now)
     }
 
