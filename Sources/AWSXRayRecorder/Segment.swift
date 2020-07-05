@@ -1,5 +1,6 @@
 import AnyCodable
-import Foundation
+
+import struct Foundation.CharacterSet
 
 extension XRayRecorder {
     enum SegmentError: Error {
@@ -169,7 +170,7 @@ extension XRayRecorder {
             self.name = name
             id = Self.generateId()
             self.traceId = traceId
-            startTime = Date().timeIntervalSince1970
+            startTime = timeIntervalSince1970()
             inProgress = true
             self.parentId = parentId
             type = subsegment && parentId != nil ? .subsegment : nil
@@ -209,11 +210,12 @@ extension XRayRecorder {
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment, ends subsegments if not ended.
     public func end() {
-        let now = Date().timeIntervalSince1970
+        let now = timeIntervalSince1970()
         end(date: now)
     }
 
     func end(date: Double) {
+        // TODO: make recursion optional
         lock.withLockVoid {
             if endTime == nil {
                 endTime = date

@@ -1,4 +1,4 @@
-import Foundation
+import struct Foundation.CharacterSet
 
 extension XRayRecorder {
     enum TraceError: Error {
@@ -56,7 +56,7 @@ extension XRayRecorder.TraceID {
 
     /// Creates new Trace ID.
     public init() {
-        let now = Date().timeIntervalSince1970
+        let now = timeIntervalSince1970()
         date = String(format: "%08x", Int(now))
         identifier = Self.generateIdentifier()
     }
