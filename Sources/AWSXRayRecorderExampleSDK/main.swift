@@ -3,7 +3,6 @@ import AWSS3
 import AWSXRayHTTPEmitter
 import AWSXRayRecorder
 import AWSXRayRecorderSDK
-import AWSXRayUDPEmitter
 import NIO
 
 func env(_ name: String) -> String? {
@@ -25,14 +24,12 @@ defer {
     try? httpClient.syncShutdown()
 }
 
-let emitter: XRayEmitter
+let recorder: XRayRecorder
 if httpEmitter {
-    emitter = XRayHTTPEmitter()
+    recorder = XRayRecorder(emitter: XRayHTTPEmitter())
 } else {
-    emitter = XRayUDPEmitter()
+    recorder = XRayRecorder()
 }
-
-let recorder = XRayRecorder()
 
 // TODO: WIP
 
@@ -59,7 +56,7 @@ let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
 
 try aFuture.and(s3futures)
     .flatMap { _ in
-        emitter.send(segments: recorder.removeAll())
+        recorder.flush()
     }.wait()
 
 exit(0)

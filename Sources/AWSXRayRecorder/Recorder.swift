@@ -1,10 +1,13 @@
 import NIO
 
+// TODO: document
 // TODO: add callbacks to notify emmiter that there are segments ready to be emmited
 
 /// # References
 /// - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 public class XRayRecorder {
+    private let config = Config()
+
     private let lock = Lock()
 
     private var _traceId = TraceID()
@@ -15,7 +18,15 @@ public class XRayRecorder {
         set { lock.withLockVoid { _traceId = newValue } }
     }
 
-    public init() {}
+    private let emitter: XRayEmitter
+
+    public init(emitter: XRayEmitter) {
+        self.emitter = emitter
+    }
+
+    public init() {
+        emitter = XRayUDPEmitter(endpoint: config.daemonAddress)
+    }
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
@@ -37,6 +48,11 @@ public class XRayRecorder {
     public func beginSubsegment(name: String, parentId: String,
                                 aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
+    }
+
+    public func flush() -> EventLoopFuture<Void> {
+        let segments = removeAll()
+        return emitter.send(segments: segments)
     }
 
     public var allSegments: [Segment] {

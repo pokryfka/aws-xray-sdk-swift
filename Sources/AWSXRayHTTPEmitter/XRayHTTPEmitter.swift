@@ -6,13 +6,10 @@ import NIO
 
 // TODO: retry, test retry policy in XRay HTTP client
 
-func env(_ name: String) -> String? {
+private func env(_ name: String) -> String? {
     guard let value = getenv(name) else { return nil }
     return String(cString: value)
 }
-
-@available(*, deprecated)
-public typealias XRayEmmiter = XRayHTTPEmitter
 
 public class XRayHTTPEmitter: XRayEmitter {
     private let xray: XRay
@@ -23,7 +20,7 @@ public class XRayHTTPEmitter: XRayEmitter {
         return logger
     }()
 
-    var eventLoop: EventLoop { xray.client.eventLoopGroup.next() }
+    public var eventLoop: EventLoop { xray.client.eventLoopGroup.next() }
 
     public init(httpClientProvider: AWSClient.HTTPClientProvider = .createNew) {
         let endpoint = env("AWS_XRAY_DAEMON_ADDRESS")

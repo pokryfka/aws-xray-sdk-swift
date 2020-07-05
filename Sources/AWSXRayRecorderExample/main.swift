@@ -1,28 +1,8 @@
-import AWSXRayHTTPEmitter
 import AWSXRayRecorder
-import AWSXRayUDPEmitter
 import NIO
 
-func env(_ name: String) -> String? {
-    guard let value = getenv(name) else { return nil }
-    return String(cString: value)
-}
-
-let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
-if httpEmitter {
-    precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
-    precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
-}
-    
 enum ExampleError: Error {
     case test
-}
-
-let emitter: XRayEmitter
-if httpEmitter {
-    emitter = XRayHTTPEmitter()
-} else {
-    emitter = XRayUDPEmitter()
 }
 
 let recorder = XRayRecorder()
@@ -48,7 +28,6 @@ recorder.segment(name: "Segment 2") { segment in
     }
 }
 
-try emitter.send(segments: recorder.removeAll())
-    .wait()
+try recorder.flush().wait()
 
 exit(0)

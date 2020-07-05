@@ -1,10 +1,9 @@
-import AWSXRayRecorder
 import Logging
 import NIO
 
 // TODO: retry if failed to emit, log serialization errors
 
-func env(_ name: String) -> String? {
+private func env(_ name: String) -> String? {
     guard let value = getenv(name) else { return nil }
     return String(cString: value)
 }
@@ -12,12 +11,14 @@ func env(_ name: String) -> String? {
 /// # References
 /// - [Sending segment documents to the X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-daemon)
 /// - [Using AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
-public class XRayUDPEmitter: XRayEmitter {
+internal class XRayUDPEmitter: XRayEmitter {
     static let defaultAddress = try! SocketAddress(ipAddress: "127.0.0.1", port: 2000)
-    
+
     static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
 
     private let udpClient: UDPClient
+
+    var eventLoop: EventLoop { udpClient.eventLoop }
 
     private lazy var logger: Logger = {
         var logger = Logger(label: "net.pokryfka.xray_recorder.udp")
@@ -25,12 +26,12 @@ public class XRayUDPEmitter: XRayEmitter {
         return logger
     }()
 
-    public init(address: SocketAddress) {
+    init(address: SocketAddress) {
         udpClient = UDPClient(eventLoopGroupProvider: .createNew, address: address)
     }
-    
-    public convenience init() {
-        if let endpoint = env("AWS_XRAY_DAEMON_ADDRESS") {
+
+    convenience init(endpoint: String?) {
+        if let endpoint = endpoint {
             let ipPort = endpoint.split(separator: ":")
             guard
                 ipPort.count == 2,
@@ -53,7 +54,7 @@ public class XRayUDPEmitter: XRayEmitter {
         }
     }
 
-    public func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {
+    func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {
         do {
             // TODO: check size
             let string = "\(Self.segmentHeader)\(try segment.JSONString())"
@@ -67,7 +68,7 @@ public class XRayUDPEmitter: XRayEmitter {
         }
     }
 
-    public func send(segments: [XRayRecorder.Segment]) -> EventLoopFuture<Void> {
+    func send(segments: [XRayRecorder.Segment]) -> EventLoopFuture<Void> {
         guard segments.isEmpty == false else {
             return udpClient.eventLoop.makeSucceededFuture(())
         }

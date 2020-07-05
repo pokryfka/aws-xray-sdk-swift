@@ -49,24 +49,10 @@ recorder.segment(name: "Segment 2") { segment in
 }
 ```
 
-### Emitting
-
-Create an instance of `XRayHTTPEmitter`:
+Make sure all segments are sent before program exits.
 
 ```swift
-let emitter = XRayHTTPEmitter()
-```
-
-or `XRayUDPEmitter`
-
-```swift
-let emitter = XRayUDPEmitter()
-```
-
-send the segments:
-
-```swift
-try emitter(segments: recorder.removeAll()).wait()
+try recorder.flush().wait()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
@@ -126,6 +112,7 @@ Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-t
 
 The library’s behavior can be configured using environment variables:
 
+- `AWS_XRAY_TRACING_ENABLED`: set `false` to disable tracing, enabled by default.
 - `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
 - `AWS_XRAY_DAEMON_ADDRESS` – the IP address and port of the X-Ray daemon, `127.0.0.1:2000` by default; prefix with `http` to use `HTTP` rather than `UDP`.
 

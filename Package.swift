@@ -12,7 +12,6 @@ let package = Package(
         .library(name: "AWSXRayRecorderLambda", targets: ["AWSXRayRecorderLambda"]),
         .library(name: "AWSXRayRecorderSDK", targets: ["AWSXRayRecorderSDK"]),
         .library(name: "AWSXRayHTTPEmitter", targets: ["AWSXRayHTTPEmitter"]),
-        .library(name: "AWSXRayUDPEmitter", targets: ["AWSXRayUDPEmitter"]),
         // Examples
         .executable(name: "AWSXRayRecorderExample", targets: ["AWSXRayRecorderExample"]),
         .executable(name: "AWSXRayRecorderExampleSDK", targets: ["AWSXRayRecorderExampleSDK"]),
@@ -33,6 +32,7 @@ let package = Package(
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
+                .product(name: "Logging", package: "swift-log"),
                 .product(name: "AnyCodable", package: "AnyCodable"),
             ]
         ),
@@ -60,15 +60,6 @@ let package = Package(
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
             ]
         ),
-        .target(
-            name: "AWSXRayUDPEmitter",
-            dependencies: [
-                .byName(name: "AWSXRayRecorder"),
-                .product(name: "Logging", package: "swift-log"),
-                .product(name: "NIO", package: "swift-nio"),
-                .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
-            ]
-        ),
         .testTarget(
             name: "AWSXRayRecorderTests",
             dependencies: ["AWSXRayRecorder"]
@@ -79,7 +70,6 @@ let package = Package(
             dependencies: [
                 .byName(name: "AWSXRayRecorder"),
                 .byName(name: "AWSXRayHTTPEmitter"),
-                .byName(name: "AWSXRayUDPEmitter"),
             ]
         ),
         .target(
@@ -87,7 +77,6 @@ let package = Package(
             dependencies: [
                 .byName(name: "AWSXRayRecorderSDK"),
                 .byName(name: "AWSXRayHTTPEmitter"),
-                .byName(name: "AWSXRayUDPEmitter"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
@@ -96,7 +85,6 @@ let package = Package(
             name: "AWSXRayRecorderExampleLambda",
             dependencies: [
                 .byName(name: "AWSXRayRecorderLambda"),
-                .byName(name: "AWSXRayUDPEmitter"),
                 .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
             ]
