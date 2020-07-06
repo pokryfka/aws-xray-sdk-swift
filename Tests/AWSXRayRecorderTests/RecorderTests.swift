@@ -27,9 +27,6 @@ final class AWSXRayRecorderTests: XCTestCase {
 
     func testRecordingOneSegmentClosure() {
         let recorder = XRayRecorder(emitter: emitter)
-        defer {
-            try? recorder.flush().wait()
-        }
 
         let segmentName = UUID().uuidString
         let segmentParentId = Segment.generateId()

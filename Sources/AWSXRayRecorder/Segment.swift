@@ -14,12 +14,10 @@ extension XRayRecorder {
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     public class Segment: Encodable {
-        enum AnnotationValue {
-            case string(String)
-            case int(Int)
-            case float(Float)
-            case bool(Bool)
-        }
+        // TODO: make strong type
+        typealias ID = String
+
+        typealias Callback = ((ID) -> Void)
 
         enum SegmentType: String, Encodable {
             case subsegment
@@ -46,7 +44,7 @@ extension XRayRecorder {
         /// X-Ray indexes up to 50 annotations per trace.
         ///
         /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
-        typealias Annotations = [String: AnnotationValue]
+        internal typealias Annotations = [String: AnnotationValue]
 
         /// Segments and subsegments can include a metadata object containing one or more fields with values of any type, including objects and arrays.
         /// X-Ray does not index metadata, and values can be any size, as long as the segment document doesn't exceed the maximum size (64 kB).
@@ -56,15 +54,17 @@ extension XRayRecorder {
 
         internal let lock = Lock()
 
+        private let callback: Callback?
+
         // MARK: Required Segment Fields
+
+        /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
+        let id: ID = Segment.generateId()
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
         let name: String
-
-        /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        let id: String
 
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
@@ -165,10 +165,10 @@ extension XRayRecorder {
             name: String, traceId: TraceID, parentId: String?, subsegment: Bool,
             service: Service? = nil, user: String? = nil,
             origin _: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
-            annotations: Annotations? = nil, metadata: Metadata? = nil
+            annotations: Annotations? = nil, metadata: Metadata? = nil,
+            callback: Callback? = nil
         ) {
             self.name = name
-            id = Self.generateId()
             self.traceId = traceId
             startTime = Timestamp().secondsSinceEpoch
             inProgress = true
@@ -180,6 +180,7 @@ extension XRayRecorder {
             _aws = aws
             self.annotations = annotations
             self.metadata = metadata
+            self.callback = callback
         }
 
         enum CodingKeys: String, CodingKey {
@@ -220,8 +221,10 @@ extension XRayRecorder.Segment {
             if endTime == nil {
                 endTime = date
             }
-            let date = endTime ?? date
-            subsegments?.forEach { $0.end(date: date) }
+            callback?(id)
+//            delegate?.didEnd(id: id)
+//            let date = endTime ?? date
+//            subsegments?.forEach { $0.end(date: date) }
         }
     }
 }
@@ -278,7 +281,14 @@ extension XRayRecorder.Segment {
 // MARK: Annotations and Metadata
 
 extension XRayRecorder.Segment {
-    func setAnnotations(_ newElements: Annotations) {
+    internal enum AnnotationValue {
+        case string(String)
+        case int(Int)
+        case float(Float)
+        case bool(Bool)
+    }
+
+    private func setAnnotations(_ newElements: Annotations) {
         lock.withLock {
             if (annotations?.count ?? 0) > 0 {
                 for (k, v) in newElements {
@@ -341,7 +351,8 @@ extension XRayRecorder.Segment {
     public func beginSubsegment(name: String) -> XRayRecorder.Segment {
         lock.withLock {
             let newSegment = XRayRecorder.Segment(
-                name: name, traceId: traceId, parentId: id, subsegment: true
+                name: name, traceId: traceId, parentId: id, subsegment: true,
+                callback: callback
             )
             if (subsegments?.count ?? 0) > 0 {
                 subsegments?.append(newSegment)

@@ -1,10 +1,11 @@
-import NIO
-
-// TODO: remove NIO from the public interface?
-// TODO: implement noop emitter?
+// TODO: document
 
 public protocol XRayEmitter {
-    var eventLoop: EventLoop { get }
-    func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void>
-    func send(segments: [XRayRecorder.Segment]) -> EventLoopFuture<Void>
+    func send(_ segment: XRayRecorder.Segment)
+    func flush(_ callback: @escaping (Error?) -> Void)
+}
+
+public struct XRayNoopEmitter: XRayEmitter {
+    public func send(_: XRayRecorder.Segment) {}
+    public func flush(_: @escaping (Error?) -> Void) {}
 }

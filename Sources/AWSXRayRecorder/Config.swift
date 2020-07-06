@@ -6,11 +6,15 @@ private func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-extension XRayRecorder {
+internal extension XRayRecorder {
+    struct Config {
+        let logLevel: Logger.Level = env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .debug
+    }
+}
+
+internal extension XRayUDPEmitter {
     struct Config {
         let logLevel: Logger.Level = env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
-        let daemonAddress: String? = env("AWS_XRAY_DAEMON_ADDRESS")
-
-        init() {}
+        let daemonEndpoint: String = env("AWS_XRAY_DAEMON_ADDRESS") ?? "127.0.0.1:2000"
     }
 }

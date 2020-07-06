@@ -63,4 +63,12 @@ public class XRayHTTPEmitter: XRayEmitter {
                 self.logger.error("Failed to send documents: \(error)")
             }
     }
+
+    public func send(_ segment: XRayRecorder.Segment) {
+        _ = send(segment: segment)
+    }
+
+    public func flush(_: @escaping (Error?) -> Void) {
+        // TODO: impl
+    }
 }
