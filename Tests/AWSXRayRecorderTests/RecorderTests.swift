@@ -6,8 +6,10 @@ import XCTest
 private typealias Segment = XRayRecorder.Segment
 
 final class AWSXRayRecorderTests: XCTestCase {
+    let emitter = XRayUDPEmitter() // TODO: create noop emitter
+
     func testRecordingOneSegment() {
-        let recorder = XRayRecorder()
+        let recorder = XRayRecorder(emitter: emitter)
 
         let segmentName = UUID().uuidString
         let segmentParentId = Segment.generateId()
@@ -24,7 +26,10 @@ final class AWSXRayRecorderTests: XCTestCase {
     }
 
     func testRecordingOneSegmentClosure() {
-        let recorder = XRayRecorder()
+        let recorder = XRayRecorder(emitter: emitter)
+        defer {
+            try? recorder.flush().wait()
+        }
 
         let segmentName = UUID().uuidString
         let segmentParentId = Segment.generateId()
