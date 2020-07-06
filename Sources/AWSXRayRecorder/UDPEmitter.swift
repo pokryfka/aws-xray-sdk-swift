@@ -1,4 +1,5 @@
 import Logging
+import Dispatch // TODO: move to Lock
 import NIO
 
 // TODO: retry if failed to emit, log serialization errors
@@ -47,11 +48,14 @@ internal class XRayUDPEmitter: XRayEmitter {
     }
 
     deinit {
+        let semaphore = DispatchSemaphore(value: 0)        
         udpClient.shutdown { error in
             if let error = error {
                 self.logger.error("Failed to shutdown: \(error)")
             }
+            semaphore.signal()
         }
+        semaphore.wait()
     }
 
     func send(segment: XRayRecorder.Segment) -> EventLoopFuture<Void> {
