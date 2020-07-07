@@ -11,19 +11,13 @@ public class XRayRecorder {
 
     private lazy var logger = Logger(label: "net.pokryfka.xray_recorder.recorder")
 
-    private let lock = Lock()
+    @Synchronized var traceId = TraceID()
 
-    private var _traceId = TraceID()
-
-    public var traceId: TraceID {
-        get { lock.withLock { _traceId } }
-        set { lock.withLockVoid { _traceId = newValue } }
-    }
-
+    private let segmentsLock = Lock()
     private var _segments = [Segment.ID: Segment]()
 
     public var allSegments: [Segment] {
-        lock.withLock { Array(self._segments.values) }
+        segmentsLock.withLock { Array(self._segments.values) }
     }
 
     private let emitter: XRayEmitter
@@ -45,7 +39,7 @@ public class XRayRecorder {
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        lock.withLock {
+        segmentsLock.withLock {
             let callback: Segment.Callback = { [weak self] id, state in
                 guard let self = self else { return }
                 guard case .ended = state else { return }
@@ -56,7 +50,7 @@ public class XRayRecorder {
                 }
             }
             let newSegment = Segment(
-                name: name, traceId: _traceId, parentId: parentId, subsegment: subsegment,
+                name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
                 aws: aws, metadata: metadata,
                 callback: callback
             )
@@ -85,7 +79,7 @@ public class XRayRecorder {
     }
 
     private func emit(segment id: Segment.ID) {
-        lock.withLockVoid {
+        segmentsLock.withLockVoid {
             // find the segment
             guard let segment = _segments.removeValue(forKey: id) else {
                 logger.debug("Segment \(id) parent has not been sent")
