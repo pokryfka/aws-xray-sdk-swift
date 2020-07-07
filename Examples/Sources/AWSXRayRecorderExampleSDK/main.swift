@@ -29,8 +29,8 @@ let recorder = XRayRecorder(eventLoopGroup: group)
 
 // TODO: WIP
 
-let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-            httpClientProvider: .shared(httpClient))
+let awsClient = AWSClient(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")], httpClientProvider: .shared(httpClient))
+let s3 = S3(client: awsClient)
 
 let aFuture = recorder.segment(name: "Segment 1") {
     group.next().submit { usleep(100_000) }.map { _ in }
