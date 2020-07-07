@@ -1,11 +1,10 @@
-// import Dispatch
 import Logging
 import NIO
 
 /// # References
 /// - [Sending segment documents to the X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-daemon)
 /// - [Using AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
-internal class XRayUDPEmitter: XRayEmitter {
+internal class XRayUDPEmitter: XRayNIOEmitter {
     static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
 
     private let config: Config
@@ -29,14 +28,11 @@ internal class XRayUDPEmitter: XRayEmitter {
     }
 
     deinit {
-        // let semaphore = DispatchSemaphore(value: 0)
         udpClient.shutdown { error in
             if let error = error {
                 self.logger.error("Failed to shutdown: \(error)")
             }
-            // semaphore.signal()
         }
-        // semaphore.wait()
     }
 
     func send(_ segment: XRayRecorder.Segment) {

@@ -31,12 +31,12 @@ public class XRayRecorder {
         logger.logLevel = config.logLevel
     }
 
-    public convenience init(config: Config = Config()) {
+    public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
         if !config.enabled {
             self.init(emitter: XRayNoopEmitter(), config: config)
         } else {
             do {
-                let emitter = try XRayUDPEmitter(config: .init(config))
+                let emitter = try XRayUDPEmitter(config: .init(config), eventLoopGroup: eventLoopGroup)
                 self.init(emitter: emitter, config: config)
             } catch {
                 preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
@@ -84,12 +84,26 @@ public class XRayRecorder {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
     }
 
-    public func flush() /* -> EventLoopFuture<Void> */ {
-        // TODO: provide a non blocking method with a future
+    public func wait() {
         // wait for all the segments to be passed to the emitter
         emitGroup.wait()
         // wait for the emitter to send them
         emitter.flush { _ in }
+    }
+
+    // TODO: test test test
+    public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+        // wait for all the segments to be passed to the emitter
+        emitGroup.wait()
+        // wait for the emitter to send them
+        if let nioEmitter = emitter as? XRayNIOEmitter {
+            return nioEmitter.flush(on: eventLoop)
+        } else {
+            return eventLoop.submit {
+                // TODO: pass error
+                self.emitter.flush { _ in }
+            }
+        }
     }
 
     private func emit(segment id: Segment.ID) {

@@ -13,17 +13,20 @@ func env(_ name: String) -> String? {
 precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
 precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
+// share the event loop group
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 defer {
     try? group.syncShutdownGracefully()
 }
 
-let httpClient = HTTPClient(eventLoopGroupProvider: .shared(group.next()))
+let eventLoop = group.next()
+
+let httpClient = HTTPClient(eventLoopGroupProvider: .shared(eventLoop))
 defer {
     try? httpClient.syncShutdown()
 }
 
-let recorder = XRayRecorder()
+let recorder = XRayRecorder(eventLoopGroup: group)
 
 // TODO: WIP
 
@@ -50,6 +53,6 @@ let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
 
 _ = try aFuture.and(s3futures).wait()
 
-recorder.flush()
+try recorder.flush(on: eventLoop).wait()
 
 exit(0)

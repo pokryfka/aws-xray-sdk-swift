@@ -1,22 +1,23 @@
 import AWSXRayRecorder
-import NIO
+import NIO // usleep
 
 enum ExampleError: Error {
     case test
 }
 
-let recorder = XRayRecorder()
+let recorder = XRayRecorder(config: .init(logLevel: .debug, serviceVersion: "aws-xray-sdk-example"))
 
 // begin and end (sub)segments explicitly
 let segment = recorder.beginSegment(name: "Segment 1")
 segment.setAnnotation("zip_code", value: 98101)
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 usleep(100_000)
-let subsegment = segment.beginSubsegment(name: "Subsegment 1.1 async")
+_ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
+let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 segment.end()
 
-usleep(100_000)
 // ending after parent
+usleep(100_000)
 subsegment.end()
 
 // use closures for convenience
@@ -33,9 +34,6 @@ recorder.segment(name: "Segment 2") { segment in
     }
 }
 
-// try recorder.flush().wait()
-recorder.flush()
-
-// sleep(5)
+recorder.wait()
 
 exit(0)
