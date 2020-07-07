@@ -29,3 +29,16 @@ jobs:
       run: brew install swiftformat
     - name: Run lint
       run: swiftformat --lint .
+  
+  examples:
+
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Examples
+      run: swift build -v
+      working-directory: ./Examples
