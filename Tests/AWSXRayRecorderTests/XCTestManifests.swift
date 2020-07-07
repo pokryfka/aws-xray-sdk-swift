@@ -67,7 +67,6 @@ extension TimestampTests {
     // to regenerate.
     static let __allTests__TimestampTests = [
         ("testTimestampAgainstFoundation", testTimestampAgainstFoundation),
-        ("testTimestampEncoding", testTimestampEncoding),
     ]
 }
 
