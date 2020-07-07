@@ -1,6 +1,5 @@
 import AsyncHTTPClient
 import AWSS3
-import AWSXRayHTTPEmitter
 import AWSXRayRecorder
 import AWSXRayRecorderSDK
 import NIO
