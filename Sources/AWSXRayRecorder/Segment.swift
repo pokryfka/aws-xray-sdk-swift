@@ -1,8 +1,5 @@
 import AnyCodable
 
-// TODO: remove dependency on Foundation
-import struct Foundation.CharacterSet
-
 private typealias SegmentError = XRayRecorder.SegmentError
 
 extension XRayRecorder {
@@ -454,30 +451,4 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
             try container.encode(value)
         }
     }
-}
-
-// MARK: - Id
-
-extension XRayRecorder.Segment {
-    /// - returns: A 64-bit identifier for the segment, unique among segments in the same trace, in 16 hexadecimal digits.
-    static func generateId() -> String {
-        String(format: "%llx", UInt64.random(in: UInt64.min ... UInt64.max) | 1 << 63)
-    }
-}
-
-// MARK: - Validation
-
-extension XRayRecorder.Segment {
-    static func validateId(_ string: String) throws -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
-        guard
-            string.count == 16,
-            string.rangeOfCharacter(from: invalidCharacters) == nil
-        else {
-            throw XRayRecorder.SegmentError.invalidID(string)
-        }
-        return string
-    }
-
-    // TODO: validate name
 }
