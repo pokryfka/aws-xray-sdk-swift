@@ -17,8 +17,8 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     func handle(context: Lambda.Context, event: In) -> EventLoopFuture<Void> {
         recorder.segment(name: "ExampleLambdaHandler", context: context) {
             self.doWork(on: context.eventLoop)
-        }.always { _ in
-            self.recorder.flush()
+        }.flatMap {
+            self.recorder.flush(on: context.eventLoop)
         }
     }
 }
