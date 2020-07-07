@@ -7,7 +7,7 @@ import NIO
 /// # References
 /// - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 public class XRayRecorder {
-    private let config = Config()
+    private let config: Config
 
     private lazy var logger = Logger(label: "net.pokryfka.xray_recorder.recorder")
 
@@ -21,22 +21,39 @@ public class XRayRecorder {
     private let emitQueue = DispatchQueue(label: "net.pokryfka.xray_recorder.recorder.emit") // TODO: unique name?
     private let emitGroup = DispatchGroup()
 
-    public init(emitter: XRayEmitter) {
-        self.emitter = emitter
+    public init(emitter: XRayEmitter, config: Config = Config()) {
+        self.config = config
+        if !config.enabled {
+            self.emitter = XRayNoopEmitter()
+        } else {
+            self.emitter = emitter
+        }
         logger.logLevel = config.logLevel
     }
 
-    public init() {
-        do {
-            emitter = try XRayUDPEmitter()
-            logger.logLevel = config.logLevel
-        } catch {
-            preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
+    public convenience init(config: Config = Config()) {
+        if !config.enabled {
+            self.init(emitter: XRayNoopEmitter(), config: config)
+        } else {
+            do {
+                let emitter = try XRayUDPEmitter(config: .init(config))
+                self.init(emitter: emitter, config: config)
+            } catch {
+                preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
+            }
         }
     }
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+        guard config.enabled else {
+            return Segment(
+                name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
+                aws: aws, metadata: metadata,
+                callback: nil
+            )
+        }
+
         let callback: Segment.StateChangeCallback = { [weak self] id, state in
             guard let self = self else { return }
             guard case .ended = state else { return }
@@ -48,6 +65,7 @@ public class XRayRecorder {
         }
         let newSegment = Segment(
             name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
+            service: .init(version: config.serviceVersion),
             aws: aws, metadata: metadata,
             callback: callback
         )
