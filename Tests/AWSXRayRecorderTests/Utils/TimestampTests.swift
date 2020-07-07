@@ -27,11 +27,12 @@ final class TimestampTests: XCTestCase {
         assert(seconds: timestamp.secondsSinceEpoch, after: after, before: before)
     }
 
-    func assert(seconds: Double?, after: Date, before: Date) {
+    func assert(seconds: Double?, after: Date, before: Date, decimals: UInt = 4) {
+        let n = pow(10.0, Double(decimals))
         let seconds = seconds ?? 0
         let afterSeconds = after.timeIntervalSince1970
         let beforeSeconds = before.timeIntervalSince1970
-        XCTAssertLessThanOrEqual(UInt(beforeSeconds * 1_000_000), UInt(seconds * 1_000_000))
-        XCTAssertGreaterThanOrEqual(UInt(afterSeconds * 1_000_000), UInt(seconds * 1_000_000))
+        XCTAssertLessThanOrEqual(UInt64(beforeSeconds * n), UInt64(seconds * n))
+        XCTAssertGreaterThanOrEqual(UInt64(afterSeconds * n), UInt64(seconds * n))
     }
 }
