@@ -83,3 +83,9 @@ extension XRayRecorder.Segment {
         }
     }
 }
+
+extension XRayRecorder.Segment {
+    public func setAWS(_ aws: AWS) {
+        self.aws = aws
+    }
+}

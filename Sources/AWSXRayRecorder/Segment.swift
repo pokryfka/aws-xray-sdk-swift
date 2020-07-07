@@ -34,18 +34,9 @@ extension XRayRecorder {
         }
 
         /// An object with information about your application.
-        struct Service: Encodable {
+        internal struct Service: Encodable {
             /// A string that identifies the version of your application that served the request.
             let version: String
-        }
-
-        struct Exception: Encodable {
-            /// A 64-bit identifier for the exception, unique among segments in the same trace, in **16 hexadecimal digits**.
-            let id: String
-            /// The exception message.
-            var message: String?
-
-            // TODO: other optional attributes
         }
 
         /// Segments and subsegments can include an annotations object containing one or more fields that
@@ -135,37 +126,37 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
-        let parentId: String?
+        private let parentId: String?
 
         /// An object with information about your application.
-        private var _service: Service?
+        private let service: Service?
 
         /// A string that identifies the user who sent the request.
-        private var _user: String?
+        private let user: String?
 
         /// The type of AWS resource running your application.
-        private var _origin: Origin?
+        @Synchronized internal var origin: Origin?
 
         /// http objects with information about the original HTTP request.
-        private var _http: HTTP?
+        @Synchronized internal var http: HTTP?
 
         /// aws object with information about the AWS resource on which your application served the request
-        private var _aws: AWS?
+        @Synchronized internal var aws: AWS?
 
         /// **boolean** indicating that a client error occurred (response status code was 4XX Client Error).
-        private var error: Bool?
+        private var _error: Bool?
         /// **boolean** indicating that a request was throttled (response status code was 429 Too Many Requests).
-        private var throttle: Bool?
+        private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
-        private var fault: Bool?
+        private var _fault: Bool?
         /// the exception that caused the error.
-        private var cause: Exception?
+        private var _cause: Exception?
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
-        private var annotations: Annotations?
+        private var _annotations: Annotations?
 
         /// metadata object with any additional data that you want to store in the segment.
-        private var metadata: Metadata?
+        private var _metadata: Metadata?
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment]?
@@ -173,10 +164,10 @@ extension XRayRecorder {
         // MARK: Optional Subsegment Fields
 
         /// `aws` for AWS SDK calls; `remote` for other downstream calls.
-        private var namespace: Namespace?
+        @Synchronized internal var namespace: Namespace?
 
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
-        private var precursorIDs: [String]?
+        private let precursorIDs: [String]? = nil
 
         init(
             name: String, traceId: TraceID, parentId: String?, subsegment: Bool,
@@ -189,15 +180,16 @@ extension XRayRecorder {
             self.traceId = traceId
             self.parentId = parentId
             type = subsegment && parentId != nil ? .subsegment : nil
-            _service = service
-            _user = user
-            _http = http
-            _aws = aws
-            self.annotations = annotations
-            self.metadata = metadata
+            self.service = service
+            self.user = user
+            self.http = http
+            self.aws = aws
+            self._annotations = annotations
+            self._metadata = metadata
             self.callback = callback
         }
 
+        // TODO: create custom encoder?
         enum CodingKeys: String, CodingKey {
             case name
             case id
@@ -207,13 +199,17 @@ extension XRayRecorder {
             case inProgress = "in_progress"
             case type
             case parentId = "parent_id"
-            case _service = "service"
-            case _user = "user"
-            case _origin = "origin"
-            case _http = "http"
-            case _aws = "aws"
-            case error, throttle, fault, cause
-            case annotations, metadata
+            case service
+            case user
+            case origin
+            case http
+            case aws
+            case _error = "error"
+            case _throttle = "throttle"
+            case _fault = "fault"
+            case _cause = "cause"
+            case _annotations = "annotations"
+            case _metadata
             case _subsegments = "subsegments"
             case namespace
             case precursorIDs = "precursor_ids"
@@ -319,41 +315,51 @@ extension XRayRecorder.Segment {
     }
 }
 
-// MARK: HTTP request data
+// MARK: - Errors and exceptions
 
 extension XRayRecorder.Segment {
-    public func setHTTP(_ http: HTTP) {
-        lock.withLock {
-            _http = http
-            if type == .some(.subsegment), let url = http.request?.url {
-                namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+    internal enum HTTPError: Error {
+        /// client error occurred (response status code was 4XX Client Error)
+        case client(statusCode: UInt, cause: Exception?)
+        /// request was throttled (response status code was 429 Too Many Requests)
+        case throttle(cause: Exception?)
+        /// server error occurred (response status code was 5XX Server Error)
+        case server(statusCode: UInt, cause: Exception?)
+
+        init?(statusCode: UInt) {
+            switch statusCode {
+            case 429:
+                self = .throttle(cause: nil)
+            case 400 ..< 500:
+                self = .client(statusCode: statusCode, cause: nil)
+            case 500 ..< 600:
+                self = .server(statusCode: statusCode, cause: nil)
+            default:
+                return nil
             }
-            if let code = http.response?.status {
-                if code >= 400, code < 600 {
-                    error = true
-                }
-                if code == 429 {
-                    throttle = true
-                }
-                if code >= 500, code < 600 {
-                    fault = true
-                }
+        }
+
+        var cause: Exception? {
+            switch self {
+            case .client(_, let cause):
+                return cause
+            case .throttle(let cause):
+                return cause
+            case .server(_, let cause):
+                return cause
             }
         }
     }
-}
 
-// MARK: AWS resource data
+    internal struct Exception: Encodable {
+        /// A 64-bit identifier for the exception, unique among segments in the same trace, in **16 hexadecimal digits**.
+        let id: String
+        /// The exception message.
+        var message: String?
 
-extension XRayRecorder.Segment {
-    public func setAWS(_ aws: AWS) {
-        lock.withLock {
-            _aws = aws
-        }
+        // TODO: other optional attributes
     }
 }
-
-// MARK: Errors and exceptions
 
 extension XRayRecorder.Segment {
     public func setError(_ error: Error) {
@@ -362,13 +368,28 @@ extension XRayRecorder.Segment {
             message: "\(error)"
         )
         lock.withLockVoid {
-            self.error = true
-            cause = exception
+            self._error = true
+            _cause = exception
+        }
+    }
+
+    internal func setError(_ httpError: HTTPError) {
+        lock.withLockVoid {
+            _error = true
+            _cause = httpError.cause
+            switch httpError {
+            case .throttle:
+                _throttle = true
+            case .server:
+                _fault = true
+            default:
+                break
+            }
         }
     }
 }
 
-// MARK: Annotations and Metadata
+// MARK: - Annotations and Metadata
 
 extension XRayRecorder.Segment {
     internal enum AnnotationValue {
@@ -380,12 +401,12 @@ extension XRayRecorder.Segment {
 
     private func setAnnotations(_ newElements: Annotations) {
         lock.withLock {
-            if (annotations?.count ?? 0) > 0 {
+            if (_annotations?.count ?? 0) > 0 {
                 for (k, v) in newElements {
-                    annotations?.updateValue(v, forKey: k)
+                    _annotations?.updateValue(v, forKey: k)
                 }
             } else {
-                annotations = newElements
+                _annotations = newElements
             }
         }
     }
@@ -408,12 +429,12 @@ extension XRayRecorder.Segment {
 
     public func setMetadata(_ newElements: Metadata) {
         lock.withLock {
-            if (metadata?.count ?? 0) > 0 {
+            if (_metadata?.count ?? 0) > 0 {
                 for (k, v) in newElements {
-                    metadata?.updateValue(v, forKey: k)
+                    _metadata?.updateValue(v, forKey: k)
                 }
             } else {
-                metadata = newElements
+                _metadata = newElements
             }
         }
     }
@@ -435,7 +456,7 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
     }
 }
 
-// MARK: Id
+// MARK: - Id
 
 extension XRayRecorder.Segment {
     /// - returns: A 64-bit identifier for the segment, unique among segments in the same trace, in 16 hexadecimal digits.
@@ -444,7 +465,7 @@ extension XRayRecorder.Segment {
     }
 }
 
-// MARK: Validation
+// MARK: - Validation
 
 extension XRayRecorder.Segment {
     static func validateId(_ string: String) throws -> String {

@@ -17,3 +17,10 @@ struct Synchronized<Value> {
         _value
     }
 }
+
+extension Synchronized: Encodable where Value: Encodable {
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(wrappedValue)
+    }
+}
