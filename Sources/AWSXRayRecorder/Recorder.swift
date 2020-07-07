@@ -14,11 +14,16 @@ public class XRayRecorder {
     private let lock = Lock()
 
     private var _traceId = TraceID()
-    private var _segments = [Segment.ID: Segment]()
 
     public var traceId: TraceID {
         get { lock.withLock { _traceId } }
         set { lock.withLockVoid { _traceId = newValue } }
+    }
+
+    private var _segments = [Segment.ID: Segment]()
+
+    public var allSegments: [Segment] {
+        lock.withLock { Array(self._segments.values) }
     }
 
     private let emitter: XRayEmitter
@@ -41,11 +46,13 @@ public class XRayRecorder {
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         lock.withLock {
-            let callback: Segment.Callback = { [weak self] id in
-                self?.emitGroup.enter()
-                self?.emitQueue.async {
-                    self?.emit(segment: id)
-                    self?.emitGroup.leave()
+            let callback: Segment.Callback = { [weak self] id, state in
+                guard let self = self else { return }
+                guard case .ended = state else { return }
+                self.emitGroup.enter()
+                self.emitQueue.async {
+                    self.emit(segment: id)
+                    self.emitGroup.leave()
                 }
             }
             let newSegment = Segment(
@@ -77,39 +84,26 @@ public class XRayRecorder {
         emitter.flush { _ in }
     }
 
-    public var allSegments: [Segment] {
-        lock.withLock { Array(self._segments.values) }
-    }
-
-//    public func removeReady() -> [Segment] {
-//        lock.withLock {
-//            let allSegments = _segments
-//            var ready = [Segment]()
-//            var pending = [Segment]()
-//            for segment in allSegments {
-//                if segment.isReady {
-//                    ready.append(segment)
-//                } else {
-//                    pending.append(segment)
-//                }
-//            }
-//            _segments = pending
-//            return ready
-//        }
-//    }
-
     private func emit(segment id: Segment.ID) {
-        guard let segment = lock.withLock({ _segments.removeValue(forKey: id) }) else {
-            logger.debug("Segment \(id) parent has not been sent")
-            return
+        lock.withLockVoid {
+            // find the segment
+            guard let segment = _segments.removeValue(forKey: id) else {
+                logger.debug("Segment \(id) parent has not been sent")
+                return
+            }
+            // mark it as emitted and pass responsibility to the emitter to actually do so
+            do {
+                try segment.emit()
+            } catch {
+                logger.error("Failed to emit Segment \(id): \(error)")
+            }
+            // check if any of its subsegments have not ended yet and keep them in the recorder
+            let subsegments = segment.subsegmentsInProgress()
+            logger.debug("Segment \(id) has \(subsegments.count) subsegments in progress")
+            subsegments.forEach { _segments[$0.id] = $0 }
+
+            logger.debug("Emitting segment \(id)...")
+            emitter.send(segment)
         }
-        logger.debug("Emitting segment \(id)...")
-        emitter.send(segment)
     }
 }
-
-// extension XRayRecorder.Segment {
-//    fileprivate var isReady: Bool {
-//        inProgress != true
-//    }
-// }

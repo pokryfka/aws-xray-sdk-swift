@@ -8,21 +8,16 @@ enum ExampleError: Error {
 let recorder = XRayRecorder()
 
 // begin and end (sub)segments explicitly
-let segment = recorder.beginSegment(name: "Segment 1 A")
-// let segment = recorder.beginSubsegment(name: "Segment 1 X", parentId: "9d9dfbe1c4befbec")
+let segment = recorder.beginSegment(name: "Segment 1")
 segment.setAnnotation("zip_code", value: 98101)
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 usleep(100_000)
+let subsegment = segment.beginSubsegment(name: "Subsegment 1.1 async")
 segment.end()
 
 usleep(100_000)
-
-let fakeParentId = "9d9dfbe1c4befbec"
-
-let subsegment3 = recorder.beginSubsegment(name: "Segment 3 X A", parentId: fakeParentId)
-usleep(100_000)
-let subsegment4 = recorder.beginSubsegment(name: "Segment 3 X B", parentId: fakeParentId)
-usleep(100_000)
+// ending after parent
+subsegment.end()
 
 // use closures for convenience
 recorder.segment(name: "Segment 2") { segment in

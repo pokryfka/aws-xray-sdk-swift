@@ -16,3 +16,16 @@ internal struct Timestamp: RawRepresentable {
         rawValue = DispatchWallTime.now().rawValue
     }
 }
+
+extension Timestamp: Equatable {
+    static func == (lhs: Timestamp, rhs: Timestamp) -> Bool {
+        lhs.rawValue == rhs.rawValue
+    }
+}
+
+extension Timestamp: Encodable {
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(secondsSinceEpoch)
+    }
+}
