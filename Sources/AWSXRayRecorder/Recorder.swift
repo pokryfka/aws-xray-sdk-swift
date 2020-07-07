@@ -46,6 +46,7 @@ public class XRayRecorder {
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+        let parentId: Segment.ID? = parentId.flatMap(Segment.ID.init)
         guard config.enabled else {
             return Segment(
                 name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,

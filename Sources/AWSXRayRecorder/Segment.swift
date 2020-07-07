@@ -17,8 +17,15 @@ extension XRayRecorder {
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     public class Segment {
-        // TODO: make strong type?
-        internal typealias ID = String
+        internal struct ID: RawRepresentable, Hashable, Encodable {
+            let rawValue: String
+            init?(rawValue: String) {
+                guard let id = try? validateId(rawValue) else { return nil }
+                self.rawValue = id
+            }
+
+            init() { rawValue = String.random64() }
+        }
 
         internal enum State {
             case inProgress
@@ -72,7 +79,7 @@ extension XRayRecorder {
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        internal let id: ID = String.random64()
+        internal let id = ID()
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -126,7 +133,7 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
-        private let parentId: String?
+        private let parentId: ID?
 
         /// An object with information about your application.
         private let service: Service?
@@ -170,7 +177,7 @@ extension XRayRecorder {
         private let precursorIDs: [String]? = nil
 
         init(
-            name: String, traceId: TraceID, parentId: String?, subsegment: Bool,
+            name: String, traceId: TraceID, parentId: ID?, subsegment: Bool,
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
