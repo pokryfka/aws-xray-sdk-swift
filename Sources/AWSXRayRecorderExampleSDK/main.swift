@@ -10,7 +10,6 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
 precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
 precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
@@ -24,12 +23,7 @@ defer {
     try? httpClient.syncShutdown()
 }
 
-let recorder: XRayRecorder
-if httpEmitter {
-    recorder = XRayRecorder(emitter: XRayHTTPEmitter())
-} else {
-    recorder = XRayRecorder()
-}
+let recorder = XRayRecorder()
 
 // TODO: WIP
 
@@ -54,9 +48,8 @@ let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
     }
     .map { $0.0.end() } // end the segment
 
-try aFuture.and(s3futures)
-    .flatMap { _ in
-        recorder.flush()
-    }.wait()
+_ = try aFuture.and(s3futures).wait()
+
+recorder.flush()
 
 exit(0)

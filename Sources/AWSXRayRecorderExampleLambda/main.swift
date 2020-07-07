@@ -14,15 +14,11 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
         eventLoop.submit { usleep(100_000) }.map { _ in }
     }
 
-    private func sendXRaySegments() -> EventLoopFuture<Void> {
-        recorder.flush()
-    }
-
     func handle(context: Lambda.Context, event: In) -> EventLoopFuture<Void> {
         recorder.segment(name: "ExampleLambdaHandler", context: context) {
             self.doWork(on: context.eventLoop)
-        }.flatMap {
-            self.sendXRaySegments()
+        }.always { _ in
+            self.recorder.flush()
         }
     }
 }
