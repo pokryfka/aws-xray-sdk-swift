@@ -19,7 +19,5 @@ final class AWSXRaySegmentTests: XCTestCase {
         }
     }
 
-    // TODO: annotations and metadata tests
-
-    // TODO: subsegments tests
+    // TODO: tests tests tests
 }

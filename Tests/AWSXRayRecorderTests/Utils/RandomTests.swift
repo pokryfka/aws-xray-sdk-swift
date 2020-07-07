@@ -4,7 +4,7 @@ import XCTest
 
 final class RandomTests: XCTestCase {
     func testRandom64() {
-        // the time and identifier should be in hexadecimal digits
+        // the value should be in hexadecimal digits
         let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
         let numTests = 1000
         var values = Set<String>()
@@ -19,7 +19,7 @@ final class RandomTests: XCTestCase {
     }
 
     func testRandom96() {
-        // the time and identifier should be in hexadecimal digits
+        // the value should be in hexadecimal digits
         let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
         let numTests = 1000
         var values = Set<String>()
