@@ -15,10 +15,9 @@ public class XRayRecorder {
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
-    internal var segments: [Segment] { segmentsLock.withReaderLock { Array(self._segments.values) } } // TODO: remove?
 
     private let emitter: XRayEmitter
-    private let emitQueue = DispatchQueue(label: "net.pokryfka.xray_recorder.recorder.emit") // TODO: unique name?
+    private let emitQueue = DispatchQueue(label: "net.pokryfka.xray_recorder.recorder.emit.\(String.random64())")
     private let emitGroup = DispatchGroup()
 
     public init(emitter: XRayEmitter, config: Config = Config()) {

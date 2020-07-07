@@ -1,8 +1,13 @@
-//
-//  File.swift
-//  
-//
-//  Created by Michał A on 2020/7/7.
-//
+@testable import AWSXRayRecorder
 
-import Foundation
+class TestEmitter: XRayEmitter {
+    @Synchronized var segments = [XRayRecorder.Segment]()
+
+    func send(_ segment: XRayRecorder.Segment) {
+        segments.append(segment)
+    }
+
+    func flush(_: @escaping (Error?) -> Void) {
+        // do nothing
+    }
+}
