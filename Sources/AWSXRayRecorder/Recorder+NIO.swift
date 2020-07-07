@@ -2,8 +2,9 @@ import NIO
 
 extension XRayRecorder {
     @inlinable
-    public func segment<T>(name: String, parentId: String? = nil, body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        let segment = beginSegment(name: name, parentId: parentId)
+    public func segment<T>(name: String, parentId: String? = nil, metadata: Segment.Metadata? = nil,
+                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.setError(error)
@@ -13,8 +14,9 @@ extension XRayRecorder {
     }
 
     @inlinable
-    public func beginSegment<T>(name: String, parentId: String? = nil, body: (Segment) -> EventLoopFuture<T>) -> EventLoopFuture<(Segment, T)> {
-        let segment = beginSegment(name: name, parentId: parentId)
+    public func beginSegment<T>(name: String, parentId: String? = nil, metadata: Segment.Metadata? = nil,
+                                body: (Segment) -> EventLoopFuture<T>) -> EventLoopFuture<(Segment, T)> {
+        let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
         return body(segment)
             .always { result in
                 if case Result<T, Error>.failure(let error) = result {
@@ -27,8 +29,9 @@ extension XRayRecorder {
 
 extension XRayRecorder.Segment {
     @inlinable
-    public func subsegment<T>(name: String, body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        let segment = beginSubsegment(name: name)
+    public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
+                              body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        let segment = beginSubsegment(name: name, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.setError(error)

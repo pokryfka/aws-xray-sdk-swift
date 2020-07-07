@@ -15,7 +15,7 @@ public class XRayRecorder {
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
-    internal var segments: [Segment] { segmentsLock.withReaderLock { Array(self._segments.values) } }
+    internal var segments: [Segment] { segmentsLock.withReaderLock { Array(self._segments.values) } } // TODO: remove?
 
     private let emitter: XRayEmitter
     private let emitQueue = DispatchQueue(label: "net.pokryfka.xray_recorder.recorder.emit") // TODO: unique name?
@@ -27,16 +27,17 @@ public class XRayRecorder {
     }
 
     public init() {
-        // TODO: handle failure
-        emitter = try! XRayUDPEmitter()
-        logger.logLevel = config.logLevel
+        do {
+            emitter = try XRayUDPEmitter()
+            logger.logLevel = config.logLevel
+        } catch {
+            preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
+        }
     }
-
-    deinit {}
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        let callback: Segment.Callback = { [weak self] id, state in
+        let callback: Segment.StateChangeCallback = { [weak self] id, state in
             guard let self = self else { return }
             guard case .ended = state else { return }
             self.emitGroup.enter()

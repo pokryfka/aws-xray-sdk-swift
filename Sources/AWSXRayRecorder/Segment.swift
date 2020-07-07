@@ -1,5 +1,7 @@
 import AnyCodable
 
+// TODO: document
+
 private typealias SegmentError = XRayRecorder.SegmentError
 
 extension XRayRecorder {
@@ -14,8 +16,8 @@ extension XRayRecorder {
     ///
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
-    public class Segment: Encodable {
-        // TODO: make strong type
+    public class Segment {
+        // TODO: make strong type?
         internal typealias ID = String
 
         internal enum State {
@@ -24,7 +26,7 @@ extension XRayRecorder {
             case emitted(Timestamp)
         }
 
-        internal typealias Callback = ((ID, State) -> Void)
+        internal typealias StateChangeCallback = ((ID, State) -> Void)
 
         private enum SegmentType: String, Encodable {
             case subsegment
@@ -52,6 +54,8 @@ extension XRayRecorder {
 
         internal let lock = Lock()
 
+        private let callback: StateChangeCallback?
+
         private var _state = State.inProgress {
             didSet {
                 guard oldValue != _state else { return }
@@ -59,22 +63,21 @@ extension XRayRecorder {
                     endTime = timestamp
                     inProgress = nil
                 }
+                callback?(id, _state)
             }
         }
 
         private var state: State { lock.withLock { _state } }
 
-        private let callback: Callback?
-
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        let id: ID = Segment.generateId()
+        internal let id: ID = Segment.generateId()
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
-        let name: String
+        private let name: String
 
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
@@ -91,12 +94,12 @@ extension XRayRecorder {
         ///
         /// # Subsegment
         /// Required only if sending a subsegment separately.
-        let traceId: TraceID
+        private let traceId: TraceID
 
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        let startTime: Timestamp = Timestamp()
+        private let startTime: Timestamp = Timestamp()
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
@@ -169,9 +172,9 @@ extension XRayRecorder {
         init(
             name: String, traceId: TraceID, parentId: String?, subsegment: Bool,
             service: Service? = nil, user: String? = nil,
-            origin _: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
+            origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
-            callback: Callback? = nil
+            callback: StateChangeCallback? = nil
         ) {
             self.name = name
             self.traceId = traceId
@@ -179,37 +182,12 @@ extension XRayRecorder {
             type = subsegment && parentId != nil ? .subsegment : nil
             self.service = service
             self.user = user
+            self.origin = origin
             self.http = http
             self.aws = aws
-            self._annotations = annotations
-            self._metadata = metadata
+            _annotations = annotations
+            _metadata = metadata
             self.callback = callback
-        }
-
-        // TODO: create custom encoder?
-        enum CodingKeys: String, CodingKey {
-            case name
-            case id
-            case traceId = "trace_id"
-            case startTime = "start_time"
-            case endTime = "end_time"
-            case inProgress = "in_progress"
-            case type
-            case parentId = "parent_id"
-            case service
-            case user
-            case origin
-            case http
-            case aws
-            case _error = "error"
-            case _throttle = "throttle"
-            case _fault = "fault"
-            case _cause = "cause"
-            case _annotations = "annotations"
-            case _metadata
-            case _subsegments = "subsegments"
-            case namespace
-            case precursorIDs = "precursor_ids"
         }
     }
 }
@@ -250,7 +228,6 @@ extension XRayRecorder.Segment {
                 return
             }
             _state = .ended(Timestamp())
-            callback?(id, _state)
         }
     }
 
@@ -265,7 +242,6 @@ extension XRayRecorder.Segment {
                 throw SegmentError.inProgress
             }
             _state = .emitted(Timestamp())
-            callback?(id, _state)
         }
     }
 }
@@ -273,11 +249,12 @@ extension XRayRecorder.Segment {
 // MARK: - Subsegments
 
 extension XRayRecorder.Segment {
-    public func beginSubsegment(name: String) -> XRayRecorder.Segment {
+    public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
         lock.withLock {
             let newSegment = XRayRecorder.Segment(
-                name: name, traceId: traceId, parentId: id, subsegment: true,
-                callback: callback
+                name: name, traceId: self.traceId, parentId: self.id, subsegment: true,
+                metadata: metadata,
+                callback: self.callback
             )
             // TODO: refactor
             if (_subsegments?.count ?? 0) > 0 {
@@ -435,6 +412,37 @@ extension XRayRecorder.Segment {
             }
         }
     }
+}
+
+// MARK: - Encodable
+
+extension XRayRecorder.Segment: Encodable {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case traceId = "trace_id"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case inProgress = "in_progress"
+        case type
+        case parentId = "parent_id"
+        case service
+        case user
+        case origin
+        case http
+        case aws
+        case _error = "error"
+        case _throttle = "throttle"
+        case _fault = "fault"
+        case _cause = "cause"
+        case _annotations = "annotations"
+        case _metadata
+        case _subsegments = "subsegments"
+        case namespace
+        case precursorIDs = "precursor_ids"
+    }
+
+    // TODO: create custom encoder?
 }
 
 extension XRayRecorder.Segment.AnnotationValue: Encodable {
