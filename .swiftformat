@@ -2,6 +2,8 @@
 
 --swiftversion 5.2
 --exclude .build
+# 3rd party
+--exclude Sources/AWSXRayRecorder/Utils/Locks.swift
 
 # format options
 
