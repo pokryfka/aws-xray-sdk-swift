@@ -72,7 +72,7 @@ extension XRayRecorder {
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        internal let id: ID = Segment.generateId()
+        internal let id: ID = String.random64()
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -338,7 +338,7 @@ extension XRayRecorder.Segment {
 extension XRayRecorder.Segment {
     public func setError(_ error: Error) {
         let exception = Exception(
-            id: XRayRecorder.Segment.generateId(),
+            id: String.random64(),
             message: "\(error)"
         )
         lock.withLockVoid {
@@ -459,4 +459,24 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
             try container.encode(value)
         }
     }
+}
+
+// MARK: - Validation
+
+// TODO: remove dependency on Foundation
+import struct Foundation.CharacterSet
+
+extension XRayRecorder.Segment {
+    static func validateId(_ string: String) throws -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
+        guard
+            string.count == 16,
+            string.rangeOfCharacter(from: invalidCharacters) == nil
+        else {
+            throw XRayRecorder.SegmentError.invalidID(string)
+        }
+        return string
+    }
+
+    // TODO: validate name
 }

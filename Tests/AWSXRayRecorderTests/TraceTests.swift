@@ -29,18 +29,6 @@ extension TraceID {
 final class AWSXRayTraceTests: XCTestCase {
     // MARK: TraceID
 
-    func testTraceRandomIdenifier() {
-        let numTests = 1000
-        var values = Set<String>()
-        for _ in 0 ..< numTests {
-            let identifier = TraceID.generateIdentifier()
-            XCTAssertEqual(identifier.count, TraceID.identifierLength)
-            XCTAssertNil(identifier.rangeOfCharacter(from: TraceID.identifierInvalidCharacters))
-            values.insert(identifier)
-        }
-        XCTAssertEqual(values.count, numTests)
-    }
-
     func testTraceRandomId() {
         let numTests = 1000
         var values = Set<TraceID>()

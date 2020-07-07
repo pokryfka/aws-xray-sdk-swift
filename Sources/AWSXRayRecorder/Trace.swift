@@ -53,12 +53,12 @@ extension XRayRecorder.TraceID {
     public init() {
         let now = Timestamp().secondsSinceEpoch
         date = String(format: "%08x", Int(now))
-        identifier = Self.generateIdentifier()
+        identifier = String.random96()
     }
 
     init(secondsSince1970: Double) {
         date = String(format: "%08x", Int(secondsSince1970))
-        identifier = Self.generateIdentifier()
+        identifier = String.random96()
     }
 
     /// Parses and validates string with Trace ID.
