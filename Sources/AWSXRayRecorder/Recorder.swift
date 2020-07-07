@@ -11,7 +11,7 @@ public class XRayRecorder {
 
     private lazy var logger = Logger(label: "net.pokryfka.xray_recorder.recorder")
 
-    @Synchronized var traceId = TraceID()
+    @Synchronized public var traceId = TraceID()
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
