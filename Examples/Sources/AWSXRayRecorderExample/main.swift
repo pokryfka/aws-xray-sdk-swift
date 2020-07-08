@@ -5,18 +5,19 @@ enum ExampleError: Error {
     case test
 }
 
-let recorder = XRayRecorder(config: .init(logLevel: .debug, serviceVersion: "aws-xray-sdk-example"))
+let recorder = XRayRecorder()
 
 // begin and end (sub)segments explicitly
 let segment = recorder.beginSegment(name: "Segment 1")
 segment.setAnnotation("zip_code", value: 98101)
 segment.setMetadata(["debug": ["test": "Metadata string"]])
-usleep(100_000)
 _ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
+usleep(100_000)
 let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
+usleep(100_000)
 segment.end()
 
-// ending after parent
+// subsegment may end after parent
 usleep(100_000)
 subsegment.end()
 

@@ -2,9 +2,7 @@ import AWSSDKSwiftCore
 import AWSXRayRecorder
 import NIOConcurrencyHelpers
 
-// TODO: segment is not ended if reauest failed, see https://github.com/swift-aws/aws-sdk-swift/issues/326
 // TODO: match request and response based on `ahc-request-id`, see https://github.com/swift-server/async-http-client/pull/227/files
-
 // WIP: this is likely to be replaced with https://github.com/slashmo/gsoc-swift-tracing/issues/50
 
 public class XRayMiddleware: AWSServiceMiddleware {

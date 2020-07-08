@@ -25,11 +25,20 @@ defer {
     try? httpClient.syncShutdown()
 }
 
-let recorder = XRayRecorder(eventLoopGroup: group)
+let recorder = XRayRecorder(
+    config: .init(enabled: true,
+                  daemonEndpoint: "127.0.0.1:2000",
+                  logLevel: .debug,
+                  serviceVersion: "aws-xray-sdk-swift-example-sdk"),
+    eventLoopGroup: group
+)
 
 // TODO: WIP
 
-let awsClient = AWSClient(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")], httpClientProvider: .shared(httpClient))
+let awsClient = AWSClient(
+    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
+    httpClientProvider: .shared(httpClient)
+)
 let s3 = S3(client: awsClient)
 
 let aFuture = recorder.segment(name: "Segment 1") {

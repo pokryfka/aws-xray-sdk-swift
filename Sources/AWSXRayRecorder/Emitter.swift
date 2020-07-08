@@ -8,4 +8,6 @@ public protocol XRayEmitter {
 public struct XRayNoopEmitter: XRayEmitter {
     public func send(_: XRayRecorder.Segment) {}
     public func flush(_: @escaping (Error?) -> Void) {}
+
+    public init() {}
 }
