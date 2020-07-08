@@ -1,10 +1,14 @@
 import AnyCodable
-import Foundation
+
+// TODO: document
+
+private typealias SegmentError = XRayRecorder.SegmentError
 
 extension XRayRecorder {
     enum SegmentError: Error {
         case invalidID(String)
-        // case alreadyEmitted
+        case inProgress
+        case alreadyEmitted
     }
 
     /// A segment records tracing information about a request that your application serves.
@@ -12,31 +16,33 @@ extension XRayRecorder {
     ///
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
-    public class Segment: Encodable {
-        enum AnnotationValue {
-            case string(String)
-            case int(Int)
-            case float(Float)
-            case bool(Bool)
+    public class Segment {
+        internal struct ID: RawRepresentable, Hashable, Encodable {
+            let rawValue: String
+            init?(rawValue: String) {
+                guard let id = try? validateId(rawValue) else { return nil }
+                self.rawValue = id
+            }
+
+            init() { rawValue = String.random64() }
         }
 
-        enum SegmentType: String, Encodable {
+        internal enum State {
+            case inProgress
+            case ended(Timestamp)
+            case emitted(Timestamp)
+        }
+
+        internal typealias StateChangeCallback = ((ID, State) -> Void)
+
+        private enum SegmentType: String, Encodable {
             case subsegment
         }
 
         /// An object with information about your application.
-        struct Service: Encodable {
+        internal struct Service: Encodable {
             /// A string that identifies the version of your application that served the request.
             let version: String
-        }
-
-        struct Exception: Encodable {
-            /// A 64-bit identifier for the exception, unique among segments in the same trace, in **16 hexadecimal digits**.
-            let id: String
-            /// The exception message.
-            var message: String?
-
-            // TODO: other optional attributes
         }
 
         /// Segments and subsegments can include an annotations object containing one or more fields that
@@ -45,7 +51,7 @@ extension XRayRecorder {
         /// X-Ray indexes up to 50 annotations per trace.
         ///
         /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
-        typealias Annotations = [String: AnnotationValue]
+        internal typealias Annotations = [String: AnnotationValue]
 
         /// Segments and subsegments can include a metadata object containing one or more fields with values of any type, including objects and arrays.
         /// X-Ray does not index metadata, and values can be any size, as long as the segment document doesn't exceed the maximum size (64 kB).
@@ -55,15 +61,30 @@ extension XRayRecorder {
 
         internal let lock = Lock()
 
+        private let callback: StateChangeCallback?
+
+        private var _state = State.inProgress {
+            didSet {
+                guard oldValue != _state else { return }
+                if case .ended(let timestamp) = _state {
+                    endTime = timestamp
+                    inProgress = nil
+                }
+                callback?(id, _state)
+            }
+        }
+
+        private var state: State { lock.withLock { _state } }
+
         // MARK: Required Segment Fields
+
+        /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
+        internal let id = ID()
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
-        let name: String
-
-        /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        let id: String
+        private let name: String
 
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
@@ -80,33 +101,28 @@ extension XRayRecorder {
         ///
         /// # Subsegment
         /// Required only if sending a subsegment separately.
-        let traceId: TraceID
+        private let traceId: TraceID
 
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        let startTime: Double
+        private let startTime: Timestamp = Timestamp()
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
         /// Specify either an end_time or in_progress.
-        private(set) var endTime: Double? {
-            didSet {
-                guard oldValue != endTime else { return }
-                inProgress = endTime == nil ? true : nil
-            }
-        }
+        private var endTime: Timestamp?
 
         /// **boolean**, set to true instead of specifying an end_time to record that a segment is started, but is not complete.
         /// Send an in-progress segment when your application receives a request that will take a long time to serve, to trace the request receipt.
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
-        private(set) var inProgress: Bool?
+        private var inProgress: Bool? = true
 
         // MARK: Required Subsegment Fields
 
         /// Required only if sending a subsegment separately.
-        let type: SegmentType?
+        private let type: SegmentType?
 
         // MARK: Optional Segment Fields
 
@@ -117,173 +133,261 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
-        let parentId: String?
+        private let parentId: ID?
 
         /// An object with information about your application.
-        private var _service: Service?
+        private let service: Service?
 
         /// A string that identifies the user who sent the request.
-        private var _user: String?
+        private let user: String?
 
         /// The type of AWS resource running your application.
-        private var _origin: Origin?
+        @Synchronized internal var origin: Origin?
 
         /// http objects with information about the original HTTP request.
-        private var _http: HTTP?
+        @Synchronized internal var http: HTTP?
 
         /// aws object with information about the AWS resource on which your application served the request
-        private var _aws: AWS?
+        @Synchronized internal var aws: AWS?
 
         /// **boolean** indicating that a client error occurred (response status code was 4XX Client Error).
-        private var error: Bool?
+        private var _error: Bool?
         /// **boolean** indicating that a request was throttled (response status code was 429 Too Many Requests).
-        private var throttle: Bool?
+        private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
-        private var fault: Bool?
+        private var _fault: Bool?
         /// the exception that caused the error.
-        private var cause: Exception?
+        private var _cause: Exception?
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
-        private var annotations: Annotations?
+        private var _annotations: Annotations?
 
         /// metadata object with any additional data that you want to store in the segment.
-        private var metadata: Metadata?
+        private var _metadata: Metadata?
 
         /// **array** of subsegment objects.
-        private var subsegments: [Segment]?
+        private var _subsegments: [Segment]?
 
         // MARK: Optional Subsegment Fields
 
         /// `aws` for AWS SDK calls; `remote` for other downstream calls.
-        private var namespace: Namespace?
+        @Synchronized internal var namespace: Namespace?
 
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
-        private var precursorIDs: [String]?
+        private let precursorIDs: [String]? = nil
 
         init(
-            name: String, traceId: TraceID, parentId: String?, subsegment: Bool,
+            name: String, traceId: TraceID, parentId: ID?, subsegment: Bool,
             service: Service? = nil, user: String? = nil,
-            origin _: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
-            annotations: Annotations? = nil, metadata: Metadata? = nil
+            origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
+            annotations: Annotations? = nil, metadata: Metadata? = nil,
+            callback: StateChangeCallback? = nil
         ) {
             self.name = name
-            id = Self.generateId()
             self.traceId = traceId
-            startTime = Date().timeIntervalSince1970
-            inProgress = true
             self.parentId = parentId
             type = subsegment && parentId != nil ? .subsegment : nil
-            _service = service
-            _user = user
-            _http = http
-            _aws = aws
-            self.annotations = annotations
-            self.metadata = metadata
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case name
-            case id
-            case traceId = "trace_id"
-            case startTime = "start_time"
-            case endTime = "end_time"
-            case inProgress = "in_progress"
-            case type
-            case parentId = "parent_id"
-            case _service = "service"
-            case _user = "user"
-            case _origin = "origin"
-            case _http = "http"
-            case _aws = "aws"
-            case error, throttle, fault, cause
-            case annotations, metadata
-            case subsegments
-            case namespace
-            case precursorIDs = "precursor_ids"
+            self.service = service
+            self.user = user
+            self.origin = origin
+            self.http = http
+            self.aws = aws
+            _annotations = annotations
+            _metadata = metadata
+            self.callback = callback
         }
     }
 }
 
-// MARK: End time
+// MARK: - State
+
+extension XRayRecorder.Segment.State: Equatable {
+    static func == (lhs: XRayRecorder.Segment.State, rhs: XRayRecorder.Segment.State) -> Bool {
+        switch (lhs, rhs) {
+        case (.inProgress, .inProgress):
+            return true
+        case (.ended(let lhs), .ended(let rhs)):
+            return lhs == rhs
+        case (.emitted(let lhs), .emitted(let rhs)):
+            return lhs == rhs
+        default:
+            return false
+        }
+    }
+}
+
+extension XRayRecorder.Segment.State {
+    var inProgress: Bool {
+        switch self {
+        case .inProgress:
+            return true
+        default:
+            return false
+        }
+    }
+}
 
 extension XRayRecorder.Segment {
-    /// Updates `endTime` of the Segment, ends subsegments if not ended.
+    /// Updates `endTime` of the Segment.
     public func end() {
-        let now = Date().timeIntervalSince1970
-        end(date: now)
-    }
-
-    func end(date: Double) {
         lock.withLockVoid {
-            if endTime == nil {
-                endTime = date
+            guard case .inProgress = _state else {
+                return
             }
-            let date = endTime ?? date
-            subsegments?.forEach { $0.end(date: date) }
+            _state = .ended(Timestamp())
+        }
+    }
+
+    internal func emit() throws {
+        try lock.withLockVoid {
+            if case .emitted = _state {
+                throw SegmentError.alreadyEmitted
+            }
+            // for now we limit sending of in-progress segments to subsegments
+            // to make sure that their parent was already emitted
+            if case .inProgress = _state {
+                throw SegmentError.inProgress
+            }
+            _state = .emitted(Timestamp())
         }
     }
 }
 
-// MARK: HTTP request data
+// MARK: - Subsegments
 
 extension XRayRecorder.Segment {
-    public func setHTTP(_ http: HTTP) {
+    public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
         lock.withLock {
-            _http = http
-            if type == .some(.subsegment), let url = http.request?.url {
-                namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+            let newSegment = XRayRecorder.Segment(
+                name: name, traceId: self.traceId, parentId: self.id, subsegment: true,
+                metadata: metadata,
+                callback: self.callback
+            )
+            // TODO: refactor
+            if (_subsegments?.count ?? 0) > 0 {
+                _subsegments?.append(newSegment)
+            } else {
+                _subsegments = [newSegment]
             }
-            if let code = http.response?.status {
-                if code >= 400, code < 600 {
-                    error = true
+            return newSegment
+        }
+    }
+
+    internal func subsegmentsInProgress() -> [XRayRecorder.Segment] {
+        // TODO: tests tests tests
+        lock.withLock {
+            guard let subsegments = _subsegments else {
+                return [XRayRecorder.Segment]()
+            }
+            // TODO: make it nicer
+            var segmentsInProgess = [XRayRecorder.Segment]()
+            for segment in subsegments {
+                // add subsegment if in progress
+                if segment.state.inProgress {
+                    segmentsInProgess.append(segment)
                 }
-                if code == 429 {
-                    throttle = true
-                }
-                if code >= 500, code < 600 {
-                    fault = true
+                // otherwise check if any of its subsegments are in progress
+                else {
+                    segmentsInProgess.append(contentsOf: segment.subsegmentsInProgress())
                 }
             }
+            return segmentsInProgess
         }
     }
 }
 
-// MARK: AWS resource data
+// MARK: - Errors and exceptions
 
 extension XRayRecorder.Segment {
-    public func setAWS(_ aws: AWS) {
-        lock.withLock {
-            _aws = aws
+    internal enum HTTPError: Error {
+        /// client error occurred (response status code was 4XX Client Error)
+        case client(statusCode: UInt, cause: Exception?)
+        /// request was throttled (response status code was 429 Too Many Requests)
+        case throttle(cause: Exception?)
+        /// server error occurred (response status code was 5XX Server Error)
+        case server(statusCode: UInt, cause: Exception?)
+
+        init?(statusCode: UInt) {
+            switch statusCode {
+            case 429:
+                self = .throttle(cause: nil)
+            case 400 ..< 500:
+                self = .client(statusCode: statusCode, cause: nil)
+            case 500 ..< 600:
+                self = .server(statusCode: statusCode, cause: nil)
+            default:
+                return nil
+            }
+        }
+
+        var cause: Exception? {
+            switch self {
+            case .client(_, let cause):
+                return cause
+            case .throttle(let cause):
+                return cause
+            case .server(_, let cause):
+                return cause
+            }
         }
     }
-}
 
-// MARK: Errors and exceptions
+    internal struct Exception: Encodable {
+        /// A 64-bit identifier for the exception, unique among segments in the same trace, in **16 hexadecimal digits**.
+        let id: String
+        /// The exception message.
+        var message: String?
+
+        // TODO: other optional attributes
+    }
+}
 
 extension XRayRecorder.Segment {
     public func setError(_ error: Error) {
         let exception = Exception(
-            id: XRayRecorder.Segment.generateId(),
+            id: String.random64(),
             message: "\(error)"
         )
         lock.withLockVoid {
-            self.error = true
-            cause = exception
+            self._error = true
+            _cause = exception
+        }
+    }
+
+    internal func setError(_ httpError: HTTPError) {
+        lock.withLockVoid {
+            _error = true
+            _cause = httpError.cause
+            switch httpError {
+            case .throttle:
+                _throttle = true
+            case .server:
+                _fault = true
+            default:
+                break
+            }
         }
     }
 }
 
-// MARK: Annotations and Metadata
+// MARK: - Annotations and Metadata
 
 extension XRayRecorder.Segment {
-    func setAnnotations(_ newElements: Annotations) {
+    internal enum AnnotationValue {
+        case string(String)
+        case int(Int)
+        case float(Float)
+        case bool(Bool)
+    }
+
+    private func setAnnotations(_ newElements: Annotations) {
         lock.withLock {
-            if (annotations?.count ?? 0) > 0 {
+            if (_annotations?.count ?? 0) > 0 {
                 for (k, v) in newElements {
-                    annotations?.updateValue(v, forKey: k)
+                    _annotations?.updateValue(v, forKey: k)
                 }
             } else {
-                annotations = newElements
+                _annotations = newElements
             }
         }
     }
@@ -306,19 +410,50 @@ extension XRayRecorder.Segment {
 
     public func setMetadata(_ newElements: Metadata) {
         lock.withLock {
-            if (metadata?.count ?? 0) > 0 {
+            if (_metadata?.count ?? 0) > 0 {
                 for (k, v) in newElements {
-                    metadata?.updateValue(v, forKey: k)
+                    _metadata?.updateValue(v, forKey: k)
                 }
             } else {
-                metadata = newElements
+                _metadata = newElements
             }
         }
     }
 }
 
+// MARK: - Encodable
+
+extension XRayRecorder.Segment: Encodable {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case traceId = "trace_id"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case inProgress = "in_progress"
+        case type
+        case parentId = "parent_id"
+        case service
+        case user
+        case origin
+        case http
+        case aws
+        case _error = "error"
+        case _throttle = "throttle"
+        case _fault = "fault"
+        case _cause = "cause"
+        case _annotations = "annotations"
+        case _metadata
+        case _subsegments = "subsegments"
+        case namespace
+        case precursorIDs = "precursor_ids"
+    }
+
+    // TODO: create custom encoder?
+}
+
 extension XRayRecorder.Segment.AnnotationValue: Encodable {
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
         case .bool(let value):
@@ -333,34 +468,10 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
     }
 }
 
-// MARK: Subsegments
+// MARK: - Validation
 
-extension XRayRecorder.Segment {
-    public func beginSubsegment(name: String) -> XRayRecorder.Segment {
-        lock.withLock {
-            let newSegment = XRayRecorder.Segment(
-                name: name, traceId: traceId, parentId: id, subsegment: true
-            )
-            if (subsegments?.count ?? 0) > 0 {
-                subsegments?.append(newSegment)
-            } else {
-                subsegments = [newSegment]
-            }
-            return newSegment
-        }
-    }
-}
-
-// MARK: Id
-
-extension XRayRecorder.Segment {
-    /// - returns: A 64-bit identifier for the segment, unique among segments in the same trace, in 16 hexadecimal digits.
-    static func generateId() -> String {
-        String(format: "%llx", UInt64.random(in: UInt64.min ... UInt64.max) | 1 << 63)
-    }
-}
-
-// MARK: Validation
+// TODO: remove dependency on Foundation
+import struct Foundation.CharacterSet
 
 extension XRayRecorder.Segment {
     static func validateId(_ string: String) throws -> String {

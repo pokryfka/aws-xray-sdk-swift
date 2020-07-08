@@ -4,41 +4,54 @@ import XCTest
 @testable import AWSXRayRecorder
 
 private typealias Segment = XRayRecorder.Segment
+private typealias SegmentError = XRayRecorder.SegmentError
 
 final class AWSXRayRecorderTests: XCTestCase {
     func testRecordingOneSegment() {
-        let recorder = XRayRecorder()
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
 
         let segmentName = UUID().uuidString
-        let segmentParentId = Segment.generateId()
-
-        let segment = recorder.beginSegment(name: segmentName, parentId: segmentParentId)
-        XCTAssertNotNil(recorder.allSegments.first)
-        XCTAssertEqual(recorder.allSegments.first?.name, segmentName)
-        XCTAssertEqual(recorder.allSegments.first?.parentId, segmentParentId)
-        XCTAssertEqual(recorder.allSegments.first?.inProgress, true)
+        let segment = recorder.beginSegment(name: segmentName)
+        XCTAssertEqual(0, emitter.segments.count)
         segment.end()
-        XCTAssertNotEqual(recorder.allSegments.first?.inProgress, true)
-        XCTAssertNotNil(recorder.allSegments.first?.endTime)
-        XCTAssertLessThan(recorder.allSegments.first!.endTime!, Date().timeIntervalSince1970)
+
+        recorder.wait()
+
+        let emittedSegments = emitter.segments
+        XCTAssertEqual(1, emittedSegments.count)
+        XCTAssertNotNil(emittedSegments.first)
+        let theSegment = emittedSegments.first!
+        XCTAssertThrowsError(try theSegment.emit()) { error in
+            guard case SegmentError.alreadyEmitted = error else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testRecordingOneSegmentClosure() {
-        let recorder = XRayRecorder()
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
 
         let segmentName = UUID().uuidString
-        let segmentParentId = Segment.generateId()
-
-        recorder.segment(name: segmentName, parentId: segmentParentId) { _ in
-            XCTAssertNotNil(recorder.allSegments.first)
-            XCTAssertEqual(recorder.allSegments.first?.name, segmentName)
-            XCTAssertEqual(recorder.allSegments.first?.parentId, segmentParentId)
-            XCTAssertEqual(recorder.allSegments.first?.inProgress, true)
+        _ = recorder.segment(name: segmentName) { _ in
+            XCTAssertEqual(0, emitter.segments.count)
         }
-        XCTAssertNotEqual(recorder.allSegments.first?.inProgress, true)
-        XCTAssertNotNil(recorder.allSegments.first?.endTime)
-        XCTAssertLessThan(recorder.allSegments.first!.endTime!, Date().timeIntervalSince1970)
+
+        recorder.wait()
+
+        let emittedSegments = emitter.segments
+        XCTAssertEqual(1, emittedSegments.count)
+        XCTAssertNotNil(emittedSegments.first)
+        let theSegment = emittedSegments.first!
+        XCTAssertThrowsError(try theSegment.emit()) { error in
+            guard case SegmentError.alreadyEmitted = error else {
+                XCTFail()
+                return
+            }
+        }
     }
 
-    // TODO: more tests
+    // TODO: tests tests tests
 }

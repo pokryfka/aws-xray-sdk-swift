@@ -66,3 +66,15 @@ extension XRayRecorder.Segment {
         }
     }
 }
+
+extension XRayRecorder.Segment {
+    public func setHTTP(_ http: HTTP) {
+        self.http = http
+        if let url = http.request?.url {
+            namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+        }
+        if let statusCode = http.response?.status, let error = HTTPError(statusCode: statusCode) {
+            setError(error)
+        }
+    }
+}

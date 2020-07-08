@@ -1,9 +1,7 @@
 import AsyncHTTPClient
 import AWSS3
-import AWSXRayHTTPEmitter
 import AWSXRayRecorder
 import AWSXRayRecorderSDK
-import AWSXRayUDPEmitter
 import NIO
 
 func env(_ name: String) -> String? {
@@ -11,33 +9,37 @@ func env(_ name: String) -> String? {
     return String(cString: value)
 }
 
-let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
 precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
 precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
 
+// share the event loop group
 let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 defer {
     try? group.syncShutdownGracefully()
 }
 
-let httpClient = HTTPClient(eventLoopGroupProvider: .shared(group.next()))
+let eventLoop = group.next()
+
+let httpClient = HTTPClient(eventLoopGroupProvider: .shared(eventLoop))
 defer {
     try? httpClient.syncShutdown()
 }
 
-let emitter: XRayEmitter
-if httpEmitter {
-    emitter = XRayHTTPEmitter()
-} else {
-    emitter = XRayUDPEmitter()
-}
-
-let recorder = XRayRecorder()
+let recorder = XRayRecorder(
+    config: .init(enabled: true,
+                  daemonEndpoint: "127.0.0.1:2000",
+                  logLevel: .debug,
+                  serviceVersion: "aws-xray-sdk-swift-example-sdk"),
+    eventLoopGroup: group
+)
 
 // TODO: WIP
 
-let s3 = S3(middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-            httpClientProvider: .shared(httpClient))
+let awsClient = AWSClient(
+    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
+    httpClientProvider: .shared(httpClient)
+)
+let s3 = S3(client: awsClient)
 
 let aFuture = recorder.segment(name: "Segment 1") {
     group.next().submit { usleep(100_000) }.map { _ in }
@@ -57,9 +59,8 @@ let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
     }
     .map { $0.0.end() } // end the segment
 
-try aFuture.and(s3futures)
-    .flatMap { _ in
-        emitter.send(segments: recorder.removeAll())
-    }.wait()
+_ = try aFuture.and(s3futures).wait()
+
+try recorder.flush(on: eventLoop).wait()
 
 exit(0)

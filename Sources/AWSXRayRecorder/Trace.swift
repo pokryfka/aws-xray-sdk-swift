@@ -1,4 +1,5 @@
-import Foundation
+// TODO: remove dependency on Foundation
+import struct Foundation.CharacterSet
 
 extension XRayRecorder {
     enum TraceError: Error {
@@ -48,22 +49,16 @@ extension XRayRecorder.TraceID: Encodable {
 }
 
 extension XRayRecorder.TraceID {
-    /// - returns: A 96-bit identifier for the trace, globally unique, in 24 hexadecimal digits.
-    static func generateIdentifier() -> String {
-        String(format: "%llx%llx", UInt64.random(in: UInt64.min ... UInt64.max) | 1 << 63,
-               UInt32.random(in: UInt32.min ... UInt32.max) | 1 << 31)
-    }
-
     /// Creates new Trace ID.
     public init() {
-        let now = Date().timeIntervalSince1970
+        let now = Timestamp().secondsSinceEpoch
         date = String(format: "%08x", Int(now))
-        identifier = Self.generateIdentifier()
+        identifier = String.random96()
     }
 
     init(secondsSince1970: Double) {
         date = String(format: "%08x", Int(secondsSince1970))
-        identifier = Self.generateIdentifier()
+        identifier = String.random96()
     }
 
     /// Parses and validates string with Trace ID.

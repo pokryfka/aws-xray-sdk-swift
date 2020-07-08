@@ -1,28 +1,8 @@
-import AWSXRayHTTPEmitter
 import AWSXRayRecorder
-import AWSXRayUDPEmitter
-import NIO
+import NIO // usleep
 
-func env(_ name: String) -> String? {
-    guard let value = getenv(name) else { return nil }
-    return String(cString: value)
-}
-
-let httpEmitter = env("AWS_XRAY_DAEMON_ADDRESS")?.starts(with: "http") ?? false
-if httpEmitter {
-    precondition(env("AWS_ACCESS_KEY_ID") != nil, "AWS_ACCESS_KEY_ID not set")
-    precondition(env("AWS_SECRET_ACCESS_KEY") != nil, "AWS_SECRET_ACCESS_KEY not set")
-}
-    
 enum ExampleError: Error {
     case test
-}
-
-let emitter: XRayEmitter
-if httpEmitter {
-    emitter = XRayHTTPEmitter()
-} else {
-    emitter = XRayUDPEmitter()
 }
 
 let recorder = XRayRecorder()
@@ -31,8 +11,15 @@ let recorder = XRayRecorder()
 let segment = recorder.beginSegment(name: "Segment 1")
 segment.setAnnotation("zip_code", value: 98101)
 segment.setMetadata(["debug": ["test": "Metadata string"]])
+_ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
+usleep(100_000)
+let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 usleep(100_000)
 segment.end()
+
+// subsegment may end after parent
+usleep(100_000)
+subsegment.end()
 
 // use closures for convenience
 recorder.segment(name: "Segment 2") { segment in
@@ -48,7 +35,6 @@ recorder.segment(name: "Segment 2") { segment in
     }
 }
 
-try emitter.send(segments: recorder.removeAll())
-    .wait()
+recorder.wait()
 
 exit(0)
