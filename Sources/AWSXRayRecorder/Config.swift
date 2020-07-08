@@ -21,7 +21,7 @@ public extension XRayRecorder {
             daemonEndpoint: String? = nil,
             serviceVersion: String? = nil
         ) {
-            self.enabled = enabled ?? env("AWS_XRAY_TRACING_ENABLED").flatMap(Bool.init) ?? true
+            self.enabled = enabled ?? !(env("AWS_XRAY_SDK_DISABLED").flatMap(Bool.init) ?? false)
             self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
             self.daemonEndpoint = daemonEndpoint ?? env("AWS_XRAY_DAEMON_ADDRESS") ?? "127.0.0.1:2000"
             // TODO: get package version

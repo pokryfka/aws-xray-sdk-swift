@@ -112,9 +112,9 @@ Check [swift-aws-lambda-template](https://github.com/pokryfka/swift-aws-lambda-t
 
 The library’s behavior can be configured using environment variables:
 
-- `AWS_XRAY_TRACING_ENABLED`: set `false` to disable tracing, enabled by default.
+- `AWS_XRAY_SDK_DISABLED`: set `true` to disable tracing, enabled by default.
 - `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
-- `AWS_XRAY_DAEMON_ADDRESS` – the IP address and port of the X-Ray daemon, `127.0.0.1:2000` by default; prefix with `http` to use `HTTP` rather than `UDP`.
+- `AWS_XRAY_DAEMON_ADDRESS` – the IP address and port of the X-Ray daemon, `127.0.0.1:2000` by default.
 
 ## References
 
