@@ -116,17 +116,19 @@ public class XRayRecorder {
             logger.debug("Segment \(id) parent has not been sent")
             return
         }
-        // mark it as emitted and pass responsibility to the emitter to actually do so
         do {
+            // mark it as emitted and pass responsibility to the emitter to actually do so
             try segment.emit()
+            // check if any of its subsegments are in progress and keep them in the recorder
+            let subsegments = segment.subsegmentsInProgress()
+            logger.debug("Segment \(id) has \(subsegments.count) subsegments \(Segment.State.inProgress)")
+            segmentsLock.withWriterLock {
+                subsegments.forEach { _segments[$0.id] = $0 }
+            }
+            // pass if the the emitter
+            emitter.send(segment)
         } catch {
             logger.error("Failed to emit Segment \(id): \(error)")
         }
-        // check if any of its subsegments are in progress and keep them in the recorder
-        let subsegments = segment.subsegmentsInProgress()
-        logger.debug("Segment \(id) has \(subsegments.count) subsegments \(Segment.State.inProgress)")
-        subsegments.forEach { _segments[$0.id] = $0 }
-        // pass if the the emitter
-        emitter.send(segment)
     }
 }
