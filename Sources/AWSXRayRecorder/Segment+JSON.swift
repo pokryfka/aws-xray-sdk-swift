@@ -1,22 +1,16 @@
 import struct Foundation.Data
 import class Foundation.JSONEncoder
 
-extension JSONEncoder {
-    fileprivate func encode<T: Encodable>(_ value: T) throws -> String {
+private extension JSONEncoder {
+    func encode<T: Encodable>(_ value: T) throws -> String {
         String(decoding: try encode(value), as: UTF8.self)
     }
 }
 
-private let jsonEncoder: JSONEncoder = {
-    let encoder = JSONEncoder()
-//    encoder.outputFormatting = .prettyPrinted
-//    encoder.dateEncodingStrategy = .iso8601
-//    encoder.keyEncodingStrategy = .convertToSnakeCase
-    return encoder
-}()
+private let jsonEncoder = JSONEncoder()
 
 extension XRayRecorder.Segment {
     public func JSONString() throws -> String {
-        try lock.withLock { try jsonEncoder.encode(self) as String }
+        try jsonEncoder.encode(self) as String
     }
 }

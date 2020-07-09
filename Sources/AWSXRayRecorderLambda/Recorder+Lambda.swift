@@ -1,16 +1,27 @@
+import AnyCodable
 import AWSLambdaRuntime
 import AWSXRayRecorder
 import NIO
 
+// TODO: document
+
 extension XRayRecorder {
+    private var metadata: Segment.Metadata {
+        // TODO: make it configurable?
+        let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
+        let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
+            .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
+        return Segment.Metadata(uniqueKeysWithValues: metadataKeyValues)
+    }
+
     public func beginSegment(name: String, context: Lambda.Context) -> Segment {
         let traceHeader = try? XRayRecorder.TraceHeader(string: context.traceID)
-        let aws = XRayRecorder.Segment.AWS(requestId: context.requestID)
+        let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
         traceId = traceHeader?.root ?? TraceID()
         if let parentId = traceHeader?.parentId {
-            return beginSubsegment(name: name, parentId: parentId, aws: aws)
+            return beginSubsegment(name: name, parentId: parentId, aws: aws, metadata: metadata)
         } else {
-            return beginSegment(name: name, aws: aws)
+            return beginSegment(name: name, aws: aws, metadata: metadata)
         }
     }
 }
