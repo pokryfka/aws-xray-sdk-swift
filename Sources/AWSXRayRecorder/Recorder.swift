@@ -9,7 +9,7 @@ import NIO
 public class XRayRecorder {
     private let config: Config
 
-    private lazy var logger = Logger(label: "net.pokryfka.xray_recorder.recorder")
+    private lazy var logger = Logger(label: "xray.recorder.\(String.random32())")
 
     @Synchronized public var traceId = TraceID()
 
@@ -17,7 +17,7 @@ public class XRayRecorder {
     private var _segments = [Segment.ID: Segment]()
 
     private let emitter: XRayEmitter
-    private let emitQueue = DispatchQueue(label: "net.pokryfka.xray_recorder.recorder.emit.\(String.random64())")
+    private let emitQueue = DispatchQueue(label: "net.pokryfka.xray.recorder.emit.\(String.random32())")
     private let emitGroup = DispatchGroup()
 
     public init(emitter: XRayEmitter, config: Config = Config()) {
@@ -56,6 +56,7 @@ public class XRayRecorder {
 
         let callback: Segment.StateChangeCallback = { [weak self] id, state in
             guard let self = self else { return }
+            self.logger.info("Segment \(id) \(state)")
             guard case .ended = state else { return }
             self.emitGroup.enter()
             self.emitQueue.async {
@@ -85,18 +86,21 @@ public class XRayRecorder {
     }
 
     public func wait() {
+        // TODO: tests tests tests
+        // TODO: we should probably pause creating new segments until all current segments are emitted
+        // or queue them separatly
         // wait for all the segments to be passed to the emitter
         emitGroup.wait()
         // wait for the emitter to send them
         emitter.flush { _ in }
     }
 
-    // TODO: test test test
     public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         // wait for all the segments to be passed to the emitter
         emitGroup.wait()
         // wait for the emitter to send them
         if let nioEmitter = emitter as? XRayNIOEmitter {
+            // TODO: log error
             return nioEmitter.flush(on: eventLoop)
         } else {
             return eventLoop.submit {
@@ -120,10 +124,9 @@ public class XRayRecorder {
         }
         // check if any of its subsegments are in progress and keep them in the recorder
         let subsegments = segment.subsegmentsInProgress()
-        logger.debug("Segment \(id) has \(subsegments.count) subsegments in progress")
+        logger.debug("Segment \(id) has \(subsegments.count) subsegments \(Segment.State.inProgress)")
         subsegments.forEach { _segments[$0.id] = $0 }
         // pass if the the emitter
-        logger.debug("Emitting segment \(id)...")
         emitter.send(segment)
     }
 }

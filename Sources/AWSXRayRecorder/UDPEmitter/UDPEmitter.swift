@@ -9,7 +9,7 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
 
     private let config: Config
 
-    private lazy var logger = Logger(label: "net.pokryfka.xray_recorder.udp_emitter")
+    private lazy var logger = Logger(label: "xray.udp_emitter.\(String.random32())")
 
     private let udpClient: UDPClient
 
@@ -38,11 +38,11 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
     func send(_ segment: XRayRecorder.Segment) {
         // TODO: check size, consider sending subsegments separately
         // or group a few segments in one datagram
+        let futureId = UInt64.random(in: UInt64.min ... UInt64.max)
         do {
-            let futureId = UInt64.random(in: UInt64.min ... UInt64.max)
             let string = "\(Self.segmentHeader)\(try segment.JSONString())"
-            logger.info("Sending segment", metadata: ["id": "\(futureId)"])
-            logger.debug("\(string)")
+            logger.info("Sending \(string.utf8.count) bytes", metadata: ["id": "\(futureId)"])
+            logger.debug("\(string)", metadata: ["id": "\(futureId)"])
             let future = udpClient.emit(string)
             lock.withLockVoid {
                 _inFlight[futureId] = future
@@ -52,7 +52,7 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
                 switch result {
                 case .failure(let error):
                     // TODO: handle errors
-                    self.logger.error("Failed to sent: \(error)", metadata: ["id": "\(futureId)"])
+                    self.logger.error("Failed to emit: \(error)", metadata: ["id": "\(futureId)"])
                 case .success:
                     self.logger.info("Sent", metadata: ["id": "\(futureId)"])
                 }
@@ -62,7 +62,7 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
             }
         } catch {
             // TODO: handle errors
-            logger.error("Failed to emit segment: \(error)")
+            logger.error("Failed to send: \(error)", metadata: ["id": "\(futureId)"])
         }
     }
 
@@ -83,9 +83,8 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
     }
 
     func flush(on eventLoop: EventLoop? = nil) -> EventLoopFuture<Void> {
-        logger.info("Flashing...")
         let futures = lock.withLock { Array(_inFlight.values) }
-        logger.info("in flight \(futures.count)")
+        logger.info("in flight: \(futures.count)")
         // TODO: log errors, at the very least
         let eventLoop = eventLoop ?? udpClient.eventLoop
         return EventLoopFuture.andAllComplete(futures, on: eventLoop)
