@@ -188,7 +188,38 @@ public protocol XRayEmitter {
 }
 ```
 
-example:
+example of an emitter which logs emitted segments:
+
+```swift
+public struct XRayLogEmitter: XRayEmitter {
+    private let logger: Logger
+
+    private let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        return encoder
+    }()
+
+    public init(label: String? = nil) {
+        let label = label ?? "xray.log_emitter.\(String.random32())"
+        logger = Logger(label: label)
+    }
+
+    public func send(_ segment: XRayRecorder.Segment) {
+        do {
+            let document: String = try encoder.encode(segment)
+            logger.info("\n\(document)")
+        } catch {
+            logger.error("Failed to encode a segment: \(error)")
+        }
+    }
+
+    public func flush(_: @escaping (Error?) -> Void) {}
+}
+```
+
+
+The emitter has to be provided when creating an instance of `XRayRecorder`:
 
 ```swift
 let recorder = XRayRecorder(emitter: XRayNoopEmitter())
