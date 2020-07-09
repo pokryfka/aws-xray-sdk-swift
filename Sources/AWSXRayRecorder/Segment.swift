@@ -457,7 +457,7 @@ extension XRayRecorder.Segment: Encodable {
         case _fault = "fault"
         case _cause = "cause"
         case _annotations = "annotations"
-        case _metadata
+        case _metadata = "metadata"
         case _subsegments = "subsegments"
         case namespace
         case precursorIDs = "precursor_ids"
