@@ -1,12 +1,6 @@
 import Logging
-import NIO // getenv
 
 // TODO: document
-
-private func env(_ name: String) -> String? {
-    guard let value = getenv(name) else { return nil }
-    return String(cString: value)
-}
 
 public extension XRayRecorder {
     struct Config {
@@ -45,4 +39,22 @@ internal extension XRayUDPEmitter {
             daemonEndpoint = config.daemonEndpoint
         }
     }
+}
+
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+
+private func env(_ name: String) -> String? {
+    #if canImport(Darwin)
+    guard let value = getenv(name) else { return nil }
+    return String(cString: value)
+    #elseif canImport(Glibc)
+    guard let value = getenv(name) else { return nil }
+    return String(cString: value)
+    #else
+    return nil
+    #endif
 }
