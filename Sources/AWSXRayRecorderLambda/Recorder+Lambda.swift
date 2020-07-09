@@ -10,7 +10,7 @@ extension XRayRecorder {
         // TODO: make it configurable?
         let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
         let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
-            .filter { $0.1 == nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
+            .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
         return Segment.Metadata(uniqueKeysWithValues: metadataKeyValues)
     }
 

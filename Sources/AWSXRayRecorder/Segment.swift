@@ -60,7 +60,7 @@ extension XRayRecorder {
         /// Field keys (debug in the following example) starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
         public typealias Metadata = [String: AnyEncodable]
 
-        internal let lock = Lock()
+        private let lock = ReadWriteLock()
 
         private let callback: StateChangeCallback?
 
@@ -75,7 +75,7 @@ extension XRayRecorder {
             }
         }
 
-        private var state: State { lock.withLock { _state } }
+        private var state: State { lock.withReaderLock { _state } }
 
         // MARK: Required Segment Fields
 
@@ -161,13 +161,13 @@ extension XRayRecorder {
         private var _cause: Exception?
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
-        private var _annotations: Annotations?
+        private var _annotations: Annotations
 
         /// metadata object with any additional data that you want to store in the segment.
-        private var _metadata: Metadata?
+        private var _metadata: Metadata
 
         /// **array** of subsegment objects.
-        private var _subsegments: [Segment]?
+        private var _subsegments: [Segment] = [Segment]()
 
         // MARK: Optional Subsegment Fields
 
@@ -193,8 +193,8 @@ extension XRayRecorder {
             self.origin = origin
             self.http = http
             self.aws = aws
-            _annotations = annotations
-            _metadata = metadata
+            _annotations = annotations ?? Annotations()
+            _metadata = metadata ?? Metadata()
             self.callback = callback
         }
     }
@@ -244,7 +244,7 @@ extension XRayRecorder.Segment.State {
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment.
     public func end() {
-        lock.withLockVoid {
+        lock.withWriterLockVoid {
             guard case .inProgress = _state else {
                 return
             }
@@ -253,7 +253,7 @@ extension XRayRecorder.Segment {
     }
 
     internal func emit() throws {
-        try lock.withLockVoid {
+        try lock.withWriterLockVoid {
             if case .emitted = _state {
                 throw SegmentError.alreadyEmitted
             }
@@ -271,31 +271,25 @@ extension XRayRecorder.Segment {
 
 extension XRayRecorder.Segment {
     public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
-        lock.withLock {
+        lock.withWriterLock {
             let newSegment = XRayRecorder.Segment(
                 name: name, traceId: self.traceId, parentId: self.id, subsegment: true,
                 metadata: metadata,
                 callback: self.callback
             )
-            // TODO: refactor
-            if (_subsegments?.count ?? 0) > 0 {
-                _subsegments?.append(newSegment)
-            } else {
-                _subsegments = [newSegment]
-            }
+            _subsegments.append(newSegment)
             return newSegment
         }
     }
 
     internal func subsegmentsInProgress() -> [XRayRecorder.Segment] {
-        // TODO: tests tests tests
-        lock.withLock {
-            guard let subsegments = _subsegments else {
+        lock.withReaderLock {
+            guard _subsegments.isEmpty == false else {
                 return [XRayRecorder.Segment]()
             }
             // TODO: make it nicer
             var segmentsInProgess = [XRayRecorder.Segment]()
-            for segment in subsegments {
+            for segment in _subsegments {
                 // add subsegment if in progress
                 if segment.state.inProgress {
                     segmentsInProgess.append(segment)
@@ -362,14 +356,14 @@ extension XRayRecorder.Segment {
             id: String.random64(),
             message: "\(error)"
         )
-        lock.withLockVoid {
+        lock.withWriterLockVoid {
             self._error = true
             _cause = exception
         }
     }
 
     internal func setError(_ httpError: HTTPError) {
-        lock.withLockVoid {
+        lock.withWriterLockVoid {
             _error = true
             _cause = httpError.cause
             switch httpError {
@@ -395,13 +389,9 @@ extension XRayRecorder.Segment {
     }
 
     private func setAnnotations(_ newElements: Annotations) {
-        lock.withLock {
-            if (_annotations?.count ?? 0) > 0 {
-                for (k, v) in newElements {
-                    _annotations?.updateValue(v, forKey: k)
-                }
-            } else {
-                _annotations = newElements
+        lock.withWriterLockVoid {
+            for (k, v) in newElements {
+                _annotations.updateValue(v, forKey: k)
             }
         }
     }
@@ -423,13 +413,9 @@ extension XRayRecorder.Segment {
     }
 
     public func setMetadata(_ newElements: Metadata) {
-        lock.withLock {
-            if (_metadata?.count ?? 0) > 0 {
-                for (k, v) in newElements {
-                    _metadata?.updateValue(v, forKey: k)
-                }
-            } else {
-                _metadata = newElements
+        lock.withWriterLockVoid {
+            for (k, v) in newElements {
+                _metadata.updateValue(v, forKey: k)
             }
         }
     }
@@ -463,7 +449,73 @@ extension XRayRecorder.Segment: Encodable {
         case precursorIDs = "precursor_ids"
     }
 
-    // TODO: create custom encoder?
+    public func encode(to encoder: Encoder) throws {
+        try lock.withReaderLockVoid {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
+            try container.encode(traceId, forKey: .traceId)
+            try container.encode(startTime, forKey: .startTime)
+            // encode either endTime or inProgress
+            if let endTime = endTime {
+                try container.encode(endTime, forKey: .endTime)
+            } else if let inProgress = inProgress {
+                try container.encode(inProgress, forKey: .inProgress)
+            }
+            // do not encode nil values
+            if let type = type {
+                try container.encode(type, forKey: .type)
+            }
+            if let parentId = parentId {
+                try container.encode(parentId, forKey: .parentId)
+            }
+            if let service = service {
+                try container.encode(service, forKey: .service)
+            }
+            if let user = user {
+                try container.encode(user, forKey: .user)
+            }
+            if let origin = origin {
+                try container.encode(origin, forKey: .origin)
+            }
+            if let http = http {
+                try container.encode(http, forKey: .http)
+            }
+            if let aws = aws {
+                try container.encode(aws, forKey: .aws)
+            }
+            // TODO: create Encodable exception type with throttle, fault, cause?
+            if let error = _error {
+                try container.encode(error, forKey: ._error)
+            }
+            if let throttle = _throttle {
+                try container.encode(throttle, forKey: ._throttle)
+            }
+            if let fault = _fault {
+                try container.encode(fault, forKey: ._fault)
+            }
+            if let cause = _cause {
+                try container.encode(cause, forKey: ._cause)
+            }
+            if let namespace = namespace {
+                try container.encode(namespace, forKey: .namespace)
+            }
+            if let precursorIDs = precursorIDs {
+                try container.encode(precursorIDs, forKey: .precursorIDs)
+            }
+            // do not encode empty arrays
+            if _annotations.isEmpty == false {
+                try container.encode(_annotations, forKey: ._annotations)
+            }
+            if _metadata.isEmpty == false {
+                // do not throw if encoding of AnyCodable failed
+                try? container.encode(_metadata, forKey: ._metadata)
+            }
+            if _subsegments.isEmpty == false {
+                try container.encode(_subsegments, forKey: ._subsegments)
+            }
+        }
+    }
 }
 
 extension XRayRecorder.Segment.AnnotationValue: Encodable {
