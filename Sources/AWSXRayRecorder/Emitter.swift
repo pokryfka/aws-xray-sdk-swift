@@ -5,7 +5,7 @@ public protocol XRayEmitter {
     func flush(_ callback: @escaping (Error?) -> Void)
 }
 
-public struct XRayNoopEmitter: XRayEmitter {
+public struct XRayNoOpEmitter: XRayEmitter {
     public func send(_: XRayRecorder.Segment) {}
     public func flush(_: @escaping (Error?) -> Void) {}
 

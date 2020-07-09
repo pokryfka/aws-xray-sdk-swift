@@ -23,7 +23,7 @@ public class XRayRecorder {
     public init(emitter: XRayEmitter, config: Config = Config()) {
         self.config = config
         if !config.enabled {
-            self.emitter = XRayNoopEmitter()
+            self.emitter = XRayNoOpEmitter()
         } else {
             self.emitter = emitter
         }
@@ -32,7 +32,7 @@ public class XRayRecorder {
 
     public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
         if !config.enabled {
-            self.init(emitter: XRayNoopEmitter(), config: config)
+            self.init(emitter: XRayNoOpEmitter(), config: config)
         } else {
             do {
                 let emitter = try XRayUDPEmitter(config: .init(config), eventLoopGroup: eventLoopGroup)

@@ -222,7 +222,7 @@ public struct XRayLogEmitter: XRayEmitter {
 The emitter has to be provided when creating an instance of `XRayRecorder`:
 
 ```swift
-let recorder = XRayRecorder(emitter: XRayNoopEmitter())
+let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 ```
 
 ## References
