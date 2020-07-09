@@ -17,8 +17,9 @@ extension XRayRecorder {
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     public class Segment {
-        internal struct ID: RawRepresentable, Hashable, Encodable {
+        internal struct ID: RawRepresentable, Hashable, Encodable, CustomStringConvertible {
             let rawValue: String
+            var description: String { rawValue }
             init?(rawValue: String) {
                 guard let id = try? validateId(rawValue) else { return nil }
                 self.rawValue = id
@@ -212,6 +213,19 @@ extension XRayRecorder.Segment.State: Equatable {
             return lhs == rhs
         default:
             return false
+        }
+    }
+}
+
+extension XRayRecorder.Segment.State: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .inProgress:
+            return "inProgress"
+        case .ended(let timestamp):
+            return "ended @ \(timestamp.secondsSinceEpoch)"
+        case .emitted(let timestamp):
+            return "emitted @ \(timestamp.secondsSinceEpoch)"
         }
     }
 }
