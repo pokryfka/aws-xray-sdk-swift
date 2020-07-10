@@ -33,7 +33,7 @@ jobs:
         file: info.lcov
 
   test-linux:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Run tests
