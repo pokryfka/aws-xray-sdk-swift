@@ -1,8 +1,1 @@
-import XCTest
-
-import AWSXRayRecorderTests
-
-var tests = [XCTestCaseEntry]()
-tests += AWSXRayRecorderTests.__allTests()
-
-XCTMain(tests)
+fatalError("Run the tests with `swift test --enable-test-discovery`.")

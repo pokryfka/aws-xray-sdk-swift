@@ -9,4 +9,4 @@ docker run \
   --volume "$(pwd)/:/src" \
   --workdir "/src/" \
   ${DOCKER_IMAGE} \
-  swift test
+  swift test --enable-test-discovery
