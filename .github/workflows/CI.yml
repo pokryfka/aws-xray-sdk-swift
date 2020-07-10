@@ -7,19 +7,59 @@ on:
     branches: [ master ]
 
 jobs:
+  
   build:
-
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
-
     steps:
     - uses: actions/checkout@v2
+    - name: Swift version
+      run: swift --version
     - name: Build
-      run: swift build -v
+      run: swift build
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Swift version
+      run: swift --version
     - name: Run tests
-      run: swift test -v
+      run: swift test --enable-test-discovery --enable-code-coverage
+    - name: Generate coverage report
+      run: xcrun llvm-cov export -format="lcov" .build/debug/aws-xray-sdk-swiftPackageTests.xctest/Contents/MacOS/aws-xray-sdk-swiftPackageTests -instr-profile .build/debug/codecov/default.profdata > info.lcov
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: info.lcov
+
+  test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        images:
+        - swift:5.2
+        - swiftlang/swift:nightly-5.3-bionic
+    container:
+      image: ${{ matrix.images }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Swift version
+      run: swift --version
+    - name: Run tests
+      run: swift test --enable-test-discovery --enable-code-coverage
+    - name: Generate coverage report
+      run: llvm-cov export -format="lcov" .build/x86_64-unknown-linux-gnu/debug/aws-xray-sdk-swiftPackageTests.xctest -instr-profile .build/debug/codecov/default.profdata > info.lcov
+    - name: Install curl
+      run: apt-get update && apt-get install -y curl # required by codecov-action
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: info.lcov
 
   lint:
     runs-on: macos-latest
@@ -31,14 +71,14 @@ jobs:
       run: swiftformat --lint .
   
   examples:
-
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
-
     steps:
     - uses: actions/checkout@v2
+    - name: Swift version
+      run: swift --version
     - name: Build Examples
-      run: swift build -v
+      run: swift build
       working-directory: ./Examples
