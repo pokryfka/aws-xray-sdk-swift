@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: swift build -v
+      run: swift build
 
   test-macos:
     runs-on: macos-latest
@@ -63,5 +63,5 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build Examples
-      run: swift build -v
+      run: swift build
       working-directory: ./Examples
