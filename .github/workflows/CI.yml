@@ -25,9 +25,7 @@ jobs:
     - name: Run tests
       run: swift test --enable-test-discovery --enable-code-coverage
     - name: Generate coverage report
-      run: xcrun llvm-cov export -format="lcov" .build/debug/${{PACKAGE_NAME}}PackageTests.xctest/Contents/MacOS/${{PACKAGE_NAME}}PackageTests -instr-profile .build/debug/codecov/default.profdata > info.lcov
-      env:
-        PACKAGE_NAME: aws-xray-sdk-swift
+      run: xcrun llvm-cov export -format="lcov" .build/debug/aws-xray-sdk-swiftPackageTests.xctest/Contents/MacOS/aws-xray-sdk-swiftPackageTests -instr-profile .build/debug/codecov/default.profdata > info.lcov
     - name: Upload to codecov.io
       uses: codecov/codecov-action@v1
       with:
@@ -41,9 +39,7 @@ jobs:
     - name: Run tests
       run: swift test --enable-test-discovery --enable-code-coverage
     - name: Generate coverage report
-      run: llvm-cov export -format="lcov" .build/x86_64-unknown-linux-gnu/debug/${{PACKAGE_NAME}}PackageTests.xctest -instr-profile .build/debug/codecov/default.profdata > info.lcov
-      env:
-        PACKAGE_NAME: aws-xray-sdk-swift
+      run: llvm-cov export -format="lcov" .build/x86_64-unknown-linux-gnu/debug/aws-xray-sdk-swiftPackageTests.xctest -instr-profile .build/debug/codecov/default.profdata > info.lcov
     - name: Upload to codecov.io
       uses: codecov/codecov-action@v1
       with:
