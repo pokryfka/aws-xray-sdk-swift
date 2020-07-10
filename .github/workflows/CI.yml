@@ -7,19 +7,48 @@ on:
     branches: [ master ]
 
 jobs:
+  
   build:
-
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
-
     steps:
     - uses: actions/checkout@v2
     - name: Build
       run: swift build -v
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
     - name: Run tests
-      run: swift test -v --enable-test-discovery
+      run: swift test --enable-test-discovery --enable-code-coverage
+    - name: Generate coverage report
+      run: xcrun llvm-cov export -format="lcov" .build/debug/${{PACKAGE_NAME}}PackageTests.xctest/Contents/MacOS/${{PACKAGE_NAME}}PackageTests -instr-profile .build/debug/codecov/default.profdata > info.lcov
+      env:
+        PACKAGE_NAME: aws-xray-sdk-swift
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: info.lcov
+
+  test-linux:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run tests
+      run: swift test --enable-test-discovery --enable-code-coverage
+    - name: Generate coverage report
+      run: llvm-cov export -format="lcov" .build/x86_64-unknown-linux-gnu/debug/${{PACKAGE_NAME}}PackageTests.xctest -instr-profile .build/debug/codecov/default.profdata > info.lcov
+      env:
+        PACKAGE_NAME: aws-xray-sdk-swift
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: info.lcov
 
   lint:
     runs-on: macos-latest
@@ -31,12 +60,10 @@ jobs:
       run: swiftformat --lint .
   
   examples:
-
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
-
     steps:
     - uses: actions/checkout@v2
     - name: Build Examples
