@@ -80,26 +80,42 @@ final class SegmentTests: XCTestCase {
         let subsegmentA1 = subsegmentA.beginSubsegment(name: UUID().uuidString)
         let subsegmentA2 = subsegmentA.beginSubsegment(name: UUID().uuidString)
 
-        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id),
-                       [subsegmentA, subsegmentB].map(\.id))
+        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id), [subsegmentA, subsegmentB].map(\.id))
+        XCTAssertEqual(subsegmentA.subsegmentsInProgress().map(\.id), [subsegmentA1, subsegmentA2].map(\.id))
+        XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
 
         subsegmentA.end()
 
-        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id),
-                       [subsegmentA1, subsegmentA2, subsegmentB].map(\.id))
+        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id), [subsegmentA1, subsegmentA2, subsegmentB].map(\.id))
+        XCTAssertEqual(subsegmentA.subsegmentsInProgress().map(\.id), [subsegmentA1, subsegmentA2].map(\.id))
+        XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
 
         subsegmentA2.end()
 
-        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id),
-                       [subsegmentA1, subsegmentB].map(\.id))
+        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id), [subsegmentA1, subsegmentB].map(\.id))
+        XCTAssertEqual(subsegmentA.subsegmentsInProgress().map(\.id), [subsegmentA1].map(\.id))
+        XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
 
         subsegmentB.end()
 
-        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id),
-                       [subsegmentA1].map(\.id))
+        XCTAssertEqual(segment.subsegmentsInProgress().map(\.id), [subsegmentA1].map(\.id))
+        XCTAssertEqual(subsegmentA.subsegmentsInProgress().map(\.id), [subsegmentA1].map(\.id))
+        XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
 
         subsegmentA1.end()
 
         XCTAssertTrue(segment.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
+        XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
     }
 }
