@@ -140,7 +140,7 @@ final class SegmentEncodingTests: XCTestCase {
         annotations["key"] = .float(13.7)
 //        XCTAssertEqual(#"{"key":13.699999809265137}"#, encode(annotations))
         let json2 = encode(annotations)
-        XCTAssertTrue(#"{"key":13.699999809265137}"# == json2 || #"{"key":12.7}"# == json2)
+        XCTAssertTrue(#"{"key":13.699999809265137}"# == json2 || #"{"key":13.7}"# == json2)
 
         // remove the value
         annotations["key"] = nil
