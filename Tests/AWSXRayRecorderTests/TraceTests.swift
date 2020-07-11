@@ -26,7 +26,7 @@ extension TraceID {
     }
 }
 
-final class AWSXRayTraceTests: XCTestCase {
+final class TraceTests: XCTestCase {
     // MARK: TraceID
 
     func testTraceRandomId() {
@@ -41,14 +41,14 @@ final class AWSXRayTraceTests: XCTestCase {
     }
 
     func testTraceOldId() {
-        let traceId = TraceID(secondsSince1970: 1)
+        let traceId = TraceID(secondsSinceEpoch: 1)
         traceId.test()
     }
 
     func testTraceOverflowId() {
-        let traceId = TraceID(secondsSince1970: 0xA_1234_5678)
+        let traceId = TraceID(secondsSinceEpoch: 0xA_1234_5678)
         traceId.test()
-        XCTAssertEqual(traceId.date, TraceID(secondsSince1970: 0xB_1234_5678).date)
+        XCTAssertEqual(traceId.date, TraceID(secondsSinceEpoch: 0xB_1234_5678).date)
     }
 
     // MARK: TraceHeader
