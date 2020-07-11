@@ -6,8 +6,7 @@ final class TimestampTests: XCTestCase {
     func testTimestampFromRawValue() {
         let timestamp = Timestamp(rawValue: 1)
         XCTAssertNotNil(timestamp)
-        let timestamp2 = Timestamp(rawValue: timestamp!.rawValue)
-        XCTAssertNotNil(timestamp2)
+        let timestamp2 = timestamp
         XCTAssertEqual(timestamp, timestamp2)
     }
 
@@ -21,9 +20,9 @@ final class TimestampTests: XCTestCase {
         for secondsSinceEpoch in correctValues {
             let timestamp = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
             XCTAssertNotNil(timestamp)
-            XCTAssertEqual(secondsSinceEpoch, timestamp?.secondsSinceEpoch)
-            let timestamp2 = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
-            XCTAssertTrue(timestamp == timestamp2)
+            XCTAssertEqual(secondsSinceEpoch, timestamp!.secondsSinceEpoch, accuracy: 0.0001)
+            let timestamp2 = timestamp
+            XCTAssertEqual(timestamp, timestamp2)
         }
 
         let incorrectValues: [Double] = [
@@ -71,8 +70,8 @@ final class TimestampTests: XCTestCase {
         assert(seconds: timestamp.secondsSinceEpoch, after: after, before: before)
     }
 
-    func assert(seconds: Double, after: Date, before: Date, accuracy: UInt = 4) {
-        let n = pow(10.0, Double(accuracy))
+    func assert(seconds: Double, after: Date, before: Date, scale: UInt = 4) {
+        let n = pow(10.0, Double(scale))
         let afterSeconds = after.timeIntervalSince1970
         let beforeSeconds = before.timeIntervalSince1970
         XCTAssertLessThanOrEqual(UInt64(beforeSeconds * n), UInt64(seconds * n))
