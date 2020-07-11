@@ -72,7 +72,7 @@ final class SegmentEncodingTests: XCTestCase {
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let endTime = Timestamp(secondsSinceEpoch: 2)!
         let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime)
-        segment.end(endTime)
+        XCTAssertNoThrow(try segment.end(endTime))
         let result = #"{"end_time":2,"id":"ce7cc02792adb89e","name":"test","start_time":1,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}"#
         XCTAssertEqual(result, encode(segment))
     }

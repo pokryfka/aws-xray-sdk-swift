@@ -135,7 +135,7 @@ final class TraceTests: XCTestCase {
     func testTraceHeaderInvalidParent() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=-15277;Sampled=1"
         XCTAssertThrowsError(try TraceHeader(string: string)) { error in
-            if case SegmentError.invalidID(let invalidValue) = error {
+            if case TraceError.invalidParentID(let invalidValue) = error {
                 XCTAssertEqual(invalidValue, "-15277")
             } else {
                 XCTFail()
