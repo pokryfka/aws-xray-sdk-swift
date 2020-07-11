@@ -51,13 +51,12 @@ extension XRayRecorder.TraceID: Encodable {
 extension XRayRecorder.TraceID {
     /// Creates new Trace ID.
     public init() {
-        let now = Timestamp().secondsSinceEpoch
-        date = String(format: "%08x", Int(now))
-        identifier = String.random96()
+        self.init(secondsSinceEpoch: Timestamp().secondsSinceEpoch)
     }
 
-    init(secondsSince1970: Double) {
-        date = String(format: "%08x", Int(secondsSince1970))
+    init(secondsSinceEpoch: Double) {
+        // TODO: format uses Foundation, replace
+        date = String(format: "%08x", Int(secondsSinceEpoch))
         identifier = String.random96()
     }
 

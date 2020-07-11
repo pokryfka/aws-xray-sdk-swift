@@ -3,6 +3,31 @@ import XCTest
 @testable import AWSXRayRecorder
 
 final class TimestampTests: XCTestCase {
+    func testTimestampFromSeconds() {
+        let correctValues: [Double] = [
+            1,
+            Date().timeIntervalSince1970,
+            Date().timeIntervalSince1970 - 1,
+            Date().timeIntervalSince1970 + 1,
+        ]
+        for secondsSinceEpoch in correctValues {
+            let timestamp = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
+            XCTAssertNotNil(timestamp)
+            XCTAssertEqual(secondsSinceEpoch, timestamp?.secondsSinceEpoch)
+            let timestamp2 = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
+            XCTAssertTrue(timestamp == timestamp2)
+        }
+
+        let incorrectValues: [Double] = [
+            -1,
+            0,
+        ]
+        for secondsSinceEpoch in incorrectValues {
+            let timestamp = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
+            XCTAssertNil(timestamp)
+        }
+    }
+
     func testTimestampAgainstFoundation() {
         let before = Date()
         let timestamp = Timestamp()

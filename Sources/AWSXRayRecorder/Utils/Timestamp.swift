@@ -1,5 +1,11 @@
 import struct Dispatch.DispatchWallTime
 
+#if canImport(Darwin)
+import Darwin // timespec
+#else
+import Glibc // timespec
+#endif
+
 internal struct Timestamp: RawRepresentable {
     let rawValue: UInt64
 
@@ -12,6 +18,14 @@ internal struct Timestamp: RawRepresentable {
 
     init() {
         rawValue = DispatchWallTime.now().rawValue
+    }
+
+    init?(secondsSinceEpoch: Double) {
+        guard secondsSinceEpoch > 0 else { return nil }
+        let nanosecondsSinceEpoch = UInt64(secondsSinceEpoch * 1_000_000_000)
+        let seconds = UInt64(nanosecondsSinceEpoch / 1_000_000_000)
+        let nanoseconds = nanosecondsSinceEpoch - (seconds * 1_000_000_000)
+        rawValue = DispatchWallTime(timespec: timespec(tv_sec: Int(seconds), tv_nsec: Int(nanoseconds))).rawValue
     }
 }
 

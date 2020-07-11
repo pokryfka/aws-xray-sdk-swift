@@ -80,7 +80,7 @@ extension XRayRecorder {
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        internal let id = ID()
+        internal let id: ID
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -107,7 +107,7 @@ extension XRayRecorder {
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        private let startTime: Timestamp = Timestamp()
+        private let startTime: Timestamp
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
@@ -178,15 +178,20 @@ extension XRayRecorder {
         private let precursorIDs: [String]? = nil
 
         init(
-            name: String, traceId: TraceID, parentId: ID?, subsegment: Bool,
+            id: ID = ID(),
+            name: String, traceId: TraceID, startTime: Timestamp = Timestamp(),
+            parentId: ID? = nil, subsegment: Bool = false,
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
             callback: StateChangeCallback? = nil
         ) {
+            self.id = id
             self.name = name
             self.traceId = traceId
+            self.startTime = startTime
             self.parentId = parentId
+            // TODO: should we check if parentId is different than id?
             type = subsegment && parentId != nil ? .subsegment : nil
             self.service = service
             self.user = user
@@ -244,11 +249,16 @@ extension XRayRecorder.Segment.State {
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment.
     public func end() {
+        end(Timestamp())
+    }
+
+    internal func end(_ timestamp: Timestamp) {
         lock.withWriterLockVoid {
             guard case .inProgress = _state else {
                 return
             }
-            _state = .ended(Timestamp())
+            // TODO: check that the value is after startTime
+            _state = .ended(timestamp)
         }
     }
 
@@ -522,13 +532,13 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .bool(let value):
+        case .string(let value):
             try container.encode(value)
         case .int(let value):
             try container.encode(value)
         case .float(let value):
             try container.encode(value)
-        case .string(let value):
+        case .bool(let value):
             try container.encode(value)
         }
     }
