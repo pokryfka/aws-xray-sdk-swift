@@ -3,6 +3,14 @@ import XCTest
 @testable import AWSXRayRecorder
 
 final class TimestampTests: XCTestCase {
+    func testTimestampFromRawValue() {
+        let timestamp = Timestamp(rawValue: 1)
+        XCTAssertNotNil(timestamp)
+        let timestamp2 = Timestamp(rawValue: timestamp!.rawValue)
+        XCTAssertNotNil(timestamp2)
+        XCTAssertEqual(timestamp, timestamp2)
+    }
+
     func testTimestampFromSeconds() {
         let correctValues: [Double] = [
             1,
@@ -26,6 +34,16 @@ final class TimestampTests: XCTestCase {
             let timestamp = Timestamp(secondsSinceEpoch: secondsSinceEpoch)
             XCTAssertNil(timestamp)
         }
+    }
+
+    func testTimestampComparison() {
+        let now = Date().timeIntervalSince1970
+        let timestamp = Timestamp(secondsSinceEpoch: now)
+        XCTAssertNotNil(timestamp)
+        let timestamp2 = Timestamp(secondsSinceEpoch: now + 1)
+        XCTAssertNotNil(timestamp2)
+        XCTAssertLessThan(timestamp!, timestamp2!)
+        XCTAssertGreaterThan(timestamp2!, timestamp!)
     }
 
     func testTimestampAgainstFoundation() {
@@ -53,8 +71,8 @@ final class TimestampTests: XCTestCase {
         assert(seconds: timestamp.secondsSinceEpoch, after: after, before: before)
     }
 
-    func assert(seconds: Double, after: Date, before: Date, decimals: UInt = 4) {
-        let n = pow(10.0, Double(decimals))
+    func assert(seconds: Double, after: Date, before: Date, accuracy: UInt = 4) {
+        let n = pow(10.0, Double(accuracy))
         let afterSeconds = after.timeIntervalSince1970
         let beforeSeconds = before.timeIntervalSince1970
         XCTAssertLessThanOrEqual(UInt64(beforeSeconds * n), UInt64(seconds * n))

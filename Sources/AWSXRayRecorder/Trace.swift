@@ -1,9 +1,7 @@
-// TODO: remove dependency on Foundation
-import struct Foundation.CharacterSet
-
 extension XRayRecorder {
     enum TraceError: Error {
         case invalidTraceID(String)
+        case invalidParentID(String)
         case invalidSampleDecision(String)
         case invalidTraceHeader(String)
     }
@@ -55,22 +53,23 @@ extension XRayRecorder.TraceID {
     }
 
     init(secondsSinceEpoch: Double) {
-        // TODO: format uses Foundation, replace
-        date = String(format: "%08x", Int(secondsSinceEpoch))
+        let value = UInt32(min(Double(UInt32.max), secondsSinceEpoch))
+        let dateValue = String(value, radix: 16, uppercase: false)
+        let datePadding = String(repeating: "0", count: max(0, 8 - dateValue.count))
+        date = "\(datePadding)\(dateValue)"
         identifier = String.random96()
     }
 
     /// Parses and validates string with Trace ID.
     init(string: String) throws {
         let values = string.split(separator: "-")
-        let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
         guard
             values.count == 3,
             values[0] == "1",
             values[1].count == 8,
             values[2].count == 24,
-            values[1].rangeOfCharacter(from: invalidCharacters) == nil,
-            values[2].rangeOfCharacter(from: invalidCharacters) == nil
+            Float("0x\(values[1])") != nil,
+            Float("0x\(values[2])") != nil
         else {
             throw XRayRecorder.TraceError.invalidTraceID(string)
         }
@@ -136,7 +135,7 @@ extension XRayRecorder.TraceHeader {
     init(parentId: String? = nil, sampled: XRayRecorder.SampleDecision) throws {
         root = XRayRecorder.TraceID()
         if let parentId = parentId {
-            self.parentId = try XRayRecorder.Segment.validateId(parentId)
+            self.parentId = XRayRecorder.Segment.ID(rawValue: parentId)?.rawValue
         } else {
             self.parentId = nil
         }
@@ -157,8 +156,11 @@ extension XRayRecorder.TraceHeader {
 
         var valueIndex = 1
         if values[valueIndex].starts(with: "Parent=") {
-            parentId = try XRayRecorder.Segment.validateId(
-                String(values[1].dropFirst("Parent=".count)))
+            let string = String(values[1].dropFirst("Parent=".count))
+            guard let parentIdValue = XRayRecorder.Segment.ID(rawValue: string) else {
+                throw XRayRecorder.TraceError.invalidParentID(string)
+            }
+            parentId = parentIdValue.rawValue
             valueIndex += 1
         } else {
             parentId = nil

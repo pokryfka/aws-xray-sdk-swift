@@ -35,6 +35,13 @@ extension Timestamp: Equatable {
     }
 }
 
+extension Timestamp: Comparable {
+    static func < (lhs: Timestamp, rhs: Timestamp) -> Bool {
+        // TODO: change implementation to compare integers
+        lhs.secondsSinceEpoch < rhs.secondsSinceEpoch
+    }
+}
+
 extension Timestamp: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()

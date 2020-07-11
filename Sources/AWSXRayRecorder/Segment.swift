@@ -6,8 +6,9 @@ private typealias SegmentError = XRayRecorder.SegmentError
 
 extension XRayRecorder {
     enum SegmentError: Error {
-        case invalidID(String)
         case inProgress
+        case startedInFuture
+        case alreadyEnded
         case alreadyEmitted
     }
 
@@ -21,8 +22,8 @@ extension XRayRecorder {
             let rawValue: String
             var description: String { rawValue }
             init?(rawValue: String) {
-                guard let id = try? validateId(rawValue) else { return nil }
-                self.rawValue = id
+                guard rawValue.count == 16, Float("0x\(rawValue)") != nil else { return nil }
+                self.rawValue = rawValue
             }
 
             init() { rawValue = String.random64() }
@@ -236,7 +237,7 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
 }
 
 extension XRayRecorder.Segment.State {
-    var inProgress: Bool {
+    var isInProgress: Bool {
         switch self {
         case .inProgress:
             return true
@@ -249,15 +250,22 @@ extension XRayRecorder.Segment.State {
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment.
     public func end() {
-        end(Timestamp())
+        try? end(Timestamp())
     }
 
-    internal func end(_ timestamp: Timestamp) {
-        lock.withWriterLockVoid {
-            guard case .inProgress = _state else {
-                return
+    internal func end(_ timestamp: Timestamp) throws {
+        try lock.withWriterLockVoid {
+            switch _state {
+            case .inProgress:
+                break
+            case .ended:
+                throw SegmentError.alreadyEnded
+            case .emitted:
+                throw SegmentError.alreadyEmitted
             }
-            // TODO: check that the value is after startTime
+            guard startTime < timestamp else {
+                throw SegmentError.startedInFuture
+            }
             _state = .ended(timestamp)
         }
     }
@@ -297,11 +305,10 @@ extension XRayRecorder.Segment {
             guard _subsegments.isEmpty == false else {
                 return [XRayRecorder.Segment]()
             }
-            // TODO: make it nicer
             var segmentsInProgess = [XRayRecorder.Segment]()
             for segment in _subsegments {
                 // add subsegment if in progress
-                if segment.state.inProgress {
+                if segment.state.isInProgress {
                     segmentsInProgess.append(segment)
                 }
                 // otherwise check if any of its subsegments are in progress
@@ -542,24 +549,4 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
             try container.encode(value)
         }
     }
-}
-
-// MARK: - Validation
-
-// TODO: remove dependency on Foundation
-import struct Foundation.CharacterSet
-
-extension XRayRecorder.Segment {
-    static func validateId(_ string: String) throws -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
-        guard
-            string.count == 16,
-            string.rangeOfCharacter(from: invalidCharacters) == nil
-        else {
-            throw XRayRecorder.SegmentError.invalidID(string)
-        }
-        return string
-    }
-
-    // TODO: validate name
 }
