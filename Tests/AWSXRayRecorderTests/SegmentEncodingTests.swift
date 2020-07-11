@@ -134,7 +134,7 @@ final class SegmentEncodingTests: XCTestCase {
 //        XCTAssertEqual(#"{"key":4.1999998092651367}"#, encode(annotations))
         // interestingly Foundation JSON encoder on Linux does better job (expected different precision)
         let json = encode(annotations)
-        XCTAssertTrue(#"{"key":4.1999998092651367}"# == json) // || #"{"key":4.2}"# == json)
+        XCTAssertTrue(#"{"key":4.1999998092651367}"# == json || #"{"key":4.2}"# == json)
 
         // replace the previous value
         annotations["key"] = .float(13.7)
