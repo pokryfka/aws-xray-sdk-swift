@@ -131,11 +131,16 @@ final class SegmentEncodingTests: XCTestCase {
         var annotations = Segment.Annotations()
 
         annotations["key"] = .float(4.2)
-        XCTAssertEqual("{\"key\":4.1999998092651367}", encode(annotations))
+//        XCTAssertEqual(#"{"key":4.1999998092651367}"#, encode(annotations))
+        // interestingly Foundation JSON encoder on Linux does better job (expected different precision)
+        let json = encode(annotations)
+        XCTAssertTrue(#"{"key":4.1999998092651367}"# == json) // || #"{"key":4.2}"# == json)
 
         // replace the previous value
         annotations["key"] = .float(13.7)
-        XCTAssertEqual(#"{"key":13.699999809265137}"#, encode(annotations))
+//        XCTAssertEqual(#"{"key":13.699999809265137}"#, encode(annotations))
+        let json2 = encode(annotations)
+        XCTAssertTrue(#"{"key":13.699999809265137}"# == json2 || #"{"key":12.7}"# == json2)
 
         // remove the value
         annotations["key"] = nil
@@ -165,7 +170,10 @@ final class SegmentEncodingTests: XCTestCase {
         annotations["floatKey"] = .float(4.2)
         annotations["boolKey"] = .bool(true)
 
-        XCTAssertEqual(#"{"boolKey":true,"floatKey":4.1999998092651367,"intKey":1,"stringKey":"value"}"#, encode(annotations))
+//        XCTAssertEqual(#"{"boolKey":true,"floatKey":4.1999998092651367,"intKey":1,"stringKey":"value"}"#, encode(annotations))
+        let json = encode(annotations)
+        XCTAssertTrue(#"{"boolKey":true,"floatKey":4.1999998092651367,"intKey":1,"stringKey":"value"}"# == json ||
+            #"{"boolKey":true,"floatKey":4.2,"intKey":1,"stringKey":"value"}"# == json)
     }
 
     // MARK: Metadata
@@ -206,11 +214,15 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingMetadataFloat() {
         var metadata = Segment.Metadata()
         metadata["key"] = 4.2
-        XCTAssertEqual(#"{"key":4.2000000000000002}"#, encode(metadata))
+//        XCTAssertEqual(#"{"key":4.2000000000000002}"#, encode(metadata))
+        let json = encode(metadata)
+        XCTAssertTrue(#"{"key":4.2000000000000002}"# == json || #"{"key":4.2}"# == json)
 
         // replace the previous value
         metadata["key"] = 13.7
-        XCTAssertEqual(#"{"key":13.699999999999999}"#, encode(metadata))
+//        XCTAssertEqual(#"{"key":13.699999999999999}"#, encode(metadata))
+        let json2 = encode(metadata)
+        XCTAssertTrue(#"{"key":13.699999999999999}"# == json2 || #"{"key":13.7}"# == json2)
 
         // remove the value
         metadata["key"] = nil
