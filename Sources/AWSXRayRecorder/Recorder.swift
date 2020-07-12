@@ -29,10 +29,9 @@ public class XRayRecorder {
         logger.logLevel = config.logLevel
     }
 
-    internal func beginSegment(name: String, parentId: String? = nil, subsegment: Bool = false,
+    internal func beginSegment(name: String, parentId: Segment.ID? = nil, subsegment: Bool = false,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil,
                                sampled: Bool = true) -> Segment {
-        let parentId: Segment.ID? = parentId.flatMap(Segment.ID.init)
         guard config.enabled, sampled else {
             return Segment(
                 name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
@@ -62,12 +61,12 @@ public class XRayRecorder {
         return newSegment
     }
 
-    public func beginSegment(name: String, parentId: String? = nil,
+    public func beginSegment(name: String, parentId: Segment.ID? = nil,
                              aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: false, aws: aws, metadata: metadata)
     }
 
-    public func beginSubsegment(name: String, parentId: String,
+    public func beginSubsegment(name: String, parentId: Segment.ID,
                                 aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
     }

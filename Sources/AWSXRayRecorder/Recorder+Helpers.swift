@@ -1,7 +1,7 @@
 extension XRayRecorder {
     @inlinable
     @discardableResult
-    public func segment<T>(name: String, parentId: String? = nil, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
     {

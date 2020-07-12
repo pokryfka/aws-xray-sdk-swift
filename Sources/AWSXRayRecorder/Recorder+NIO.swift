@@ -37,7 +37,7 @@ extension XRayRecorder {
 
 extension XRayRecorder {
     @inlinable
-    public func segment<T>(name: String, parentId: String? = nil, metadata: Segment.Metadata? = nil,
+    public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
         return body().always { result in
@@ -49,7 +49,7 @@ extension XRayRecorder {
     }
 
     @inlinable
-    public func beginSegment<T>(name: String, parentId: String? = nil, metadata: Segment.Metadata? = nil,
+    public func beginSegment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
                                 body: (Segment) -> EventLoopFuture<T>) -> EventLoopFuture<(Segment, T)> {
         let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
         return body(segment)

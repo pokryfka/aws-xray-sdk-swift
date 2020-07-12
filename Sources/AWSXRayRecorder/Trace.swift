@@ -133,7 +133,7 @@ extension XRayRecorder {
         /// root trace ID
         public let root: TraceID
         /// parent segment ID
-        public let parentId: String?
+        public let parentId: Segment.ID?
         /// sampling decision
         public let sampled: XRayRecorder.SampleDecision
     }
@@ -143,13 +143,9 @@ extension XRayRecorder.TraceHeader {
     /// Creates new Trace Header.
     /// - parameter parentId: parent segment ID
     /// - parameter sampled: sampling decision
-    init(parentId: String? = nil, sampled: XRayRecorder.SampleDecision) throws {
+    init(parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision) {
         root = XRayRecorder.TraceID()
-        if let parentId = parentId {
-            self.parentId = XRayRecorder.Segment.ID(rawValue: parentId)?.rawValue
-        } else {
-            self.parentId = nil
-        }
+        self.parentId = parentId
         self.sampled = sampled
     }
 
@@ -171,7 +167,7 @@ extension XRayRecorder.TraceHeader {
             guard let parentIdValue = XRayRecorder.Segment.ID(rawValue: string) else {
                 throw XRayRecorder.TraceError.invalidParentID(string)
             }
-            parentId = parentIdValue.rawValue
+            parentId = parentIdValue
             valueIndex += 1
         } else {
             parentId = nil

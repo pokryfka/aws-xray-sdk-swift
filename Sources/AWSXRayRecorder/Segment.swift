@@ -18,15 +18,15 @@ extension XRayRecorder {
     /// # References
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     public class Segment {
-        internal struct ID: RawRepresentable, Hashable, Encodable, CustomStringConvertible {
-            let rawValue: String
-            var description: String { rawValue }
-            init?(rawValue: String) {
+        /// A 64-bit identifier in **16 hexadecimal digits**.
+        public struct ID: RawRepresentable, Hashable, Encodable {
+            public let rawValue: String
+            public init?(rawValue: String) {
                 guard rawValue.count == 16, Float("0x\(rawValue)") != nil else { return nil }
                 self.rawValue = rawValue
             }
 
-            init() { rawValue = String.random64() }
+            public init() { rawValue = String.random64() }
         }
 
         internal enum State {
