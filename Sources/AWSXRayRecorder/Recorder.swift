@@ -10,7 +10,8 @@ public class XRayRecorder {
 
     private lazy var logger = Logger(label: "xray.recorder.\(String.random32())")
 
-    @Synchronized internal var traceId = TraceID()
+    @Synchronized private var traceId = TraceID()
+    @Synchronized private var sampled: Bool = true
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -30,8 +31,7 @@ public class XRayRecorder {
     }
 
     internal func beginSegment(name: String, parentId: Segment.ID? = nil, subsegment: Bool = false,
-                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil,
-                               sampled: Bool = true) -> Segment {
+                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         guard config.enabled, sampled else {
             return Segment(
                 name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
@@ -74,11 +74,11 @@ public class XRayRecorder {
     public func beginSegment(name: String, traceHeader: TraceHeader,
                              aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         traceId = traceHeader.root
-        let sampled = traceHeader.sampled.sampled == true
+        sampled = traceHeader.sampled.isSampled != false
         if let parentId = traceHeader.parentId {
-            return beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata, sampled: sampled)
+            return beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
         } else {
-            return beginSegment(name: name, aws: aws, metadata: metadata, sampled: sampled)
+            return beginSegment(name: name, aws: aws, metadata: metadata)
         }
     }
 

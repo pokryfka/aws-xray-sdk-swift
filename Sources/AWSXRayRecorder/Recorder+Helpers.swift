@@ -16,6 +16,24 @@ extension XRayRecorder {
             throw error
         }
     }
+
+    @inlinable
+    @discardableResult
+    public func segment<T>(name: String, traceHeader: TraceHeader, metadata: XRayRecorder.Segment.Metadata? = nil,
+                           body: (Segment) throws -> T)
+        rethrows -> T
+    {
+        let segment = beginSegment(name: name, traceHeader: traceHeader, metadata: metadata)
+        defer {
+            segment.end()
+        }
+        do {
+            return try body(segment)
+        } catch {
+            segment.setError(error)
+            throw error
+        }
+    }
 }
 
 extension XRayRecorder.Segment {

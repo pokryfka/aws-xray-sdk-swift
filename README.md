@@ -52,9 +52,11 @@ recorder.segment(name: "Segment 2") { segment in
 
 ### Emitting
 
-Events are emitted after they end.
+Events are emitted as soon as they end.
 
-Subsegments may end after their parent segment end, in which case they will be presented as *Pending* until they end.
+Subsegments have to be created before the parent segment ended.
+
+Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
 Make sure all segments are sent before program exits:
 

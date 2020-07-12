@@ -88,7 +88,7 @@ extension XRayRecorder {
         case unknown = ""
         case requested = "Sampled=?"
 
-        var sampled: Bool? {
+        var isSampled: Bool? {
             switch self {
             case .sampled:
                 return true

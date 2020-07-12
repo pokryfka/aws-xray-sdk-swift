@@ -19,8 +19,9 @@ extension XRayRecorder {
     /// - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     public class Segment {
         /// A 64-bit identifier in **16 hexadecimal digits**.
-        public struct ID: RawRepresentable, Hashable, Encodable {
+        public struct ID: RawRepresentable, Hashable, Encodable, CustomStringConvertible {
             public let rawValue: String
+            public var description: String { rawValue }
             public init?(rawValue: String) {
                 guard rawValue.count == 16, Float("0x\(rawValue)") != nil else { return nil }
                 self.rawValue = rawValue
