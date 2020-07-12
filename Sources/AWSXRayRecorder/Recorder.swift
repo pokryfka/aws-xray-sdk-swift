@@ -10,7 +10,7 @@ public class XRayRecorder {
 
     private lazy var logger = Logger(label: "xray.recorder.\(String.random32())")
 
-    @Synchronized public var traceId = TraceID()
+    @Synchronized internal var traceId = TraceID()
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -29,10 +29,11 @@ public class XRayRecorder {
         logger.logLevel = config.logLevel
     }
 
-    internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
-                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+    internal func beginSegment(name: String, parentId: String? = nil, subsegment: Bool = false,
+                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil,
+                               sampled: Bool = true) -> Segment {
         let parentId: Segment.ID? = parentId.flatMap(Segment.ID.init)
-        guard config.enabled else {
+        guard config.enabled, sampled else {
             return Segment(
                 name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
                 aws: aws, metadata: metadata,
@@ -69,6 +70,17 @@ public class XRayRecorder {
     public func beginSubsegment(name: String, parentId: String,
                                 aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
+    }
+
+    public func beginSegment(name: String, traceHeader: TraceHeader,
+                             aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+        traceId = traceHeader.root
+        let sampled = traceHeader.sampled.sampled == true
+        if let parentId = traceHeader.parentId {
+            return beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata, sampled: sampled)
+        } else {
+            return beginSegment(name: name, aws: aws, metadata: metadata, sampled: sampled)
+        }
     }
 
     internal func waitEmitting() {

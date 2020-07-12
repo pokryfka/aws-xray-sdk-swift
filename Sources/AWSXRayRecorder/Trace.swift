@@ -87,6 +87,17 @@ extension XRayRecorder {
         case notSampled = "Sampled=0"
         case unknown = ""
         case requested = "Sampled=?"
+
+        var sampled: Bool? {
+            switch self {
+            case .sampled:
+                return true
+            case .notSampled:
+                return false
+            case .unknown, .requested:
+                return nil
+            }
+        }
     }
 }
 

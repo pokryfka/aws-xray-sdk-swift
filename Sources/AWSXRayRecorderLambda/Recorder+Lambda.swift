@@ -7,7 +7,7 @@ import NIO
 
 extension XRayRecorder {
     private var metadata: Segment.Metadata {
-        // TODO: make it configurable?
+        // TODO: make it configurable? define metadata plugin/factory interface
         let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
         let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
             .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
@@ -15,11 +15,9 @@ extension XRayRecorder {
     }
 
     public func beginSegment(name: String, context: Lambda.Context) -> Segment {
-        let traceHeader = try? XRayRecorder.TraceHeader(string: context.traceID)
         let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
-        traceId = traceHeader?.root ?? TraceID()
-        if let parentId = traceHeader?.parentId {
-            return beginSubsegment(name: name, parentId: parentId, aws: aws, metadata: metadata)
+        if let traceHeader = try? XRayRecorder.TraceHeader(string: context.traceID) {
+            return beginSegment(name: name, traceHeader: traceHeader, aws: aws, metadata: metadata)
         } else {
             return beginSegment(name: name, aws: aws, metadata: metadata)
         }
