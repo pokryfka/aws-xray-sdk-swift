@@ -197,6 +197,22 @@ final class SegmentEncodingTests: XCTestCase {
         XCTAssertEqual("{}", encode(metadata))
     }
 
+    func testEncodingMetadataStringInterpolation() {
+        var metadata = Segment.Metadata()
+        let value = "value"
+        metadata["key"] = "\(value)"
+        XCTAssertEqual(#"{"key":"value"}"#, encode(metadata))
+
+        // replace the previous value
+        let value2 = 2
+        metadata["key"] = "\(value2)"
+        XCTAssertEqual(#"{"key":"2"}"#, encode(metadata))
+
+        // remove the value
+        metadata["key"] = nil
+        XCTAssertEqual("{}", encode(metadata))
+    }
+
     func testEncodingMetadataInt() {
         var metadata = Segment.Metadata()
         metadata["key"] = 1
