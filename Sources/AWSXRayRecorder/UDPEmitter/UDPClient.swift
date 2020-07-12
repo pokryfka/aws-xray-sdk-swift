@@ -15,20 +15,25 @@
 import NIO
 import NIOConcurrencyHelpers
 
-/// A `EventLoopGroupProvider` defines how the underlying `EventLoopGroup` used to create the `EventLoop` is provided.
-///
-/// When `shared`, the `EventLoopGroup` is provided externally and its lifecycle will be managed by the caller.
-/// When `createNew`, the library will create a new `EventLoopGroup` and manage its lifecycle.
-enum EventLoopGroupProvider {
-    case shared(EventLoopGroup)
-    case createNew
-}
-
-/// Based on the NIO UDP Client implementation in swift-statsd-client
-/// with dependency on Metrics removed.
+/// Based on the NIO UDP Client implementation in swift-statsd-client with removed dependency on Metrics.
 /// # References
 /// - [swift-statsd-client](https://github.com/apple/swift-statsd-client)
 final class UDPClient {
+    /// A `EventLoopGroupProvider` defines how the underlying `EventLoopGroup` used to create the `EventLoop` is provided.
+    ///
+    /// When `shared`, the `EventLoopGroup` is provided externally and its lifecycle will be managed by the caller.
+    /// When `createNew`, the library will create a new `EventLoopGroup` and manage its lifecycle.
+    enum EventLoopGroupProvider {
+        case shared(EventLoopGroup)
+        case createNew
+    }
+
+    private enum State {
+        case disconnected
+        case connecting(EventLoopFuture<Void>)
+        case connected(Channel)
+    }
+
     private let eventLoopGroupProvider: EventLoopGroupProvider
     private let eventLoopGroup: EventLoopGroup
 
@@ -38,12 +43,6 @@ final class UDPClient {
 
     private var state = State.disconnected
     private let lock = Lock()
-
-    private enum State {
-        case disconnected
-        case connecting(EventLoopFuture<Void>)
-        case connected(Channel)
-    }
 
     var eventLoop: EventLoop { eventLoopGroup.next() }
 
@@ -74,8 +73,7 @@ final class UDPClient {
         }
     }
 
-    // TODO: Encodable? currently we just use description of the value
-    func emit<T: Encodable>(_ value: T) -> EventLoopFuture<Void> {
+    func emit<T: StringProtocol>(_ value: T) -> EventLoopFuture<Void> {
         lock.lock()
         switch state {
         case .disconnected:
@@ -119,7 +117,7 @@ final class UDPClient {
     }
 }
 
-private final class Encoder<T>: ChannelOutboundHandler {
+private final class Encoder<T: StringProtocol>: ChannelOutboundHandler {
     public typealias OutboundIn = T
     public typealias OutboundOut = AddressedEnvelope<ByteBuffer>
 
@@ -130,7 +128,7 @@ private final class Encoder<T>: ChannelOutboundHandler {
 
     public func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let value: T = unwrapOutboundIn(data)
-        let string = "\(value)"
+        let string = String(value)
         var buffer = context.channel.allocator.buffer(capacity: string.utf8.count)
         buffer.writeString(string)
         context.writeAndFlush(wrapOutboundOut(AddressedEnvelope(remoteAddress: address, data: buffer)), promise: promise)

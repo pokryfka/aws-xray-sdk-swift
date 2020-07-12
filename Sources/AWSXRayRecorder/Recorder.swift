@@ -1,6 +1,5 @@
 import Dispatch
 import Logging
-import NIO
 
 // TODO: document
 
@@ -16,7 +15,7 @@ public class XRayRecorder {
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
 
-    private let emitter: XRayEmitter
+    internal let emitter: XRayEmitter
     private let emitQueue = DispatchQueue(label: "net.pokryfka.xray.recorder.emit.\(String.random32())")
     private let emitGroup = DispatchGroup()
 
@@ -28,19 +27,6 @@ public class XRayRecorder {
             self.emitter = emitter
         }
         logger.logLevel = config.logLevel
-    }
-
-    public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
-        if !config.enabled {
-            self.init(emitter: XRayNoOpEmitter(), config: config)
-        } else {
-            do {
-                let emitter = try XRayUDPEmitter(config: .init(config), eventLoopGroup: eventLoopGroup)
-                self.init(emitter: emitter, config: config)
-            } catch {
-                preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
-            }
-        }
     }
 
     internal func beginSegment(name: String, parentId: String?, subsegment: Bool,
@@ -85,29 +71,17 @@ public class XRayRecorder {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
     }
 
-    public func wait() {
-        // TODO: tests tests tests
-        // TODO: we should probably pause creating new segments until all current segments are emitted
-        // or queue them separatly
+    internal func waitEmitting() {
         // wait for all the segments to be passed to the emitter
+        // TODO: we should pause creating new segments until all current segments are emitted
+        // or queue them separatly in case user keep creating segments after flush
         emitGroup.wait()
-        // wait for the emitter to send them
-        emitter.flush { _ in }
     }
 
-    public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        // wait for all the segments to be passed to the emitter
-        emitGroup.wait()
+    public func wait(_ callback: ((Error?) -> Void)? = nil) {
+        waitEmitting()
         // wait for the emitter to send them
-        if let nioEmitter = emitter as? XRayNIOEmitter {
-            // TODO: log error
-            return nioEmitter.flush(on: eventLoop)
-        } else {
-            return eventLoop.submit {
-                // TODO: pass error
-                self.emitter.flush { _ in }
-            }
-        }
+        emitter.flush(callback ?? { _ in })
     }
 
     private func emit(segment id: Segment.ID) {
@@ -125,7 +99,7 @@ public class XRayRecorder {
             segmentsLock.withWriterLock {
                 subsegments.forEach { _segments[$0.id] = $0 }
             }
-            // pass if the the emitter
+            // pass the segment (including its subsegments - in progress or not) to the emitter
             emitter.send(segment)
         } catch {
             logger.error("Failed to emit Segment \(id): \(error)")

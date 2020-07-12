@@ -58,7 +58,7 @@ Subsegments may end after their parent segment end, in which case they will be p
 Make sure all segments are sent before program exits:
 
 ```swift
-try recorder.wait()
+recorder.wait()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
