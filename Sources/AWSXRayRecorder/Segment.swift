@@ -159,8 +159,8 @@ extension XRayRecorder {
         private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
         private var _fault: Bool?
-        /// the exception that caused the error.
-        private var _cause: Exception?
+        /// the exception(s) that caused the error.
+        private var _cause: Cause = Cause()
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
@@ -325,65 +325,23 @@ extension XRayRecorder.Segment {
 // MARK: - Errors and exceptions
 
 extension XRayRecorder.Segment {
-    internal enum HTTPError: Error {
-        /// client error occurred (response status code was 4XX Client Error)
-        case client(statusCode: UInt, cause: Exception?)
-        /// request was throttled (response status code was 429 Too Many Requests)
-        case throttle(cause: Exception?)
-        /// server error occurred (response status code was 5XX Server Error)
-        case server(statusCode: UInt, cause: Exception?)
-
-        init?(statusCode: UInt) {
-            switch statusCode {
-            case 429:
-                self = .throttle(cause: nil)
-            case 400 ..< 500:
-                self = .client(statusCode: statusCode, cause: nil)
-            case 500 ..< 600:
-                self = .server(statusCode: statusCode, cause: nil)
-            default:
-                return nil
-            }
-        }
-
-        var cause: Exception? {
-            switch self {
-            case .client(_, let cause):
-                return cause
-            case .throttle(let cause):
-                return cause
-            case .server(_, let cause):
-                return cause
-            }
-        }
-    }
-
-    internal struct Exception: Encodable {
-        /// A 64-bit identifier for the exception, unique among segments in the same trace, in **16 hexadecimal digits**.
-        let id: String
-        /// The exception message.
-        var message: String?
-
-        // TODO: other optional attributes
-    }
-}
-
-extension XRayRecorder.Segment {
-    public func setError(_ error: Error) {
-        let exception = Exception(
-            id: String.random64(),
-            message: "\(error)"
-        )
+    internal func setException(_ exception: Exception) {
         lock.withWriterLockVoid {
             self._error = true
-            _cause = exception
+            _cause.exceptions.append(exception)
         }
+    }
+
+    public func setError(_ error: Error) {
+        setException(Exception(error))
     }
 
     internal func setError(_ httpError: HTTPError) {
         lock.withWriterLockVoid {
             _error = true
-            _cause = httpError.cause
+            if let cause = httpError.cause {
+                _cause.exceptions.append(cause)
+            }
             switch httpError {
             case .throttle:
                 _throttle = true
@@ -441,6 +399,13 @@ extension XRayRecorder.Segment {
 
 // MARK: - Encodable
 
+private extension KeyedEncodingContainerProtocol {
+    mutating func encodeIfNotEmpty<T>(_ object: T, forKey key: Self.Key) throws where T: Sequence, T: Encodable {
+        guard object.first(where: { _ in true }) != nil else { return }
+        try encode(object, forKey: key)
+    }
+}
+
 extension XRayRecorder.Segment: Encodable {
     enum CodingKeys: String, CodingKey {
         case id
@@ -480,58 +445,25 @@ extension XRayRecorder.Segment: Encodable {
             } else if let inProgress = inProgress {
                 try container.encode(inProgress, forKey: .inProgress)
             }
-            // do not encode nil values
-            if let type = type {
-                try container.encode(type, forKey: .type)
+            try container.encodeIfPresent(type, forKey: .type)
+            try container.encodeIfPresent(parentId, forKey: .parentId)
+            try container.encodeIfPresent(service, forKey: .service)
+            try container.encodeIfPresent(user, forKey: .user)
+            try container.encodeIfPresent(origin, forKey: .origin)
+            try container.encodeIfPresent(http, forKey: .http)
+            try container.encodeIfPresent(aws, forKey: .aws)
+            try container.encodeIfPresent(_error, forKey: ._error)
+            try container.encodeIfPresent(_throttle, forKey: ._throttle)
+            try container.encodeIfPresent(_fault, forKey: ._fault)
+            if _cause.exceptions.isEmpty == false {
+                try container.encode(_cause, forKey: ._cause)
             }
-            if let parentId = parentId {
-                try container.encode(parentId, forKey: .parentId)
-            }
-            if let service = service {
-                try container.encode(service, forKey: .service)
-            }
-            if let user = user {
-                try container.encode(user, forKey: .user)
-            }
-            if let origin = origin {
-                try container.encode(origin, forKey: .origin)
-            }
-            if let http = http {
-                try container.encode(http, forKey: .http)
-            }
-            if let aws = aws {
-                try container.encode(aws, forKey: .aws)
-            }
-            // TODO: create Encodable exception type with throttle, fault, cause?
-            if let error = _error {
-                try container.encode(error, forKey: ._error)
-            }
-            if let throttle = _throttle {
-                try container.encode(throttle, forKey: ._throttle)
-            }
-            if let fault = _fault {
-                try container.encode(fault, forKey: ._fault)
-            }
-            if let cause = _cause {
-                try container.encode(cause, forKey: ._cause)
-            }
-            if let namespace = namespace {
-                try container.encode(namespace, forKey: .namespace)
-            }
-            if let precursorIDs = precursorIDs {
-                try container.encode(precursorIDs, forKey: .precursorIDs)
-            }
-            // do not encode empty arrays
-            if _annotations.isEmpty == false {
-                try container.encode(_annotations, forKey: ._annotations)
-            }
-            if _metadata.isEmpty == false {
-                // do not throw if encoding of AnyCodable failed
-                try? container.encode(_metadata, forKey: ._metadata)
-            }
-            if _subsegments.isEmpty == false {
-                try container.encode(_subsegments, forKey: ._subsegments)
-            }
+            try container.encodeIfPresent(namespace, forKey: .namespace)
+            try container.encodeIfPresent(precursorIDs, forKey: .precursorIDs)
+            try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
+            // do not throw if encoding of AnyCodable failed
+            try? container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
         }
     }
 }

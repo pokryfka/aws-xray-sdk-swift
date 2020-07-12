@@ -1,6 +1,3 @@
-// TODO: review access level
-// TODO: make thread safe?
-
 extension XRayRecorder.Segment {
     /// The type of AWS resource running your application.
     ///
