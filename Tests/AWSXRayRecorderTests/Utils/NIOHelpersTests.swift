@@ -10,10 +10,10 @@ final class NIOHelpersTests: XCTestCase {
             ("192.168.0.1:4000", "192.168.0.1", 4000),
         ]
         for (endpoint, ipAddress, port) in validEndpoints {
-            let address = XCTAssertNoThrowResult(try SocketAddress(string: endpoint))
+            let address = try! SocketAddress(string: endpoint)
             XCTAssertNotNil(address)
-            XCTAssertEqual(ipAddress, address?.ipAddress)
-            XCTAssertEqual(port, address?.port)
+            XCTAssertEqual(ipAddress, address.ipAddress)
+            XCTAssertEqual(port, address.port)
         }
     }
 

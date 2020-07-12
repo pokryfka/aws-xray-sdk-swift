@@ -23,7 +23,7 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        _ = recorder.segment(name: UUID().uuidString) { _ in
+        recorder.segment(name: UUID().uuidString) { _ in
             XCTAssertEqual(0, emitter.segments.count)
         }
 

@@ -3,6 +3,8 @@ import NIO // usleep
 
 enum ExampleError: Error {
     case test
+    case test2
+    case test3
 }
 
 let recorder = XRayRecorder()
@@ -15,6 +17,9 @@ _ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
 usleep(100_000)
 let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 usleep(100_000)
+segment.setError(ExampleError.test)
+segment.setError(ExampleError.test2)
+segment.setError(ExampleError.test3)
 segment.end()
 
 // subsegment may end after parent

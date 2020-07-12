@@ -1,6 +1,3 @@
-// TODO: review access level
-// TODO: make thread safe?
-
 extension XRayRecorder.Segment {
     enum Namespace: String, Encodable {
         /// AWS SDK calls
