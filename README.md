@@ -1,6 +1,7 @@
 # aws-xray-sdk-swift
 
 ![CI](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift)
 
 Unofficial AWS X-Ray Recorder SDK for Swift.
 
@@ -51,14 +52,16 @@ recorder.segment(name: "Segment 2") { segment in
 
 ### Emitting
 
-Events are emitted after they end.
+Events are emitted as soon as they end.
 
-Subsegments may end after their parent segment end, in which case they will be presented as *Pending* until they end.
+Subsegments have to be created before the parent segment ended.
+
+Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
 Make sure all segments are sent before program exits:
 
 ```swift
-try recorder.wait()
+recorder.wait()
 ```
 
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):

@@ -67,7 +67,7 @@ final class TraceTests: XCTestCase {
         do {
             let value = try TraceHeader(string: string)
             XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
-            XCTAssertEqual(value.parentId, "53995c3f42cd8ad8")
+            XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.sampled)
         } catch {
             XCTFail()
@@ -79,7 +79,7 @@ final class TraceTests: XCTestCase {
         do {
             let value = try TraceHeader(string: string)
             XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
-            XCTAssertEqual(value.parentId, "53995c3f42cd8ad8")
+            XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.notSampled)
         } catch {
             XCTFail()
@@ -91,7 +91,7 @@ final class TraceTests: XCTestCase {
         do {
             let value = try TraceHeader(string: string)
             XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
-            XCTAssertEqual(value.parentId, "53995c3f42cd8ad8")
+            XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.unknown)
         } catch {
             XCTFail()
@@ -103,7 +103,7 @@ final class TraceTests: XCTestCase {
         do {
             let value = try TraceHeader(string: string)
             XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
-            XCTAssertEqual(value.parentId, "53995c3f42cd8ad8")
+            XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.requested)
         } catch {
             XCTFail()

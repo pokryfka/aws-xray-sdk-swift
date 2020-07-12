@@ -13,7 +13,7 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
 
     private let udpClient: UDPClient
 
-    private let lock = Lock()
+    private let lock = ReadWriteLock()
     private var _inFlight = [UInt64: EventLoopFuture<Void>]()
 
     init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) throws {
@@ -37,31 +37,25 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
 
     func send(_ segment: XRayRecorder.Segment) {
         // TODO: check size, consider sending subsegments separately
-        // or group a few segments in one datagram
+        // or grouping a few segments in one datagram (if possible)
         let futureId = UInt64.random(in: UInt64.min ... UInt64.max)
         do {
             let string = "\(Self.segmentHeader)\(try segment.JSONString())"
             logger.info("Sending \(string.utf8.count) bytes", metadata: ["id": "\(futureId)"])
             logger.debug("\(string)", metadata: ["id": "\(futureId)"])
             let future = udpClient.emit(string)
-            lock.withLockVoid {
-                _inFlight[futureId] = future
-            }
+            lock.withWriterLockVoid { _inFlight[futureId] = future }
             future.whenComplete { [weak self] result in
                 guard let self = self else { return }
                 switch result {
                 case .failure(let error):
-                    // TODO: handle errors
                     self.logger.error("Failed to emit: \(error)", metadata: ["id": "\(futureId)"])
                 case .success:
                     self.logger.info("Sent", metadata: ["id": "\(futureId)"])
                 }
-                self.lock.withLockVoid {
-                    self._inFlight[futureId] = nil
-                }
+                self.lock.withWriterLockVoid { self._inFlight[futureId] = nil }
             }
         } catch {
-            // TODO: handle errors
             logger.error("Failed to send: \(error)", metadata: ["id": "\(futureId)"])
         }
     }
@@ -71,6 +65,7 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
             try flush().always { result in
                 switch result {
                 case .failure(let error):
+                    self.logger.error("Failed to flush: \(error)")
                     callback(error)
                 case .success:
                     callback(nil)
@@ -83,11 +78,10 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
     }
 
     func flush(on eventLoop: EventLoop? = nil) -> EventLoopFuture<Void> {
-        let futures = lock.withLock { Array(_inFlight.values) }
+        let futures = lock.withReaderLock { Array(_inFlight.values) }
         logger.info("in flight: \(futures.count)")
-        // TODO: log errors, at the very least
         let eventLoop = eventLoop ?? udpClient.eventLoop
         return EventLoopFuture.andAllComplete(futures, on: eventLoop)
-            .always { _ in self.logger.info("All sent") }
+            .always { _ in self.logger.info("Done") }
     }
 }
