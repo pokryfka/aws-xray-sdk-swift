@@ -84,10 +84,12 @@ extension XRayRecorder {
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
         internal let id: ID
 
+        private let _name: String
+
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
-        private let name: String
+        public var name: String { lock.withReaderLock { _name } }
 
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
@@ -189,7 +191,7 @@ extension XRayRecorder {
             callback: StateChangeCallback? = nil
         ) {
             self.id = id
-            self.name = name
+            _name = name
             self.traceId = traceId
             self.startTime = startTime
             self.parentId = parentId
@@ -436,7 +438,7 @@ extension XRayRecorder.Segment: Encodable {
         try lock.withReaderLockVoid {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(id, forKey: .id)
-            try container.encode(name, forKey: .name)
+            try container.encode(_name, forKey: .name)
             try container.encode(traceId, forKey: .traceId)
             try container.encode(startTime, forKey: .startTime)
             // encode either endTime or inProgress
