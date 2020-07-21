@@ -75,7 +75,7 @@ See [`AWSXRayRecorderExample/main.swift`](./Examples/Sources/AWSXRayRecorderExam
 > Segments and subsegments can include an annotations object containing one or more fields that X-Ray indexes for use with filter expressions. (...)
 
 ```swift
-segment.setAnnotation("zip_code", value: 98101)
+segment.setAnnotation(98101, forKey: "zip_code")
 ```
 
 ### [Metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-metadata)

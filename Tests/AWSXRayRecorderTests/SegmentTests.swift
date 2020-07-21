@@ -1,4 +1,4 @@
-import Foundation
+import AnyCodable
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -117,5 +117,50 @@ final class SegmentTests: XCTestCase {
         XCTAssertTrue(subsegmentB.subsegmentsInProgress().isEmpty)
         XCTAssertTrue(subsegmentA1.subsegmentsInProgress().isEmpty)
         XCTAssertTrue(subsegmentA2.subsegmentsInProgress().isEmpty)
+    }
+
+    // MARK: Annotations
+
+    func testStringAnnotation() {
+        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+
+        let key = UUID().uuidString
+        let value = UUID().uuidString
+
+        // set value
+        segment.setAnnotation(value, forKey: key)
+        XCTAssertEqual(segment.annotationStringValue(forKey: key), value)
+        XCTAssertNil(segment.annotationIntegerValue(forKey: key))
+        XCTAssertNil(segment.annotationFloatValue(forKey: key))
+        XCTAssertNil(segment.annotationBoolValue(forKey: key))
+
+        // overwrite value
+        let value2 = UUID().uuidString
+        segment.setAnnotation("\(value)", forKey: key) // use string interpolation
+        segment.setAnnotation(value2, forKey: key)
+        XCTAssertEqual(segment.annotationStringValue(forKey: key), value2)
+
+        // remove value
+        segment.removeAnnotationValue(key)
+        XCTAssertNil(segment.annotationStringValue(forKey: key))
+    }
+
+    // MARK: Metadata
+
+    func testMetadata() {
+        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+
+        let key = UUID().uuidString
+        let value = UUID().uuidString
+
+        segment.setMetadata([key: "\(value)"])
+        // TODO: define == for AnyEncodable and String?
+        XCTAssertEqual(AnyEncodable(value), segment.metadata[key])
+
+        segment.setMetadata("test", forKey: key)
+        XCTAssertEqual(AnyEncodable("test"), segment.metadata[key])
+
+        segment.removeMetadataValue(key)
+        XCTAssertNil(segment.metadata[key])
     }
 }
