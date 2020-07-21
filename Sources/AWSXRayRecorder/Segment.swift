@@ -31,9 +31,9 @@ extension XRayRecorder {
         }
 
         internal enum State {
-            case inProgress
-            case ended(Timestamp)
-            case emitted(Timestamp)
+            case inProgress(started: Timestamp)
+            case ended(started: Timestamp, ended: Timestamp)
+            case emitted(started: Timestamp, ended: Timestamp, emitted: Timestamp)
         }
 
         internal typealias StateChangeCallback = ((ID, State) -> Void)
@@ -66,24 +66,19 @@ extension XRayRecorder {
 
         private let callback: StateChangeCallback?
 
-        private var _state = State.inProgress {
+        private let _context: TraceContext
+        private let _id: ID
+        private let _name: String
+        private var _state: State {
             didSet {
                 guard oldValue != _state else { return }
-                if case .ended(let timestamp) = _state {
-                    endTime = timestamp
-                    inProgress = nil
-                }
                 callback?(_id, _state)
             }
         }
 
-        private var state: State { lock.withReaderLock { _state } }
-
-        private let _context: TraceContext
-        private let _id: ID
-        private let _name: String
-
         public var context: TraceContext { lock.withReaderLock { _context } }
+
+        private var state: State { lock.withReaderLock { _state } }
 
         // MARK: Required Segment Fields
 
@@ -115,18 +110,18 @@ extension XRayRecorder {
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        private let startTime: Timestamp
+        public var startTime: Double { lock.withReaderLock { _state.startTime.secondsSinceEpoch } }
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
         /// Specify either an end_time or in_progress.
-        private var endTime: Timestamp?
+        public var endTime: Double? { lock.withReaderLock { _state.endTime?.secondsSinceEpoch } }
 
         /// **boolean**, set to true instead of specifying an end_time to record that a segment is started, but is not complete.
         /// Send an in-progress segment when your application receives a request that will take a long time to serve, to trace the request receipt.
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
-        private var inProgress: Bool? = true
+        public var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
 
         // MARK: Required Subsegment Fields
 
@@ -199,7 +194,7 @@ extension XRayRecorder {
             // TODO: should we check if parentId is different than id?
             _id = id
             _name = name
-            self.startTime = startTime
+            _state = .inProgress(started: startTime)
             type = subsegment && parentId != nil ? .subsegment : nil
             self.service = service
             self.user = user
@@ -215,30 +210,45 @@ extension XRayRecorder {
 
 // MARK: - State
 
-extension XRayRecorder.Segment.State: Equatable {
-    static func == (lhs: XRayRecorder.Segment.State, rhs: XRayRecorder.Segment.State) -> Bool {
-        switch (lhs, rhs) {
-        case (.inProgress, .inProgress):
-            return true
-        case (.ended(let lhs), .ended(let rhs)):
-            return lhs == rhs
-        case (.emitted(let lhs), .emitted(let rhs)):
-            return lhs == rhs
-        default:
-            return false
+private extension XRayRecorder.Segment.State {
+    var startTime: Timestamp {
+        switch self {
+        case .inProgress(let started):
+            return started
+        case .ended(let started, ended: _):
+            return started
+        case .emitted(let started, ended: _, emitted: _):
+            return started
         }
     }
+
+    var endTime: Timestamp? {
+        switch self {
+        case .inProgress:
+            return nil
+        case .ended(started: _, let ended):
+            return ended
+        case .emitted(started: _, let ended, emitted: _):
+            return ended
+        }
+    }
+
+    var inProgress: Bool {
+        endTime == nil
+    }
 }
+
+extension XRayRecorder.Segment.State: Equatable {}
 
 extension XRayRecorder.Segment.State: CustomStringConvertible {
     var description: String {
         switch self {
         case .inProgress:
             return "inProgress"
-        case .ended(let timestamp):
-            return "ended @ \(timestamp.secondsSinceEpoch)"
-        case .emitted(let timestamp):
-            return "emitted @ \(timestamp.secondsSinceEpoch)"
+        case .ended(started: _, let ended):
+            return "ended @ \(ended.secondsSinceEpoch)"
+        case .emitted(started: _, ended: _, let emitted):
+            return "emitted @ \(emitted.secondsSinceEpoch)"
         }
     }
 }
@@ -263,31 +273,32 @@ extension XRayRecorder.Segment {
     internal func end(_ timestamp: Timestamp) throws {
         try lock.withWriterLockVoid {
             switch _state {
-            case .inProgress:
-                break
+            case .inProgress(let startTime):
+                guard startTime < timestamp else {
+                    throw SegmentError.startedInFuture
+                }
+                _state = .ended(started: startTime, ended: timestamp)
             case .ended:
                 throw SegmentError.alreadyEnded
             case .emitted:
                 throw SegmentError.alreadyEmitted
             }
-            guard startTime < timestamp else {
-                throw SegmentError.startedInFuture
-            }
-            _state = .ended(timestamp)
         }
     }
 
     internal func emit() throws {
         try lock.withWriterLockVoid {
-            if case .emitted = _state {
+            switch _state {
+            case .inProgress:
+                // for now we limit sending of in-progress segments to subsegments
+                // to make sure that their parent was already emitted
+                throw SegmentError.inProgress
+            case .ended(let started, let ended):
+                let now = Timestamp()
+                _state = .emitted(started: started, ended: ended, emitted: now)
+            case .emitted:
                 throw SegmentError.alreadyEmitted
             }
-            // for now we limit sending of in-progress segments to subsegments
-            // to make sure that their parent was already emitted
-            if case .inProgress = _state {
-                throw SegmentError.inProgress
-            }
-            _state = .emitted(Timestamp())
         }
     }
 }
@@ -519,12 +530,12 @@ extension XRayRecorder.Segment: Encodable {
             try container.encode(_id, forKey: .id)
             try container.encode(_name, forKey: .name)
             try container.encode(_context.traceId, forKey: .traceId)
-            try container.encode(startTime, forKey: .startTime)
+            try container.encode(_state.startTime, forKey: .startTime)
             // encode either endTime or inProgress
-            if let endTime = endTime {
+            if let endTime = _state.endTime {
                 try container.encode(endTime, forKey: .endTime)
-            } else if let inProgress = inProgress {
-                try container.encode(inProgress, forKey: .inProgress)
+            } else {
+                try container.encode(true, forKey: .inProgress)
             }
             try container.encodeIfPresent(type, forKey: .type)
             try container.encodeIfPresent(parentId, forKey: .parentId)

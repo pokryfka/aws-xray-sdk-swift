@@ -113,7 +113,7 @@ public class XRayRecorder {
             try segment.emit()
             // check if any of its subsegments are in progress and keep them in the recorder
             let subsegments = segment.subsegmentsInProgress()
-            logger.debug("Segment \(id) has \(subsegments.count) subsegments \(Segment.State.inProgress)")
+            logger.debug("Segment \(id) has \(subsegments.count) subsegments inProgress")
             segmentsLock.withWriterLock {
                 subsegments.forEach { _segments[$0.id] = $0 }
             }
