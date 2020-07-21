@@ -2,6 +2,8 @@ import NIO
 
 // TODO: document
 
+// TODO: expose group provider intsead?
+
 extension XRayRecorder {
     public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
         if !config.enabled {
@@ -47,6 +49,8 @@ extension XRayRecorder {
             segment.end()
         }
     }
+
+    // TODO: hopefully there will be a better way to pass the context, per https://github.com/slashmo/gsoc-swift-tracing/issues/48
 
     @inlinable
     public func beginSegment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,

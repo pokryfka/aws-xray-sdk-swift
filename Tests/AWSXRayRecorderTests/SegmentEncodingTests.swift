@@ -146,13 +146,13 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingAnnotationInt() {
         var annotations = Segment.Annotations()
 
-        annotations["keyPositive"] = .int(42)
-        annotations["keyNegative"] = .int(-42)
-        annotations["keyZero"] = .int(0)
+        annotations["keyPositive"] = .integer(42)
+        annotations["keyNegative"] = .integer(-42)
+        annotations["keyZero"] = .integer(0)
         XCTAssertEqual(#"{"keyNegative":-42,"keyPositive":42,"keyZero":0}"#, try! encode(annotations))
 
         // replace the previous value
-        annotations["keyPositive"] = .int(137)
+        annotations["keyPositive"] = .integer(137)
         XCTAssertEqual(#"{"keyNegative":-42,"keyPositive":137,"keyZero":0}"#, try! encode(annotations))
 
         // remove the value
@@ -199,7 +199,7 @@ final class SegmentEncodingTests: XCTestCase {
         var annotations = Segment.Annotations()
 
         annotations["stringKey"] = .string("value")
-        annotations["intKey"] = .int(1)
+        annotations["intKey"] = .integer(1)
         annotations["floatKey"] = .float(4.2)
         annotations["boolKey"] = .bool(true)
 

@@ -50,7 +50,7 @@ final class RecorderTests: XCTestCase {
         _ = segment.beginSubsegment(name: UUID().uuidString) // not finished
 
         recorder.segment(name: UUID().uuidString) { _ in } // 2
-        recorder.beginSegment(name: UUID().uuidString, traceHeader: .init(sampled: .sampled)).end() // 3
+        recorder.beginSegment(name: UUID().uuidString, context: .init(sampled: .sampled)).end() // 3
 
         recorder.wait()
         XCTAssertEqual(2, segment.subsegmentsInProgress().count)

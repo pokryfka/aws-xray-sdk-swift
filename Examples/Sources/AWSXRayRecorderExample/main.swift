@@ -11,7 +11,7 @@ let recorder = XRayRecorder()
 
 // begin and end (sub)segments explicitly
 let segment = recorder.beginSegment(name: "Segment 1")
-segment.setAnnotation("zip_code", value: 98101)
+segment.setAnnotation(98101, forKey: "zip_code")
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 _ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
 usleep(100_000)
