@@ -21,6 +21,10 @@ extension XRayRecorder: TracingInstrument {
         // TODO: parse context, extend existing recorder/segment to use `Baggage`?
         // TODO: map DispatchTime to Timestamp
         // TODO: does kind has any meaning?
+        // TODO: what id the context is invalid (BaggageContext does not have a valid one),
+        // ^ typically as far XRay is concerned `AWS_XRAY_CONTEXT_MISSING` is used to configure how to handle it
+        // TracingInstrument should indicate how to handle that
+        // TODO: Here we could look at whether the context contains a parent id to create a subsegment if needed
         beginSegment(name: operationName)
     }
 }

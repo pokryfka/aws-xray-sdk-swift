@@ -2,16 +2,17 @@ import XCTest
 
 import AWSXRayInstrument
 import AWSXRayRecorder
+import Baggage
 import Instrumentation
 
 final class SpanTests: XCTestCase {
-    func testRecordingOneSegment() {
-        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+    func testCreatingSegment() {
+        let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())
 
         let name: String = UUID().uuidString
+        let context = BaggageContext()
 
-        // use existing "segment" API, make sure the segment is a proper span
-        var span: Span = recorder.beginSegment(name: name)
+        var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
         // TODO: more tests

@@ -24,6 +24,9 @@ final class InstrumentTests: XCTestCase {
 
         span.end()
 
+        // TODO: instrument does not define any method to flush/wait
+        (instrument as? XRayRecorder)?.wait()
+
         XCTAssertEqual(1, emitter.segments.count)
     }
 }
