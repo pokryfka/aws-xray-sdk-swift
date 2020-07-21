@@ -79,12 +79,15 @@ extension XRayRecorder {
 
         private var state: State { lock.withReaderLock { _state } }
 
+        private let _context: TraceContext
+        private let _name: String
+
+        public var context: TraceContext { lock.withReaderLock { _context } }
+
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
         internal let id: ID
-
-        private let _name: String
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -106,7 +109,7 @@ extension XRayRecorder {
         ///
         /// # Subsegment
         /// Required only if sending a subsegment separately.
-        private let traceId: TraceID
+        private var traceId: TraceID { _context.traceId }
 
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
@@ -138,7 +141,7 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
-        private let parentId: ID?
+        private var parentId: ID? { _context.parentId }
 
         /// An object with information about your application.
         private let service: Service?
@@ -188,14 +191,14 @@ extension XRayRecorder {
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
+            sampled: SampleDecision = .sampled,
             callback: StateChangeCallback? = nil
         ) {
+            _context = TraceContext(traceId: traceId, parentId: parentId, sampled: sampled)
+            // TODO: should we check if parentId is different than id?
             self.id = id
             _name = name
-            self.traceId = traceId
             self.startTime = startTime
-            self.parentId = parentId
-            // TODO: should we check if parentId is different than id?
             type = subsegment && parentId != nil ? .subsegment : nil
             self.service = service
             self.user = user

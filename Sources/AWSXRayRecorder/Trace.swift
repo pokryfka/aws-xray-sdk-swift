@@ -101,6 +101,10 @@ extension XRayRecorder {
     }
 }
 
+// TODO: make TraceContext RawRepresentable or Codable from/to single value container?
+// TODO: check https://github.com/slashmo/gsoc-swift-baggage-context
+// TODO: check https://www.w3.org/TR/trace-context-1/#trace-context-http-headers-format
+
 extension XRayRecorder {
     /// All requests are traced, up to a configurable minimum.
     /// After reaching that minimum, a percentage of requests are traced to avoid unnecessary cost.
@@ -129,9 +133,9 @@ extension XRayRecorder {
     ///
     ///  # References
     /// - [AWS X-Ray concepts - Tracing header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
-    public struct TraceHeader {
+    public struct TraceContext {
         /// root trace ID
-        public let root: TraceID
+        public let traceId: TraceID
         /// parent segment ID
         public let parentId: Segment.ID?
         /// sampling decision
@@ -139,12 +143,12 @@ extension XRayRecorder {
     }
 }
 
-extension XRayRecorder.TraceHeader {
-    /// Creates new Trace Header.
+extension XRayRecorder.TraceContext {
+    /// Creates new Trace Context.
     /// - parameter parentId: parent segment ID
     /// - parameter sampled: sampling decision
     init(parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision) {
-        root = XRayRecorder.TraceID()
+        traceId = XRayRecorder.TraceID()
         self.parentId = parentId
         self.sampled = sampled
     }
@@ -159,7 +163,7 @@ extension XRayRecorder.TraceHeader {
             throw XRayRecorder.TraceError.invalidTraceHeader(string)
         }
 
-        root = try XRayRecorder.TraceID(string: String(values[0].dropFirst("Root=".count)))
+        traceId = try XRayRecorder.TraceID(string: String(values[0].dropFirst("Root=".count)))
 
         var valueIndex = 1
         if values[valueIndex].starts(with: "Parent=") {
