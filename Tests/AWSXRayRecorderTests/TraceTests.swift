@@ -4,7 +4,7 @@ import XCTest
 @testable import AWSXRayRecorder
 
 private typealias TraceID = XRayRecorder.TraceID
-private typealias TraceHeader = XRayRecorder.TraceHeader
+private typealias TraceContext = XRayRecorder.TraceContext
 private typealias TraceError = XRayRecorder.TraceError
 private typealias SampleDecision = XRayRecorder.SampleDecision
 private typealias SegmentError = XRayRecorder.SegmentError
@@ -55,9 +55,9 @@ final class TraceTests: XCTestCase {
 
     func testTraceHeaderNoParentSampled() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
-        let value = try? TraceHeader(string: string)
+        let value = try? TraceContext(string: string)
         XCTAssertNotNil(value)
-        XCTAssertEqual(value?.root.description, "1-5759e988-bd862e3fe1be46a994272793")
+        XCTAssertEqual(value?.traceId.description, "1-5759e988-bd862e3fe1be46a994272793")
         XCTAssertNil(value?.parentId)
         XCTAssertEqual(value?.sampled, SampleDecision.sampled)
     }
@@ -65,8 +65,8 @@ final class TraceTests: XCTestCase {
     func testTraceHeaderWithParentSampled() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8;Sampled=1"
         do {
-            let value = try TraceHeader(string: string)
-            XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
+            let value = try TraceContext(string: string)
+            XCTAssertEqual(value.traceId.description, "1-5759e988-bd862e3fe1be46a994272793")
             XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.sampled)
         } catch {
@@ -77,8 +77,8 @@ final class TraceTests: XCTestCase {
     func testTraceHeaderWithParentNotSampled() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8;Sampled=0"
         do {
-            let value = try TraceHeader(string: string)
-            XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
+            let value = try TraceContext(string: string)
+            XCTAssertEqual(value.traceId.description, "1-5759e988-bd862e3fe1be46a994272793")
             XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.notSampled)
         } catch {
@@ -89,8 +89,8 @@ final class TraceTests: XCTestCase {
     func testTraceHeaderWithParentUnkownUnkownSample() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8"
         do {
-            let value = try TraceHeader(string: string)
-            XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
+            let value = try TraceContext(string: string)
+            XCTAssertEqual(value.traceId.description, "1-5759e988-bd862e3fe1be46a994272793")
             XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.unknown)
         } catch {
@@ -101,8 +101,8 @@ final class TraceTests: XCTestCase {
     func testTraceHeaderWithParentUnkownRequestedSample() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8;Sampled=?"
         do {
-            let value = try TraceHeader(string: string)
-            XCTAssertEqual(value.root.description, "1-5759e988-bd862e3fe1be46a994272793")
+            let value = try TraceContext(string: string)
+            XCTAssertEqual(value.traceId.description, "1-5759e988-bd862e3fe1be46a994272793")
             XCTAssertEqual(value.parentId?.rawValue, "53995c3f42cd8ad8")
             XCTAssertEqual(value.sampled, SampleDecision.requested)
         } catch {
@@ -112,7 +112,7 @@ final class TraceTests: XCTestCase {
 
     func testTraceHeaderInvalidFormat() {
         let string = "Root2799;Sampled=1"
-        XCTAssertThrowsError(try TraceHeader(string: string)) { error in
+        XCTAssertThrowsError(try TraceContext(string: string)) { error in
             if case TraceError.invalidTraceHeader(let invalidValue) = error {
                 XCTAssertEqual(invalidValue, "Root2799;Sampled=1")
             } else {
@@ -123,7 +123,7 @@ final class TraceTests: XCTestCase {
 
     func testTraceHeaderInvalidRoot() {
         let string = "Root=-2799;Parent=-15277;Sampled=1"
-        XCTAssertThrowsError(try TraceHeader(string: string)) { error in
+        XCTAssertThrowsError(try TraceContext(string: string)) { error in
             if case TraceError.invalidTraceID(let invalidValue) = error {
                 XCTAssertEqual(invalidValue, "-2799")
             } else {
@@ -134,7 +134,7 @@ final class TraceTests: XCTestCase {
 
     func testTraceHeaderInvalidParent() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=-15277;Sampled=1"
-        XCTAssertThrowsError(try TraceHeader(string: string)) { error in
+        XCTAssertThrowsError(try TraceContext(string: string)) { error in
             if case TraceError.invalidParentID(let invalidValue) = error {
                 XCTAssertEqual(invalidValue, "-15277")
             } else {

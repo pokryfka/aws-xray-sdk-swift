@@ -19,11 +19,11 @@ extension XRayRecorder {
 
     @inlinable
     @discardableResult
-    public func segment<T>(name: String, traceHeader: TraceHeader, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func segment<T>(name: String, traceHeader: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
     {
-        let segment = beginSegment(name: name, traceHeader: traceHeader, metadata: metadata)
+        let segment = beginSegment(name: name, context: traceHeader, metadata: metadata)
         defer {
             segment.end()
         }

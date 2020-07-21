@@ -4,6 +4,7 @@ import Logging
 // TODO: document
 
 /// # References
+/// - [AWS X-Ray concepts](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-segments)
 /// - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 public class XRayRecorder {
     private let config: Config
@@ -36,6 +37,7 @@ public class XRayRecorder {
             return Segment(
                 name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
                 aws: aws, metadata: metadata,
+                sampled: .notSampled,
                 callback: nil
             )
         }
@@ -61,21 +63,26 @@ public class XRayRecorder {
         return newSegment
     }
 
+    // TODO: pass Context including trace id and sampling decision?
     public func beginSegment(name: String, parentId: Segment.ID? = nil,
                              aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: false, aws: aws, metadata: metadata)
     }
 
+    // TODO: pass Context including trace id and sampling decision?
     public func beginSubsegment(name: String, parentId: Segment.ID,
                                 aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
         beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
     }
 
-    public func beginSegment(name: String, traceHeader: TraceHeader,
+    public func beginSegment(name: String, context: TraceContext,
                              aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        traceId = traceHeader.root
-        sampled = traceHeader.sampled.isSampled != false
-        if let parentId = traceHeader.parentId {
+        // TODO: do not store "current" or "active" traceId, segmentId or sampling decision
+        // we do it here only for the sake of XRayMiddleware which is conceptually broken and
+        // hopefully will be replaced
+        traceId = context.traceId
+        sampled = context.sampled.isSampled != false
+        if let parentId = context.parentId {
             return beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
         } else {
             return beginSegment(name: name, aws: aws, metadata: metadata)
@@ -106,7 +113,7 @@ public class XRayRecorder {
             try segment.emit()
             // check if any of its subsegments are in progress and keep them in the recorder
             let subsegments = segment.subsegmentsInProgress()
-            logger.debug("Segment \(id) has \(subsegments.count) subsegments \(Segment.State.inProgress)")
+            logger.debug("Segment \(id) has \(subsegments.count) subsegments inProgress")
             segmentsLock.withWriterLock {
                 subsegments.forEach { _segments[$0.id] = $0 }
             }

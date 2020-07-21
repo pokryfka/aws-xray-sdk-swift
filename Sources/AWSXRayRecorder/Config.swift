@@ -2,6 +2,8 @@ import Logging
 
 // TODO: document
 
+// TODO: AWS_XRAY_CONTEXT_MISSING – For X-Ray tracing, Lambda sets this to LOG_ERROR to avoid throwing runtime errors from the X-Ray SDK.
+
 public extension XRayRecorder {
     struct Config {
         let enabled: Bool

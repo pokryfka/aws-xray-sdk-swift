@@ -5,6 +5,9 @@ import NIO
 
 // TODO: document
 
+// TODO: check also the Context, for example Lambda-Runtime-Invoked-Function-Arn
+// both ARN and so Region are provided
+
 extension XRayRecorder {
     private var metadata: Segment.Metadata {
         // TODO: make it configurable? define metadata plugin/factory interface
@@ -16,8 +19,8 @@ extension XRayRecorder {
 
     public func beginSegment(name: String, context: Lambda.Context) -> Segment {
         let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
-        if let traceHeader = try? XRayRecorder.TraceHeader(string: context.traceID) {
-            return beginSegment(name: name, traceHeader: traceHeader, aws: aws, metadata: metadata)
+        if let traceHeader = try? XRayRecorder.TraceContext(string: context.traceID) {
+            return beginSegment(name: name, context: traceHeader, aws: aws, metadata: metadata)
         } else {
             return beginSegment(name: name, aws: aws, metadata: metadata)
         }
