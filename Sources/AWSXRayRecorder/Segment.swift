@@ -73,13 +73,14 @@ extension XRayRecorder {
                     endTime = timestamp
                     inProgress = nil
                 }
-                callback?(id, _state)
+                callback?(_id, _state)
             }
         }
 
         private var state: State { lock.withReaderLock { _state } }
 
         private let _context: TraceContext
+        private let _id: ID
         private let _name: String
 
         public var context: TraceContext { lock.withReaderLock { _context } }
@@ -87,7 +88,7 @@ extension XRayRecorder {
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        internal let id: ID
+        public var id: ID { lock.withReaderLock { _id } }
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -196,7 +197,7 @@ extension XRayRecorder {
         ) {
             _context = TraceContext(traceId: traceId, parentId: parentId, sampled: sampled)
             // TODO: should we check if parentId is different than id?
-            self.id = id
+            _id = id
             _name = name
             self.startTime = startTime
             type = subsegment && parentId != nil ? .subsegment : nil
@@ -297,7 +298,7 @@ extension XRayRecorder.Segment {
     public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
         lock.withWriterLock {
             let newSegment = XRayRecorder.Segment(
-                name: name, traceId: self.traceId, parentId: self.id, subsegment: true,
+                name: name, traceId: _context.traceId, parentId: _id, subsegment: true,
                 metadata: metadata,
                 callback: self.callback
             )
@@ -513,10 +514,11 @@ extension XRayRecorder.Segment: Encodable {
 
     public func encode(to encoder: Encoder) throws {
         try lock.withReaderLockVoid {
+            // TODO: no need to encode id and traceId for embedded segments
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .id)
+            try container.encode(_id, forKey: .id)
             try container.encode(_name, forKey: .name)
-            try container.encode(traceId, forKey: .traceId)
+            try container.encode(_context.traceId, forKey: .traceId)
             try container.encode(startTime, forKey: .startTime)
             // encode either endTime or inProgress
             if let endTime = endTime {
