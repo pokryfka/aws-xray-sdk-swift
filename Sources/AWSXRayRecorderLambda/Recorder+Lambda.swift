@@ -19,7 +19,7 @@ extension XRayRecorder {
 
     public func beginSegment(name: String, context: Lambda.Context) -> Segment {
         let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
-        if let traceHeader = try? XRayRecorder.TraceContext(string: context.traceID) {
+        if let traceHeader = try? XRayRecorder.TraceContext(tracingHeader: context.traceID) {
             return beginSegment(name: name, context: traceHeader, aws: aws, metadata: metadata)
         } else {
             return beginSegment(name: name, aws: aws, metadata: metadata)

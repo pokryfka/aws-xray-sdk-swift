@@ -110,18 +110,18 @@ extension XRayRecorder {
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        public var startTime: Double { lock.withReaderLock { _state.startTime.secondsSinceEpoch } }
+        internal var startTime: Timestamp { lock.withReaderLock { _state.startTime } }
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
         /// Specify either an end_time or in_progress.
-        public var endTime: Double? { lock.withReaderLock { _state.endTime?.secondsSinceEpoch } }
+        internal var endTime: Timestamp? { lock.withReaderLock { _state.endTime } }
 
         /// **boolean**, set to true instead of specifying an end_time to record that a segment is started, but is not complete.
         /// Send an in-progress segment when your application receives a request that will take a long time to serve, to trace the request receipt.
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
-        public var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
+        internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
 
         // MARK: Required Subsegment Fields
 
@@ -162,12 +162,15 @@ extension XRayRecorder {
         private var _fault: Bool?
         /// the exception(s) that caused the error.
         private var _cause: Cause = Cause()
+        internal var exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
+        internal var annotations: Annotations { lock.withReaderLock { _annotations } }
 
         /// metadata object with any additional data that you want to store in the segment.
         private var _metadata: Metadata
+        internal var metadata: Metadata { lock.withReaderLock { _metadata } }
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
@@ -253,17 +256,6 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
     }
 }
 
-extension XRayRecorder.Segment.State {
-    var isInProgress: Bool {
-        switch self {
-        case .inProgress:
-            return true
-        default:
-            return false
-        }
-    }
-}
-
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment.
     public func end() {
@@ -326,7 +318,7 @@ extension XRayRecorder.Segment {
             var segmentsInProgess = [XRayRecorder.Segment]()
             for segment in _subsegments {
                 // add subsegment if in progress
-                if segment.state.isInProgress {
+                if segment.state.inProgress {
                     segmentsInProgess.append(segment)
                 }
                 // otherwise check if any of its subsegments are in progress
@@ -341,12 +333,18 @@ extension XRayRecorder.Segment {
 
 // MARK: - Errors and exceptions
 
+// TODO: rename to indicate that Exceptions/Errors are appended?
+
 extension XRayRecorder.Segment {
     internal func setException(_ exception: Exception) {
         lock.withWriterLockVoid {
             self._error = true
             _cause.exceptions.append(exception)
         }
+    }
+
+    public func setException(message: String, type: String? = nil) {
+        setException(Exception(message: message, type: type))
     }
 
     public func setError(_ error: Error) {
@@ -373,102 +371,42 @@ extension XRayRecorder.Segment {
 
 // MARK: - Annotations
 
-// TODO: expose AnnotationValue?
-
 extension XRayRecorder.Segment {
     internal enum AnnotationValue {
         case string(String)
         case integer(Int)
-        case float(Float)
+        case double(Double)
         case bool(Bool)
     }
 
-    private func setAnnotations(_ newElements: Annotations) {
+    private func setAnnotation(_ value: AnnotationValue, forKey key: String) {
         lock.withWriterLockVoid {
-            for (k, v) in newElements {
-                _annotations.updateValue(v, forKey: k)
-            }
+            _annotations[key] = value
         }
-    }
-
-    private func annotation(_ key: String) -> AnnotationValue? {
-        lock.withReaderLock { _annotations[key] }
     }
 
     public func setAnnotation(_ value: String, forKey key: String) {
-        setAnnotations([key: .string(value)])
+        setAnnotation(.string(value), forKey: key)
     }
 
     public func setAnnotation(_ value: Bool, forKey key: String) {
-        setAnnotations([key: .bool(value)])
+        setAnnotation(.bool(value), forKey: key)
     }
 
     public func setAnnotation(_ value: Int, forKey key: String) {
-        setAnnotations([key: .integer(value)])
+        setAnnotation(.integer(value), forKey: key)
     }
 
-    public func setAnnotation(_ value: Float, forKey key: String) {
-        setAnnotations([key: .float(value)])
-    }
-
-    public func annotationStringValue(forKey key: String) -> String? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.string(let stringValue) = value
-        else {
-            return nil
-        }
-        return stringValue
-    }
-
-    public func annotationBoolValue(forKey key: String) -> Bool? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.bool(let booleanValue) = value
-        else {
-            return nil
-        }
-        return booleanValue
-    }
-
-    public func annotationIntegerValue(forKey key: String) -> Int? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.integer(let intValue) = value
-        else {
-            return nil
-        }
-        return intValue
-    }
-
-    public func annotationFloatValue(forKey key: String) -> Float? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.float(let floatValue) = value
-        else {
-            return nil
-        }
-        return floatValue
-    }
-
-    public func removeAnnotationValue(_ key: String) {
-        lock.withWriterLockVoid {
-            _annotations.removeValue(forKey: key)
-        }
+    public func setAnnotation(_ value: Double, forKey key: String) {
+        setAnnotation(.double(value), forKey: key)
     }
 }
 
+extension XRayRecorder.Segment.AnnotationValue: Equatable {}
+
 // MARK: - Metadata
 
-// TODO: use subscript?
-
 extension XRayRecorder.Segment {
-    public func setMetadata(_ value: AnyEncodable, forKey key: String) {
-        lock.withWriterLockVoid {
-            _metadata[key] = value
-        }
-    }
-
     public func setMetadata(_ newElements: Metadata) {
         lock.withWriterLockVoid {
             for (k, v) in newElements {
@@ -477,13 +415,22 @@ extension XRayRecorder.Segment {
         }
     }
 
-    public var metadata: Metadata {
-        lock.withReaderLock { _metadata }
+    public func setMetadata(_ value: AnyEncodable, forKey key: String) {
+        lock.withWriterLockVoid {
+            _metadata[key] = value
+        }
     }
 
-    public func removeMetadataValue(_ key: String) {
+    // TODO: consider changing name, describe what exactly it does
+
+    public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
         lock.withWriterLockVoid {
-            _metadata.removeValue(forKey: key)
+            if var array = _metadata[key]?.value as? [Any] {
+                array.append(value)
+                _metadata[key] = AnyEncodable(array)
+            } else {
+                _metadata[key] = [value]
+            }
         }
     }
 }
@@ -568,7 +515,7 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
             try container.encode(value)
         case .integer(let value):
             try container.encode(value)
-        case .float(let value):
+        case .double(let value):
             try container.encode(value)
         case .bool(let value):
             try container.encode(value)
