@@ -41,16 +41,16 @@ let package = Package(
                 .target(name: "AWSXRayRecorder"),
                 .product(name: "Instrumentation", package: "gsoc-swift-tracing"),
                 .product(name: "Baggage", package: "swift-baggage-context"),
-                // contains BaggageContextKey, HTTPHeadersExtractor, HTTPHeadersInjector
-                .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
-                // we need dependency on both just to use HTTPHeaders type
-                .product(name: "NIO", package: "swift-nio"),
-                .product(name: "NIOHTTP1", package: "swift-nio"),
             ]
         ),
         .testTarget(
             name: "AWSXRayInstrumentTests",
-            dependencies: [.target(name: "AWSXRayInstrument")]
+            dependencies: [
+                .target(name: "AWSXRayInstrument"),
+                .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
+            ]
         ),
         .target(
             name: "AWSXRayRecorderLambda",
