@@ -163,6 +163,8 @@ extension XRayRecorder {
         /// the exception(s) that caused the error.
         private var _cause: Cause = Cause()
 
+        internal var exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
+
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
 
@@ -341,12 +343,18 @@ extension XRayRecorder.Segment {
 
 // MARK: - Errors and exceptions
 
+// TODO: rename to indicate that Exceptions/Errors are appended?
+
 extension XRayRecorder.Segment {
     internal func setException(_ exception: Exception) {
         lock.withWriterLockVoid {
             self._error = true
             _cause.exceptions.append(exception)
         }
+    }
+
+    public func setException(message: String, type: String? = nil) {
+        setException(Exception(message: message, type: type))
     }
 
     public func setError(_ error: Error) {

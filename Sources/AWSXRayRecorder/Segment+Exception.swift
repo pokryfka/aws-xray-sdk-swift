@@ -47,14 +47,23 @@ extension XRayRecorder.Segment {
         /// **array** of **stackFrame** objects.
         var stack: [StackFrame]?
 
+        init(id: ID, message: String, type: String? = nil) {
+            self.id = id
+            self.message = message
+            self.type = type
+        }
+
+        init(message: String, type: String? = nil) {
+            self.init(id: ID(), message: message, type: type)
+        }
+
         init(id: ID, error: Error) {
             self.id = id
             message = "\(error)"
         }
 
         init(_ error: Error) {
-            id = ID()
-            message = "\(error)"
+            self.init(id: ID(), error: error)
         }
     }
 
