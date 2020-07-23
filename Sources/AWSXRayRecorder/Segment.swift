@@ -162,14 +162,15 @@ extension XRayRecorder {
         private var _fault: Bool?
         /// the exception(s) that caused the error.
         private var _cause: Cause = Cause()
-
         internal var exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
+        internal var annotations: Annotations { lock.withReaderLock { _annotations } }
 
         /// metadata object with any additional data that you want to store in the segment.
         private var _metadata: Metadata
+        internal var metadata: Metadata { lock.withReaderLock { _metadata } }
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
@@ -401,19 +402,34 @@ extension XRayRecorder.Segment {
     }
 }
 
+extension XRayRecorder.Segment.AnnotationValue: Equatable {}
+
 // MARK: - Metadata
 
 extension XRayRecorder.Segment {
+    public func setMetadata(_ newElements: Metadata) {
+        lock.withWriterLockVoid {
+            for (k, v) in newElements {
+                _metadata.updateValue(v, forKey: k)
+            }
+        }
+    }
+
     public func setMetadata(_ value: AnyEncodable, forKey key: String) {
         lock.withWriterLockVoid {
             _metadata[key] = value
         }
     }
 
-    public func setMetadata(_ newElements: Metadata) {
+    // TODO: consider changing name, describe what exactly it does
+
+    public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
         lock.withWriterLockVoid {
-            for (k, v) in newElements {
-                _metadata.updateValue(v, forKey: k)
+            if var array = _metadata[key]?.value as? [Any] {
+                array.append(value)
+                _metadata[key] = AnyEncodable(array)
+            } else {
+                _metadata[key] = [value]
             }
         }
     }
