@@ -370,94 +370,38 @@ extension XRayRecorder.Segment {
 
 // MARK: - Annotations
 
-// TODO: expose AnnotationValue?
-
 extension XRayRecorder.Segment {
     internal enum AnnotationValue {
         case string(String)
         case integer(Int)
-        case float(Float)
+        case double(Double)
         case bool(Bool)
     }
 
-    private func setAnnotations(_ newElements: Annotations) {
+    private func setAnnotation(_ value: AnnotationValue, forKey key: String) {
         lock.withWriterLockVoid {
-            for (k, v) in newElements {
-                _annotations.updateValue(v, forKey: k)
-            }
+            _annotations[key] = value
         }
-    }
-
-    private func annotation(_ key: String) -> AnnotationValue? {
-        lock.withReaderLock { _annotations[key] }
     }
 
     public func setAnnotation(_ value: String, forKey key: String) {
-        setAnnotations([key: .string(value)])
+        setAnnotation(.string(value), forKey: key)
     }
 
     public func setAnnotation(_ value: Bool, forKey key: String) {
-        setAnnotations([key: .bool(value)])
+        setAnnotation(.bool(value), forKey: key)
     }
 
     public func setAnnotation(_ value: Int, forKey key: String) {
-        setAnnotations([key: .integer(value)])
+        setAnnotation(.integer(value), forKey: key)
     }
 
-    public func setAnnotation(_ value: Float, forKey key: String) {
-        setAnnotations([key: .float(value)])
-    }
-
-    public func annotationStringValue(forKey key: String) -> String? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.string(let stringValue) = value
-        else {
-            return nil
-        }
-        return stringValue
-    }
-
-    public func annotationBoolValue(forKey key: String) -> Bool? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.bool(let booleanValue) = value
-        else {
-            return nil
-        }
-        return booleanValue
-    }
-
-    public func annotationIntegerValue(forKey key: String) -> Int? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.integer(let intValue) = value
-        else {
-            return nil
-        }
-        return intValue
-    }
-
-    public func annotationFloatValue(forKey key: String) -> Float? {
-        guard
-            let value = _annotations[key],
-            case AnnotationValue.float(let floatValue) = value
-        else {
-            return nil
-        }
-        return floatValue
-    }
-
-    public func removeAnnotationValue(_ key: String) {
-        lock.withWriterLockVoid {
-            _annotations.removeValue(forKey: key)
-        }
+    public func setAnnotation(_ value: Double, forKey key: String) {
+        setAnnotation(.double(value), forKey: key)
     }
 }
 
 // MARK: - Metadata
-
-// TODO: use subscript?
 
 extension XRayRecorder.Segment {
     public func setMetadata(_ value: AnyEncodable, forKey key: String) {
@@ -471,16 +415,6 @@ extension XRayRecorder.Segment {
             for (k, v) in newElements {
                 _metadata.updateValue(v, forKey: k)
             }
-        }
-    }
-
-    public var metadata: Metadata {
-        lock.withReaderLock { _metadata }
-    }
-
-    public func removeMetadataValue(_ key: String) {
-        lock.withWriterLockVoid {
-            _metadata.removeValue(forKey: key)
         }
     }
 }
@@ -565,7 +499,7 @@ extension XRayRecorder.Segment.AnnotationValue: Encodable {
             try container.encode(value)
         case .integer(let value):
             try container.encode(value)
-        case .float(let value):
+        case .double(let value):
             try container.encode(value)
         case .bool(let value):
             try container.encode(value)
