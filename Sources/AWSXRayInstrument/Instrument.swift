@@ -2,8 +2,6 @@ import AWSXRayRecorder
 import Baggage
 import Dispatch // DispatchTime
 import Instrumentation
-import NIOHTTP1 // HTTPHeaders
-import NIOInstrumentation // HTTPHeadersExtractor, HTTPHeadersInjector
 
 extension XRayRecorder: TracingInstrument {
     public func extract<Carrier, Extractor>(_ carrier: Carrier, into baggage: inout BaggageContext, using extractor: Extractor) where Carrier == Extractor.Carrier, Extractor: ExtractorProtocol {
