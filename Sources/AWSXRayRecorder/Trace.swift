@@ -197,7 +197,7 @@ extension XRayRecorder.TraceContext {
     }
 
     /// Tracing header value.
-    var tracingHeader: String {
+    public var tracingHeader: String {
         let segments: [String?] = [
             "Root=\(traceId)",
             {
@@ -210,5 +210,11 @@ extension XRayRecorder.TraceContext {
             }(),
         ]
         return segments.compactMap { $0 }.joined(separator: ";")
+    }
+}
+
+extension XRayRecorder.TraceContext: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.traceId == rhs.traceId && lhs.parentId == rhs.parentId && lhs.sampled == rhs.sampled
     }
 }
