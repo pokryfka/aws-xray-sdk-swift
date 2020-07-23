@@ -14,12 +14,14 @@ extension BaggageContext {
     }
 
     static func withoutParentSampled() -> BaggageContext {
-        // TODO: random root traceId
-        withTracingHeader("Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1")
+        var context = BaggageContext()
+        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: .sampled)
+        return context
     }
 
     static func withoutParentNotSampled() -> BaggageContext {
-        // TODO: random root traceId
-        withTracingHeader("Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=0")
+        var context = BaggageContext()
+        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: .notSampled)
+        return context
     }
 }
