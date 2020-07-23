@@ -85,3 +85,24 @@ internal class XRayUDPEmitter: XRayNIOEmitter {
             .always { _ in self.logger.info("Done") }
     }
 }
+
+// MARK: JSON
+
+// TODO: pass JSON encoder to XRayUDPEmitter, remove dependency on Foundation
+
+import struct Foundation.Data
+import class Foundation.JSONEncoder
+
+private extension JSONEncoder {
+    func encode<T: Encodable>(_ value: T) throws -> String {
+        String(decoding: try encode(value), as: UTF8.self)
+    }
+}
+
+private let jsonEncoder = JSONEncoder()
+
+private extension XRayRecorder.Segment {
+    func JSONString() throws -> String {
+        try jsonEncoder.encode(self) as String
+    }
+}
