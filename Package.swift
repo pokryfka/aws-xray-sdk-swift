@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
+        .library(name: "AWSXRayInstrument", targets: ["AWSXRayInstrument"]),
         .library(name: "AWSXRayRecorderLambda", targets: ["AWSXRayRecorderLambda"]),
         .library(name: "AWSXRayRecorderSDK", targets: ["AWSXRayRecorderSDK"]), // TODO: remove
     ],
