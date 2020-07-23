@@ -10,12 +10,13 @@ let package = Package(
     products: [
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
         .library(name: "AWSXRayRecorderLambda", targets: ["AWSXRayRecorderLambda"]),
-        .library(name: "AWSXRayRecorderSDK", targets: ["AWSXRayRecorderSDK"]),
+        .library(name: "AWSXRayRecorderSDK", targets: ["AWSXRayRecorderSDK"]), // TODO: remove
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
+        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.1.0")),
         .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .branch("main")),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift-core.git", .upToNextMinor(from: "5.0.0-alpha.5")),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
@@ -27,34 +28,46 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "AnyCodable", package: "AnyCodable"),
+//                .product(name: "Baggage", package: "swift-baggage-context"),
             ]
         ),
         .testTarget(
             name: "AWSXRayRecorderTests",
-            dependencies: ["AWSXRayRecorder"]
+            dependencies: [
+                .target(name: "AWSXRayRecorder"),
+                // TODO: check why required
+                .product(name: "NIOHTTP1", package: "swift-nio"),
+                .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
+            ]
         ),
         .target(
             name: "AWSXRayInstrument",
             dependencies: [
-                .byName(name: "AWSXRayRecorder"),
+                .target(name: "AWSXRayRecorder"),
                 .product(name: "Instrumentation", package: "gsoc-swift-tracing"),
+                .product(name: "Baggage", package: "swift-baggage-context"),
+                // contains BaggageContextKey, HTTPHeadersExtractor, HTTPHeadersInjector
+                .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
+                // we need dependency on both just to use HTTPHeaders type
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
             ]
         ),
         .testTarget(
             name: "AWSXRayInstrumentTests",
-            dependencies: ["AWSXRayInstrument"]
+            dependencies: [.target(name: "AWSXRayInstrument")]
         ),
         .target(
             name: "AWSXRayRecorderLambda",
             dependencies: [
-                .byName(name: "AWSXRayRecorder"),
+                .target(name: "AWSXRayRecorder"),
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
             ]
         ),
         .target(
             name: "AWSXRayRecorderSDK",
             dependencies: [
-                .byName(name: "AWSXRayRecorder"),
+                .target(name: "AWSXRayRecorder"),
                 .product(name: "AWSSDKSwiftCore", package: "aws-sdk-swift-core"),
             ]
         ),

@@ -53,6 +53,8 @@ final class TraceTests: XCTestCase {
 
     // MARK: TraceHeader
 
+    // TODO: test Root=1-5759e988-bd862e3fe1be46a994272793
+
     func testTraceHeaderNoParentSampled() {
         let string = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
         let value = try? TraceContext(string: string)

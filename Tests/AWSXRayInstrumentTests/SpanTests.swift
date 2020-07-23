@@ -1,24 +1,41 @@
 import XCTest
 
-import AWSXRayInstrument
-import AWSXRayRecorder
 import Baggage
 import Instrumentation
 
+@testable import AWSXRayInstrument
+@testable import AWSXRayRecorder
+
 final class SpanTests: XCTestCase {
-    func testCreatingSegment() {
+    func testCreatingSpanWithoutParentSampled() {
         let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())
 
         let name: String = UUID().uuidString
-        let context = BaggageContext()
+        let context = BaggageContext.withoutParentSampled()
+        XCTAssertNotNil(context.xRayContext)
 
         var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
-        // TODO: more tests
+        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertTrue(span.isRecording)
 
         span.end()
+    }
 
-        // TODO: test end time
+    func testCreatingSpanWithoutParentNotSampled() {
+        let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())
+
+        let name: String = UUID().uuidString
+        let context = BaggageContext.withoutParentNotSampled()
+        XCTAssertNotNil(context.xRayContext)
+
+        var span: Span = instrument.startSpan(named: name, context: context)
+
+        XCTAssertEqual(name, span.operationName)
+        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertFalse(span.isRecording)
+
+        span.end()
     }
 }
