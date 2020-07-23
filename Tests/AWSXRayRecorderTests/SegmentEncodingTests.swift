@@ -160,20 +160,18 @@ final class SegmentEncodingTests: XCTestCase {
         XCTAssertEqual(#"{"keyNegative":-42,"keyZero":0}"#, try! encode(annotations))
     }
 
-    func testEncodingAnnotationFloat() {
+    func testEncodingAnnotationDouble() {
         var annotations = Segment.Annotations()
 
-        annotations["key"] = .float(4.2)
-//        XCTAssertEqual(#"{"key":4.1999998092651367}"#, try! encode(annotations))
-        // interestingly Foundation JSON encoder on Linux does better job (expected different precision)
+        annotations["key"] = .double(4.2)
+        // expect different precision on different platforms
         let json = try! encode(annotations)
-        XCTAssertTrue(#"{"key":4.1999998092651367}"# == json || #"{"key":4.2}"# == json)
+        XCTAssertTrue(json.starts(with: "{\"key\":4."))
 
         // replace the previous value
-        annotations["key"] = .float(13.7)
-//        XCTAssertEqual(#"{"key":13.699999809265137}"#, try! encode(annotations))
+        annotations["key"] = .double(13.7)
         let json2 = try! encode(annotations)
-        XCTAssertTrue(#"{"key":13.699999809265137}"# == json2 || #"{"key":13.7}"# == json2)
+        XCTAssertTrue(json2.starts(with: "{\"key\":13."))
 
         // remove the value
         annotations["key"] = nil
@@ -200,13 +198,10 @@ final class SegmentEncodingTests: XCTestCase {
 
         annotations["stringKey"] = .string("value")
         annotations["intKey"] = .integer(1)
-        annotations["floatKey"] = .float(4.2)
         annotations["boolKey"] = .bool(true)
 
-//        XCTAssertEqual(#"{"boolKey":true,"floatKey":4.1999998092651367,"intKey":1,"stringKey":"value"}"#, try! encode(annotations))
         let json = try! encode(annotations)
-        XCTAssertTrue(#"{"boolKey":true,"floatKey":4.1999998092651367,"intKey":1,"stringKey":"value"}"# == json ||
-            #"{"boolKey":true,"floatKey":4.2,"intKey":1,"stringKey":"value"}"# == json)
+        XCTAssertEqual(#"{"boolKey":true,"intKey":1,"stringKey":"value"}"#, json)
     }
 
     // MARK: Metadata

@@ -3,7 +3,7 @@ extension XRayRecorder {
         case invalidTraceID(String)
         case invalidParentID(String)
         case invalidSampleDecision(String)
-        case invalidTraceHeader(String)
+        case invalidTracingHeader(String)
     }
 
     /// # Trace ID Format
@@ -140,30 +140,37 @@ extension XRayRecorder {
         public let parentId: Segment.ID?
         /// sampling decision
         public let sampled: XRayRecorder.SampleDecision
+
+        /// Creates new Trace Context.
+        /// - parameter traceId: root trace ID
+        /// - parameter parentId: parent segment ID
+        /// - parameter sampled: sampling decision
+        public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision) {
+            self.traceId = traceId
+            self.parentId = parentId
+            self.sampled = sampled
+        }
     }
 }
 
 extension XRayRecorder.TraceContext {
-    /// Creates new Trace Context.
-    /// - parameter parentId: parent segment ID
-    /// - parameter sampled: sampling decision
-    init(parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision) {
-        traceId = XRayRecorder.TraceID()
-        self.parentId = parentId
-        self.sampled = sampled
-    }
-
     /// Parses and validates string with Tracing Header.
-    public init(string: String) throws {
-        let values = string.split(separator: ";")
+    public init(tracingHeader: String) throws {
+        let values = tracingHeader.split(separator: ";")
         guard
-            values.count >= 2, values.count <= 3,
+            values.count >= 1, values.count <= 3,
             values[0].starts(with: "Root=")
         else {
-            throw XRayRecorder.TraceError.invalidTraceHeader(string)
+            throw XRayRecorder.TraceError.invalidTracingHeader(tracingHeader)
         }
 
         traceId = try XRayRecorder.TraceID(string: String(values[0].dropFirst("Root=".count)))
+
+        guard values.count > 1 else {
+            parentId = nil
+            sampled = .unknown
+            return
+        }
 
         var valueIndex = 1
         if values[valueIndex].starts(with: "Parent=") {
@@ -181,11 +188,27 @@ extension XRayRecorder.TraceContext {
             guard
                 let value = XRayRecorder.SampleDecision(rawValue: String(values[valueIndex]))
             else {
-                throw XRayRecorder.TraceError.invalidTraceHeader(string)
+                throw XRayRecorder.TraceError.invalidTracingHeader(tracingHeader)
             }
             sampled = value
         } else {
             sampled = .unknown
         }
+    }
+
+    /// Tracing header value.
+    var tracingHeader: String {
+        let segments: [String?] = [
+            "Root=\(traceId)",
+            {
+                guard let parentId = parentId else { return nil }
+                return "Parent=\(parentId.rawValue)"
+            }(),
+            {
+                guard sampled != .unknown else { return nil }
+                return sampled.rawValue
+            }(),
+        ]
+        return segments.compactMap { $0 }.joined(separator: ";")
     }
 }

@@ -121,46 +121,69 @@ final class SegmentTests: XCTestCase {
 
     // MARK: Annotations
 
-    func testStringAnnotation() {
+    func testSettingAnnotations() {
         let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
 
-        let key = UUID().uuidString
-        let value = UUID().uuidString
+        let stringKey = UUID().uuidString
+        let stringValue = UUID().uuidString
+        segment.setAnnotation(stringValue, forKey: stringKey)
+        XCTAssertEqual(Segment.AnnotationValue.string(stringValue), segment.annotations[stringKey])
 
-        // set value
-        segment.setAnnotation(value, forKey: key)
-        XCTAssertEqual(segment.annotationStringValue(forKey: key), value)
-        XCTAssertNil(segment.annotationIntegerValue(forKey: key))
-        XCTAssertNil(segment.annotationFloatValue(forKey: key))
-        XCTAssertNil(segment.annotationBoolValue(forKey: key))
+        let integerKey = UUID().uuidString
+        let integerValue = Int.random(in: Int.min ... Int.max)
+        segment.setAnnotation(integerValue, forKey: integerKey)
+        XCTAssertEqual(Segment.AnnotationValue.integer(integerValue), segment.annotations[integerKey])
 
-        // overwrite value
-        let value2 = UUID().uuidString
-        segment.setAnnotation("\(value)", forKey: key) // use string interpolation
-        segment.setAnnotation(value2, forKey: key)
-        XCTAssertEqual(segment.annotationStringValue(forKey: key), value2)
+        let doubleKey = UUID().uuidString
+        let doubleValue = Double.random(in: -1000 ... 1000)
+        segment.setAnnotation(doubleValue, forKey: doubleKey)
+        XCTAssertEqual(Segment.AnnotationValue.double(doubleValue), segment.annotations[doubleKey])
 
-        // remove value
-        segment.removeAnnotationValue(key)
-        XCTAssertNil(segment.annotationStringValue(forKey: key))
+        let boolKey = UUID().uuidString
+        let boolValue = false
+        segment.setAnnotation(boolValue, forKey: boolKey)
+        XCTAssertEqual(Segment.AnnotationValue.bool(boolValue), segment.annotations[boolKey])
+
+        XCTAssertEqual(4, segment.annotations.count)
     }
 
     // MARK: Metadata
 
-    func testMetadata() {
+    func testSettingMetadata() {
+        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+
+        let stringKey = UUID().uuidString
+        let stringValue = AnyEncodable(UUID().uuidString)
+        segment.setMetadata(stringValue, forKey: stringKey)
+        XCTAssertEqual(stringValue, segment.metadata[stringKey])
+
+        let integerKey = UUID().uuidString
+        let ingeterValue = AnyEncodable(UInt64.random(in: UInt64.min ... UInt64.max))
+        segment.setMetadata(ingeterValue, forKey: integerKey)
+        XCTAssertEqual(ingeterValue, segment.metadata[integerKey])
+
+        segment.setMetadata([1, 2, 3], forKey: UUID().uuidString)
+
+        segment.setMetadata([1: 2], forKey: UUID().uuidString)
+
+        XCTAssertEqual(4, segment.metadata.count)
+    }
+
+    func testAppendingMetadata() {
         let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
 
         let key = UUID().uuidString
-        let value = UUID().uuidString
+        let value1 = AnyEncodable(UUID().uuidString)
+        let value2 = AnyEncodable(UInt64.random(in: UInt64.min ... UInt64.max))
 
-        segment.setMetadata([key: "\(value)"])
-        // TODO: define == for AnyEncodable and String?
-        XCTAssertEqual(AnyEncodable(value), segment.metadata[key])
+        segment.appendMetadata(value1, forKey: key)
+        segment.appendMetadata(value2, forKey: key)
 
-        segment.setMetadata("test", forKey: key)
-        XCTAssertEqual(AnyEncodable("test"), segment.metadata[key])
-
-        segment.removeMetadataValue(key)
-        XCTAssertNil(segment.metadata[key])
+        XCTAssertEqual(1, segment.metadata.count)
+        let array = segment.metadata[key]?.value as? [Any]
+        XCTAssertNotNil(array)
+        XCTAssertEqual(2, array?.count)
+        XCTAssertEqual(value1, array?[0] as? AnyEncodable)
+        XCTAssertEqual(value2, array?[1] as? AnyEncodable)
     }
 }
