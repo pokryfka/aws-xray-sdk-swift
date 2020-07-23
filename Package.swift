@@ -17,7 +17,9 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
         .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.1.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .branch("main")),
+//        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .branch("main")),
+        // "bleeding edge"
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("0d96630f614bda1bd88c9422cf05b077cf034886")),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift-core.git", .upToNextMinor(from: "5.0.0-alpha.5")),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
     ],

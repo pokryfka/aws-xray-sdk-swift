@@ -1,3 +1,4 @@
+import AnyCodable
 import AWSXRayRecorder
 import Baggage
 import Dispatch
@@ -9,9 +10,19 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     public var kind: SpanKind { .internal }
 
     public var status: SpanStatus? {
-        // TODO: currently only setError() is public, expose Exception type or perhaps overload setError to provide message and type (as String)
         get { nil } // TODO: getter to be removed
-        set(newValue) {}
+        set(newValue) {
+            if let status = newValue {
+                setStatus(status)
+            }
+        }
+    }
+
+    public func setStatus(_ status: SpanStatus) {
+        // TODO: should the status be set just once?
+        guard status.cannonicalCode != .ok else { return }
+        // note that contrary to what the name may suggest, exceptions are added not set
+        setException(message: status.message ?? "\(status.cannonicalCode)", type: "\(status.cannonicalCode)")
     }
 
     public var startTimestamp: DispatchTime { DispatchTime.now() } // TODO: getter to be removed
@@ -19,8 +30,6 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     public var endTimestamp: DispatchTime? { nil } // TODO: getter to be removed
 
     public func end(at timestamp: DispatchTime) {
-        // TODO: expose (currently internal) method to end at specfied time
-        // see comment above
         end()
     }
 
@@ -29,20 +38,6 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         var baggage = BaggageContext()
         baggage.xRayContext = context
         return baggage
-
-        // TODO: ! important
-        // currently the context, based directly on TracingHeader contains traceId and parentId
-        // however the id of the Segment itself is separate:
-        // ```
-        // _context = TraceContext(traceId: traceId, parentId: parentId, sampled: sampled)
-        // _id = id
-        // ```
-        // to propagate the context for the subsegments we would need to create new one
-        // with parentId = the segment id
-        //
-        // in my XRayRecorder.Segment I created `addSubsegment` method - what way the context
-        // is propagated to susegment without explicitly passing it to XRayRecorder (`TracingInstrument`
-        // how to do the same using OT API?
     }
 
     public var events: [SpanEvent] { [SpanEvent]() } // TODO: getter to be removed
@@ -50,24 +45,92 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     public func addEvent(_ event: SpanEvent) {
         // XRay segment does not have direct Span Event equivalent
         // Arguably the closest match is a subsegment with startTime == endTime (?)
-        // TODO: test different appraoches, make it configurable
+        // TODO: test different approaches, make it configurable
         beginSubsegment(name: event.name, metadata: nil).end()
         // TODO: set Event attributes once interface is refined
         // we can also store it as metadata as in https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/commit/89f941af2b32844652c190b79328f9f783fe60f8
-        setMetadata(event)
+        appendMetadata(AnyEncodable(event), forKey: MetadataKeys.events.rawValue)
     }
 
-    public var attributes: SpanAttributes {
-        get { SpanAttributes() } // TODO: getter to be removed
-        set(attributes) {}
+    public func setAttribute(_ value: String, forKey key: String) {
+        setAnnotation(value, forKey: key)
     }
 
-    public var isRecording: Bool { context.sampled == .sampled }
+    public func setAttribute(_ value: [String], forKey key: String) {
+        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+    }
+
+    public func setAttribute(_ value: Int, forKey key: String) {
+        setAnnotation(value, forKey: key)
+    }
+
+    public func setAttribute(_ value: [Int], forKey key: String) {
+        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+    }
+
+    public func setAttribute(_ value: Double, forKey key: String) {
+        setAnnotation(value, forKey: key)
+    }
+
+    public func setAttribute(_ value: [Double], forKey key: String) {
+        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+    }
+
+    public func setAttribute(_ value: Bool, forKey key: String) {
+        setAnnotation(value, forKey: key)
+    }
+
+    public func setAttribute(_ value: [Bool], forKey key: String) {
+        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+    }
+
+    public var isRecording: Bool {
+        context.sampled == .sampled
+    }
 
     public var links: [SpanLink] { [SpanLink]() } // TODO: getter to be removed
 
     public func addLink(_ link: SpanLink) {
-        // XRay segment does not have direct Span Link equivalent
-        setMetadata(link)
+        appendMetadata(AnyEncodable(link), forKey: MetadataKeys.links.rawValue)
+    }
+}
+
+// MARK: -
+
+private enum MetadataKeys: String {
+    case events
+    case links
+}
+
+extension BaggageContext: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        guard let context = xRayContext else { return }
+        var container = encoder.singleValueContainer()
+        // TODO: not sure if it makes sense to encode sampling decision
+        try container.encode(context.tracingHeader)
+    }
+}
+
+extension Instrumentation.SpanEvent: Encodable {
+    enum CodingKeys: String, CodingKey {
+        case name
+        // TODO: add attributes and timestamp after their types are updated
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+    }
+}
+
+extension Instrumentation.SpanLink: Encodable {
+    enum CodingKeys: String, CodingKey {
+        case context
+        // TODO: add attributes
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(context, forKey: .context)
     }
 }

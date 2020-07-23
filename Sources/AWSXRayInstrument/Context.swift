@@ -27,47 +27,12 @@ internal extension BaggageContext {
     }
 }
 
-internal extension XRayRecorder.TraceContext {
-    init(tracingHeader: String) throws {
-        try self.init(string: tracingHeader)
-    }
-
-    var tracingHeader: String {
-        let segments: [String?] = [
-            "Root=\(traceId)",
-            {
-                guard let parentId = parentId else { return nil }
-                return "Parent=\(parentId.rawValue)"
-            }(),
-            {
-                guard sampled != .unknown else { return nil }
-                return sampled.rawValue
-            }(),
-        ]
-        return segments.compactMap { $0 }.joined(separator: ";")
-    }
-}
-
-extension XRayRecorder.TraceContext: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.traceId == rhs.traceId
-            && lhs.parentId == rhs.parentId
-            && lhs.sampled == rhs.sampled
-    }
-}
-
 public extension XRayRecorder {
     func beginSegment(name: String, context: BaggageContext,
                       aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment {
         // TODO: use `AWS_XRAY_CONTEXT_MISSING` to configure how to handle missing context
-        // parse it in `XRayRecorder.Config`
-        guard let context = context.xRayContext else {
-            // TODO: obviously it should not fail by default
-            // currently there is no public init to create new Trace,
-            // will not be a problem when moved to `XRayRecorder`
-            preconditionFailure("Missing context")
-        }
-
+        // TODO: log error if context is missing, create new trace
+        let context = context.xRayContext ?? TraceContext(sampled: .unknown)
         return beginSegment(name: name, context: context, aws: aws, metadata: metadata)
     }
 }
