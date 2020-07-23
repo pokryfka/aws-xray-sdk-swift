@@ -33,12 +33,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AWSXRayRecorderTests",
-            dependencies: [
-                .target(name: "AWSXRayRecorder"),
-                // TODO: check why required
-                .product(name: "NIOHTTP1", package: "swift-nio"),
-                .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
-            ]
+            dependencies: [.target(name: "AWSXRayRecorder")]
         ),
         .target(
             name: "AWSXRayInstrument",
