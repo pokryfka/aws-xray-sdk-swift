@@ -110,18 +110,18 @@ extension XRayRecorder {
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
-        public var startTime: Double { lock.withReaderLock { _state.startTime.secondsSinceEpoch } }
+        internal var startTime: Timestamp { lock.withReaderLock { _state.startTime } }
 
         /// **number** that is the time the segment was closed.
         /// For example, 1480615200.090 or 1.480615200090E9.
         /// Specify either an end_time or in_progress.
-        public var endTime: Double? { lock.withReaderLock { _state.endTime?.secondsSinceEpoch } }
+        internal var endTime: Timestamp? { lock.withReaderLock { _state.endTime } }
 
         /// **boolean**, set to true instead of specifying an end_time to record that a segment is started, but is not complete.
         /// Send an in-progress segment when your application receives a request that will take a long time to serve, to trace the request receipt.
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
-        public var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
+        internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
 
         // MARK: Required Subsegment Fields
 
@@ -255,17 +255,6 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
     }
 }
 
-extension XRayRecorder.Segment.State {
-    var isInProgress: Bool {
-        switch self {
-        case .inProgress:
-            return true
-        default:
-            return false
-        }
-    }
-}
-
 extension XRayRecorder.Segment {
     /// Updates `endTime` of the Segment.
     public func end() {
@@ -328,7 +317,7 @@ extension XRayRecorder.Segment {
             var segmentsInProgess = [XRayRecorder.Segment]()
             for segment in _subsegments {
                 // add subsegment if in progress
-                if segment.state.isInProgress {
+                if segment.state.inProgress {
                     segmentsInProgess.append(segment)
                 }
                 // otherwise check if any of its subsegments are in progress
