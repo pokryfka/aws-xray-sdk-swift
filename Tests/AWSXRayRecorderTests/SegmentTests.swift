@@ -173,17 +173,18 @@ final class SegmentTests: XCTestCase {
         let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
 
         let key = UUID().uuidString
-        let value1 = AnyEncodable(UUID().uuidString)
-        let value2 = AnyEncodable(UInt64.random(in: UInt64.min ... UInt64.max))
+        let value1 = UUID().uuidString
+        let value2 = UInt64.random(in: UInt64.min ... UInt64.max)
 
-        segment.appendMetadata(value1, forKey: key)
-        segment.appendMetadata(value2, forKey: key)
+        // TODO: simplify interface
+        segment.appendMetadata(AnyEncodable(value1), forKey: key)
+        segment.appendMetadata(AnyEncodable(value2), forKey: key)
 
         XCTAssertEqual(1, segment.metadata.count)
         let array = segment.metadata[key]?.value as? [Any]
         XCTAssertNotNil(array)
         XCTAssertEqual(2, array?.count)
-        XCTAssertEqual(value1, array?[0] as? AnyEncodable)
-        XCTAssertEqual(value2, array?[1] as? AnyEncodable)
+        XCTAssertEqual(value1, array?[0] as? String)
+        XCTAssertEqual(value2, array?[1] as? UInt64)
     }
 }
