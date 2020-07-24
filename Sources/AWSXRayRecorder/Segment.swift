@@ -423,13 +423,15 @@ extension XRayRecorder.Segment {
 
     // TODO: consider changing name, describe what exactly it does
 
+    // TODO: add tests
+
     public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
         lock.withWriterLockVoid {
             if var array = _metadata[key]?.value as? [Any] {
-                array.append(value)
+                array.append(value.value)
                 _metadata[key] = AnyEncodable(array)
             } else {
-                _metadata[key] = [value]
+                _metadata[key] = [value.value]
             }
         }
     }
@@ -501,7 +503,8 @@ extension XRayRecorder.Segment: Encodable {
             try container.encodeIfPresent(precursorIDs, forKey: .precursorIDs)
             try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
             // do not throw if encoding of AnyCodable failed
-            try? container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            // TODO: make it configurable, maybe safer not to throw in production
+            try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
             try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
         }
     }
