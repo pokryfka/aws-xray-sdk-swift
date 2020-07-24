@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the aws-xray-sdk-swift open source project
+//
+// Copyright (c) 2020 pokryfka and the aws-xray-sdk-swift project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 /// Lambda runtimes set several environment variables during initialization.
 /// # References
 /// - [Using AWS Lambda environment variables - Runtime environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
