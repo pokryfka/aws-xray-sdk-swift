@@ -24,7 +24,9 @@ let http = BetterHTTPClient()
 // create new span
 var span = tracer.startSpan(named: "Span 1", context: baggage)
 span.setAttribute("Attribute 1", forKey: "key1")
+span.addLink(.init(context: baggage))
 span.addEvent(.init(name: "Event"))
+span.addEvent(.init(name: "Event 2"))
 
 var span2 = tracer.startSpan(named: "Span 2", context: baggage)
 span2.setAttribute("Attribute 2", forKey: "key2")
@@ -33,9 +35,9 @@ span2.setAttribute("Attribute 2", forKey: "key2")
 span.end()
 
 _ = try http.execute(request: try! .init(url: "https://swift.org"), baggage: span.baggage).wait()
-_ = try http.execute(request: try! .init(url: "https://aws.amazon.com"), baggage: span.baggage).wait()
 
 span2.end()
 
+// TODO: https://github.com/slashmo/gsoc-swift-tracing/issues/85
 // (tracer as? XRayRecorder)?.wait()
 instrument.wait()

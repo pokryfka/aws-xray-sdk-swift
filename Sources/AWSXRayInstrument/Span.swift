@@ -51,7 +51,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         beginSubsegment(name: event.name, metadata: nil).end()
         // TODO: set Event attributes once interface is refined
         // we can also store it as metadata as in https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/commit/89f941af2b32844652c190b79328f9f783fe60f8
-        appendMetadata(AnyEncodable(event), forKey: MetadataKeys.events.rawValue)
+        appendMetadata("\(event)", forKey: MetadataKeys.events.rawValue)
     }
 
     // TODO: map HTTP Span Attributes to XRAy Segment HTTP object (needs to be exposed, currently internal)
@@ -61,7 +61,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public func setAttribute(_ value: [String], forKey key: String) {
-        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+        setMetadata("\(value)", forKey: "attr_\(key)")
     }
 
     public func setAttribute(_ value: Int, forKey key: String) {
@@ -95,7 +95,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     public var links: [SpanLink] { [SpanLink]() } // TODO: getter to be removed
 
     public func addLink(_ link: SpanLink) {
-        appendMetadata(AnyEncodable(link), forKey: MetadataKeys.links.rawValue)
+        appendMetadata("\(link)", forKey: MetadataKeys.links.rawValue)
     }
 }
 
@@ -106,35 +106,18 @@ private enum MetadataKeys: String {
     case links
 }
 
-extension BaggageContext: Encodable {
-    public func encode(to encoder: Encoder) throws {
-        guard let context = xRayContext else { return }
-        var container = encoder.singleValueContainer()
-        // TODO: not sure if it makes sense to encode sampling decision
-        try container.encode(context.tracingHeader)
-    }
-}
+// TODO: use AnyCodable to box Encodable and CustomStringConvertible values
 
-extension Instrumentation.SpanEvent: Encodable {
-    enum CodingKeys: String, CodingKey {
-        case name
+extension Instrumentation.SpanEvent: CustomStringConvertible {
+    public var description: String {
         // TODO: add attributes and timestamp after their types are updated
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(name, forKey: .name)
+        "SpanEvent(name: \(name))"
     }
 }
 
-extension Instrumentation.SpanLink: Encodable {
-    enum CodingKeys: String, CodingKey {
-        case context
-        // TODO: add attributes
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(context, forKey: .context)
+extension Instrumentation.SpanLink: CustomStringConvertible {
+    public var description: String {
+        // TODO: add attributes and timestamp after their types are updated
+        "SpanLink(name: \(context))"
     }
 }
