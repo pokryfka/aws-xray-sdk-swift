@@ -50,12 +50,12 @@ private extension TracingInstrument {
 
 private extension Span {
     mutating func setHTTPAttributes(request: HTTPClient.Request) {
-        span.setAttribute(request.method.rawValue, forKey: OpenTelemetry.SpanAttributes.HTTP.method)
-        span.setAttribute(request.url.absoluteString, forKey: OpenTelemetry.SpanAttributes.HTTP.url)
+        setAttribute(request.method.rawValue, forKey: OpenTelemetry.SpanAttributes.HTTP.method)
+        setAttribute(request.url.absoluteString, forKey: OpenTelemetry.SpanAttributes.HTTP.url)
     }
 
     mutating func setHTTPAttributes(response: HTTPClient.Response) {
-        span.setAttribute(response.status.code, forKey: OpenTelemetry.SpanAttributes.HTTP.statusCode)
-        span.setAttribute(response.body?.readableBytes ?? -1, forKey: OpenTelemetry.SpanAttributes.HTTP.responseContentLength)
+        setAttribute(response.status.code, forKey: OpenTelemetry.SpanAttributes.HTTP.statusCode)
+        setAttribute(response.body?.readableBytes ?? -1, forKey: OpenTelemetry.SpanAttributes.HTTP.responseContentLength)
     }
 }
