@@ -71,11 +71,9 @@ jobs:
       run: swiftformat --lint .
   
   license:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Install git
-      run: apt-get update && apt-get install -y git
     - name: Check headers
       run: ./scripts/check_headers.sh
   
