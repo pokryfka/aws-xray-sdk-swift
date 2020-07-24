@@ -4,6 +4,8 @@ import Baggage
 import Dispatch
 import Instrumentation
 
+// TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
+
 extension XRayRecorder.Segment: Instrumentation.Span {
     public var operationName: String { name }
 
@@ -51,6 +53,8 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         // we can also store it as metadata as in https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/commit/89f941af2b32844652c190b79328f9f783fe60f8
         appendMetadata(AnyEncodable(event), forKey: MetadataKeys.events.rawValue)
     }
+
+    // TODO: map HTTP Span Attributes to XRAy Segment HTTP object (needs to be exposed, currently internal)
 
     public func setAttribute(_ value: String, forKey key: String) {
         setAnnotation(value, forKey: key)

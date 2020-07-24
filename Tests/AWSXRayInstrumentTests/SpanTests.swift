@@ -6,6 +6,8 @@ import Instrumentation
 @testable import AWSXRayInstrument
 @testable import AWSXRayRecorder
 
+// TODO: test encoding BaggageContext, Events, Links ...
+
 final class SpanTests: XCTestCase {
     func testCreatingSpanWithoutParentSampled() {
         let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())

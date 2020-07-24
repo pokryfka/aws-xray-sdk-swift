@@ -36,6 +36,7 @@ let package = Package(
                 .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
         ),
         .target(
