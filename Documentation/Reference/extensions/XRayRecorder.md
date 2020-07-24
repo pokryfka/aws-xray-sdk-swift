@@ -6,20 +6,44 @@ extension XRayRecorder
 ```
 
 ## Methods
-### `beginSegment(name:context:)`
+### `segment(name:parentId:metadata:body:)`
 
 ```swift
-public func beginSegment(name: String, context: Lambda.Context) -> Segment
+public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: XRayRecorder.Segment.Metadata? = nil,
+                       body: (Segment) throws -> T)
+    rethrows -> T
 ```
 
-### `segment(name:context:body:)`
+### `segment(name:traceHeader:metadata:body:)`
 
 ```swift
-public func segment<T>(name: String, context: Lambda.Context, body: (Segment) throws -> T) rethrows -> T
+public func segment<T>(name: String, traceHeader: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
+                       body: (Segment) throws -> T)
+    rethrows -> T
 ```
 
-### `segment(name:context:body:)`
+### `init(config:eventLoopGroup:)`
 
 ```swift
-public func segment<T>(name: String, context: Lambda.Context, body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil)
+```
+
+### `flush(on:)`
+
+```swift
+public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void>
+```
+
+### `segment(name:parentId:metadata:body:)`
+
+```swift
+public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
+                       body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+```
+
+### `beginSegment(name:parentId:metadata:body:)`
+
+```swift
+public func beginSegment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
+                            body: (Segment) -> EventLoopFuture<T>) -> EventLoopFuture<(Segment, T)>
 ```
