@@ -14,8 +14,10 @@
 import AnyCodable
 import AWSXRayRecorder
 import Baggage
-import Dispatch
+import Dispatch // TODO: remove
 import Instrumentation
+
+public typealias Timestamp = DispatchTime
 
 // TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
 
@@ -35,9 +37,9 @@ extension XRayRecorder.Segment: Instrumentation.Span {
 
     public func setStatus(_ status: SpanStatus) {
         // TODO: should the status be set just once?
-        guard status.canonicalCode != .ok else { return }
+        guard status.cannonicalCode != .ok else { return }
         // note that contrary to what the name may suggest, exceptions are added not set
-        setException(message: status.message ?? "\(status.canonicalCode)", type: "\(status.canonicalCode)")
+        setException(message: status.message ?? "\(status.cannonicalCode)", type: "\(status.cannonicalCode)")
     }
 
     public var startTimestamp: Timestamp { .now() } // TODO: getter to be removed

@@ -19,14 +19,18 @@ import NIOHTTP1 // HTTPHeaders
 import NIOInstrumentation // HTTPHeadersExtractor
 
 // create and boostrap the instrument
-let instrument = XRayRecorder(emitter: XRayLogEmitter(), config: .init(logLevel: .debug))
+// let instrument = XRayRecorder(emitter: XRayLogEmitter(), config: .init(logLevel: .debug))
+let instrument = XRayRecorder(config: .init(logLevel: .debug)) // XRayUDPEmitter
 InstrumentationSystem.bootstrap(instrument)
 
 let tracer = InstrumentationSystem.tracer // the instrument
 
+// create new trace
+let tracingHeader = XRayRecorder.TraceContext().tracingHeader
+
 // extract the context from HTTP headers
 let headers = HTTPHeaders([
-    ("X-Amzn-Trace-Id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"),
+    ("X-Amzn-Trace-Id", tracingHeader),
 ])
 var baggage = BaggageContext()
 tracer.extract(headers, into: &baggage, using: HTTPHeadersExtractor())
@@ -47,7 +51,8 @@ span2.setAttribute("Attribute 2", forKey: "key2")
 // TODO: XRay subsegment parent needs to be sent before, consider sending parent twice - when started and when ended (?)
 span.end()
 
-_ = try http.execute(request: try! .init(url: "https://swift.org"), baggage: span.baggage).wait()
+let url = "https://d41u83stcl.execute-api.us-east-1.amazonaws.com/Prod/hello/"
+_ = try http.execute(request: try! .init(url: url), baggage: span.baggage).wait()
 
 span2.end()
 

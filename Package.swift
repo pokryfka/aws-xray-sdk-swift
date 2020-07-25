@@ -16,7 +16,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
         .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMajor(from: "0.1.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("c21513d9b2211d2e14f2a36696d8d85a64295d57")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("8c641d3efa0951433fe67acf2d6af92ea1e528ad")),
     ],
     targets: [
         .target(
