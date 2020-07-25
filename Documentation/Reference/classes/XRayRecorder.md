@@ -17,26 +17,49 @@ public class XRayRecorder
 public init(emitter: XRayEmitter, config: Config = Config())
 ```
 
-### `beginSegment(name:parentId:aws:metadata:)`
+### `beginSegment(name:context:metadata:)`
 
 ```swift
-public func beginSegment(name: String, parentId: Segment.ID? = nil,
-                         aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
+public func beginSegment(name: String, context: TraceContext, metadata: Segment.Metadata? = nil) -> Segment
 ```
 
-### `beginSubsegment(name:parentId:aws:metadata:)`
+Creates new segment.
+- Parameters:
+  - name: segment name
+  - context: the trace context
+  - metadata: segment metadata
+- Returns: new segment
+
+#### Parameters
+
+| Name | Description |
+| ---- | ----------- |
+| name | segment name |
+| context | the trace context |
+| metadata | segment metadata |
+
+### `beginSegment(name:baggage:metadata:)`
 
 ```swift
-public func beginSubsegment(name: String, parentId: Segment.ID,
-                            aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
+public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment
 ```
 
-### `beginSegment(name:context:aws:metadata:)`
+Creates new segment.
+Extracts the thre context from the baggage.
+Creates new if the baggage does not contain a valid XRay Trace Context.
+- Parameters:
+  - name: segment name
+  - baggage: baggage with the trace context
+  - metadata: segment metadata
+- Returns: new segment
 
-```swift
-public func beginSegment(name: String, context: TraceContext,
-                         aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
-```
+#### Parameters
+
+| Name | Description |
+| ---- | ----------- |
+| name | segment name |
+| baggage | baggage with the trace context |
+| metadata | segment metadata |
 
 ### `wait(_:)`
 
