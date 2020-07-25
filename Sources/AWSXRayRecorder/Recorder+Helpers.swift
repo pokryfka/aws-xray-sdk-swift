@@ -11,14 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Baggage
+
 extension XRayRecorder {
     @inlinable
     @discardableResult
-    public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func segment<T>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
     {
-        let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
+        let segment = beginSegment(name: name, context: context, metadata: metadata)
         defer {
             segment.end()
         }
@@ -32,11 +34,11 @@ extension XRayRecorder {
 
     @inlinable
     @discardableResult
-    public func segment<T>(name: String, traceHeader: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
     {
-        let segment = beginSegment(name: name, context: traceHeader, metadata: metadata)
+        let segment = beginSegment(name: name, baggage: baggage, metadata: metadata)
         defer {
             segment.end()
         }

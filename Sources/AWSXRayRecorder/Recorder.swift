@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Baggage
 import Dispatch
 import Logging
 
@@ -23,9 +24,6 @@ public class XRayRecorder {
     private let config: Config
 
     private lazy var logger = Logger(label: "xray.recorder.\(String.random32())")
-
-    @Synchronized private var traceId = TraceID()
-    @Synchronized private var sampled: Bool = true
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -44,13 +42,14 @@ public class XRayRecorder {
         logger.logLevel = config.logLevel
     }
 
-    internal func beginSegment(name: String, parentId: Segment.ID? = nil, subsegment: Bool = false,
+    internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        guard config.enabled, sampled else {
+        guard config.enabled, context.isSampled else {
+            // create dummy segment
             return Segment(
-                name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
+                id: .init(), name: name,
+                context: context, baggage: baggage,
                 aws: aws, metadata: metadata,
-                sampled: .notSampled,
                 callback: nil
             )
         }
@@ -65,41 +64,43 @@ public class XRayRecorder {
                 self.emitGroup.leave()
             }
         }
+        let segmentId = Segment.ID()
+        let subsegment = context.parentId != nil
         let newSegment = Segment(
-            name: name, traceId: traceId, parentId: parentId, subsegment: subsegment,
-            service: .init(version: config.serviceVersion),
+            id: segmentId, name: name,
+            context: context, baggage: baggage,
+            subsegment: subsegment,
             aws: aws, metadata: metadata,
             callback: callback
         )
-        let segmentId = newSegment.id
         segmentsLock.withWriterLockVoid { _segments[segmentId] = newSegment }
         return newSegment
     }
 
-    // TODO: pass Context including trace id and sampling decision?
-    public func beginSegment(name: String, parentId: Segment.ID? = nil,
-                             aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        beginSegment(name: name, parentId: parentId, subsegment: false, aws: aws, metadata: metadata)
+    /// Creates new segment.
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - context: the trace context
+    ///   - metadata: segment metadata
+    /// - Returns: new segment
+    public func beginSegment(name: String, context: TraceContext, metadata: Segment.Metadata? = nil) -> Segment {
+        var baggage = BaggageContext()
+        baggage.xRayContext = context
+        return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
     }
 
-    // TODO: pass Context including trace id and sampling decision?
-    public func beginSubsegment(name: String, parentId: Segment.ID,
-                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
-    }
-
-    public func beginSegment(name: String, context: TraceContext,
-                             aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
-        // TODO: do not store "current" or "active" traceId, segmentId or sampling decision
-        // we do it here only for the sake of XRayMiddleware which is conceptually broken and
-        // hopefully will be replaced
-        traceId = context.traceId
-        sampled = context.sampled.isSampled != false
-        if let parentId = context.parentId {
-            return beginSegment(name: name, parentId: parentId, subsegment: true, aws: aws, metadata: metadata)
-        } else {
-            return beginSegment(name: name, aws: aws, metadata: metadata)
-        }
+    /// Creates new segment.
+    /// Extracts the thre context from the baggage.
+    /// Creates new if the baggage does not contain a valid XRay Trace Context.
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - baggage: baggage with the trace context
+    ///   - metadata: segment metadata
+    /// - Returns: new segment
+    public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment {
+        // TODO: Configure context missing strategy https://github.com/pokryfka/aws-xray-sdk-swift/issues/28
+        let context = baggage.xRayContext ?? TraceContext(sampled: .unknown)
+        return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
     }
 
     internal func waitEmitting() {

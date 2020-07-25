@@ -14,7 +14,6 @@
 import AsyncHTTPClient
 import AWSS3
 import AWSXRayRecorder
-import AWSXRayRecorderSDK
 import NIO
 
 func env(_ name: String) -> String? {
@@ -46,10 +45,10 @@ let recorder = XRayRecorder(
     eventLoopGroup: group
 )
 
-// TODO: WIP
+// TODO: WIP https://github.com/pokryfka/aws-xray-sdk-swift/issues/19
 
 let awsClient = AWSClient(
-    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
+    //    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
     httpClientProvider: .shared(httpClient)
 )
 let s3 = S3(client: awsClient)

@@ -45,7 +45,8 @@ final class SegmentTests: XCTestCase {
         let startTime = Timestamp(secondsSinceEpoch: now)!
         let beforeTime = Timestamp(secondsSinceEpoch: now - 1)!
 
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID(), startTime: startTime)
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(),
+                              startTime: startTime)
 
         // cannot emit if still in progress
         XCTAssertThrowsError(try segment.emit()) { error in
@@ -87,7 +88,7 @@ final class SegmentTests: XCTestCase {
     // MARK: Subsegments
 
     func testSubsegmentsInProgress() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
         let subsegmentA = segment.beginSubsegment(name: UUID().uuidString)
         let subsegmentB = segment.beginSubsegment(name: UUID().uuidString)
         let subsegmentA1 = subsegmentA.beginSubsegment(name: UUID().uuidString)
@@ -135,7 +136,7 @@ final class SegmentTests: XCTestCase {
     // MARK: Annotations
 
     func testSettingAnnotations() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let stringKey = UUID().uuidString
         let stringValue = UUID().uuidString
@@ -163,7 +164,7 @@ final class SegmentTests: XCTestCase {
     // MARK: Metadata
 
     func testSettingMetadata() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let stringKey = UUID().uuidString
         let stringValue = AnyEncodable(UUID().uuidString)
@@ -183,7 +184,7 @@ final class SegmentTests: XCTestCase {
     }
 
     func testAppendingMetadata() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let key = UUID().uuidString
         let value1 = UUID().uuidString

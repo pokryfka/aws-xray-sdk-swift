@@ -47,7 +47,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSegmentInProgressRandom() {
         let numTests = 1000
         for _ in 0 ..< numTests {
-            let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+            let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
             XCTAssertNoThrow(try encode(segment))
         }
     }
@@ -55,7 +55,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSegmentEndedRandom() {
         let numTests = 1000
         for _ in 0 ..< numTests {
-            let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+            let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
             segment.end()
             XCTAssertNoThrow(try encode(segment))
         }
@@ -66,7 +66,7 @@ final class SegmentEncodingTests: XCTestCase {
         let name = "test"
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
-        let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime)
+        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
         let result = #"{"id":"ce7cc02792adb89e","in_progress":true,"name":"test","start_time":1,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}"#
         XCTAssertEqual(result, try! encode(segment))
     }
@@ -77,7 +77,7 @@ final class SegmentEncodingTests: XCTestCase {
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let endTime = Timestamp(secondsSinceEpoch: 2)!
-        let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime)
+        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
         XCTAssertNoThrow(try segment.end(endTime))
         let result = #"{"end_time":2,"id":"ce7cc02792adb89e","name":"test","start_time":1,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}"#
         XCTAssertEqual(result, try! encode(segment))
@@ -89,7 +89,9 @@ final class SegmentEncodingTests: XCTestCase {
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let parentId = Segment.ID(rawValue: "ce7cc02792adb89f")!
-        let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime, parentId: parentId, subsegment: true)
+        let segment = Segment(id: id, name: name,
+                              context: .init(traceId: traceId, parentId: parentId), baggage: .init(),
+                              startTime: startTime, subsegment: true)
         let result = #"{"id":"ce7cc02792adb89e","in_progress":true,"name":"test","parent_id":"ce7cc02792adb89f","start_time":1,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570","type":"subsegment"}"#
         XCTAssertEqual(result, try! encode(segment))
     }
@@ -108,7 +110,7 @@ final class SegmentEncodingTests: XCTestCase {
         let name = "test"
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
-        let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime)
+        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
         segment.setError(throttleError!)
         XCTAssertEqual(try! encode(segment),
                        #"""
@@ -121,7 +123,7 @@ final class SegmentEncodingTests: XCTestCase {
         let name = "test"
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
-        let segment = Segment(id: id, name: name, traceId: traceId, startTime: startTime)
+        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
 
         let exceptionId = Segment.Exception.ID(rawValue: "9ad32cb3ede3e000")!
         segment.setException(Segment.Exception(id: exceptionId, error: EnumError.test))

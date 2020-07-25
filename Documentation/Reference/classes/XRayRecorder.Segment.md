@@ -13,19 +13,11 @@ At a minimum, a segment records the name, ID, start time, trace ID, and end time
 - [AWS X-Ray segment documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
 
 ## Properties
-### `context`
+### `baggage`
 
 ```swift
-public var context: TraceContext
+public var baggage: BaggageContext
 ```
-
-### `id`
-
-```swift
-public var id: ID
-```
-
-A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
 
 ### `name`
 
