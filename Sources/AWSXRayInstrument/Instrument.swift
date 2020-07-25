@@ -13,7 +13,6 @@
 
 import AWSXRayRecorder
 import Baggage
-import Dispatch // TODO: remove if/when not needed
 import Instrumentation
 
 private enum AmazonHeaders {
@@ -33,9 +32,9 @@ extension XRayRecorder: TracingInstrument {
         injector.inject(context.tracingHeader, forKey: AmazonHeaders.traceId, into: &carrier)
     }
 
-    public func startSpan(named operationName: String, context: BaggageContext, ofKind kind: SpanKind, at timestamp: DispatchTime?) -> Span {
-        // TODO: map time type, see https://github.com/slashmo/gsoc-swift-tracing/pull/82#issuecomment-661868753
+    public func startSpan(named operationName: String, context: BaggageContext, ofKind kind: SpanKind, at timestamp: Timestamp?) -> Span {
         // TODO: does kind map anyhow to Subsegment?
+        // TODO: setting startTime explicitly is currently not exposed (internal)
         beginSegment(name: operationName, baggage: context)
     }
 }

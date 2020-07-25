@@ -35,16 +35,17 @@ extension XRayRecorder.Segment: Instrumentation.Span {
 
     public func setStatus(_ status: SpanStatus) {
         // TODO: should the status be set just once?
-        guard status.cannonicalCode != .ok else { return }
+        guard status.canonicalCode != .ok else { return }
         // note that contrary to what the name may suggest, exceptions are added not set
-        setException(message: status.message ?? "\(status.cannonicalCode)", type: "\(status.cannonicalCode)")
+        setException(message: status.message ?? "\(status.canonicalCode)", type: "\(status.canonicalCode)")
     }
 
-    public var startTimestamp: DispatchTime { DispatchTime.now() } // TODO: getter to be removed
+    public var startTimestamp: Timestamp { .now() } // TODO: getter to be removed
 
-    public var endTimestamp: DispatchTime? { nil } // TODO: getter to be removed
+    public var endTimestamp: Timestamp? { nil } // TODO: getter to be removed
 
-    public func end(at timestamp: DispatchTime) {
+    public func end(at timestamp: Timestamp) {
+        // TODO: setting entTime explicitly is currently not exposed (internal)
         end()
     }
 
@@ -57,7 +58,12 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         beginSubsegment(name: event.name, metadata: nil).end()
         // TODO: set Event attributes once interface is refined
         // we can also store it as metadata as in https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/commit/89f941af2b32844652c190b79328f9f783fe60f8
-        appendMetadata("\(event)", forKey: MetadataKeys.events.rawValue)
+        appendMetadata("\(event)", forKey: MetadataKeys.events)
+    }
+
+    public var attributes: SpanAttributes {
+        get { SpanAttributes() } // TODO: getter to be removed
+        set(newValue) {}
     }
 
     // TODO: map HTTP Span Attributes to XRAy Segment HTTP object (needs to be exposed, currently internal)
@@ -67,7 +73,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public func setAttribute(_ value: [String], forKey key: String) {
-        setMetadata("\(value)", forKey: "attr_\(key)")
+        setMetadata("\(value)", forKey: MetadataKeys.attribute(key))
     }
 
     public func setAttribute(_ value: Int, forKey key: String) {
@@ -75,7 +81,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public func setAttribute(_ value: [Int], forKey key: String) {
-        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+        setMetadata(AnyEncodable(value), forKey: MetadataKeys.attribute(key))
     }
 
     public func setAttribute(_ value: Double, forKey key: String) {
@@ -83,7 +89,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public func setAttribute(_ value: [Double], forKey key: String) {
-        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+        setMetadata(AnyEncodable(value), forKey: MetadataKeys.attribute(key))
     }
 
     public func setAttribute(_ value: Bool, forKey key: String) {
@@ -91,25 +97,24 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public func setAttribute(_ value: [Bool], forKey key: String) {
-        setMetadata(AnyEncodable(value), forKey: "attr_\(key)")
+        setMetadata(AnyEncodable(value), forKey: MetadataKeys.attribute(key))
     }
 
     public var isRecording: Bool {
         baggage.xRayContext?.sampled == .sampled
     }
 
-    public var links: [SpanLink] { [SpanLink]() } // TODO: getter to be removed
-
     public func addLink(_ link: SpanLink) {
-        appendMetadata("\(link)", forKey: MetadataKeys.links.rawValue)
+        appendMetadata("\(link)", forKey: MetadataKeys.links)
     }
 }
 
 // MARK: -
 
-private enum MetadataKeys: String {
-    case events
-    case links
+private enum MetadataKeys {
+    static let events = "events"
+    static let links = "events"
+    static func attribute(_ key: String) -> String { "attr_\(key)" }
 }
 
 // TODO: use AnyCodable to box Encodable and CustomStringConvertible values

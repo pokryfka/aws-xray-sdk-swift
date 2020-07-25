@@ -15,8 +15,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
-        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.1.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("0d96630f614bda1bd88c9422cf05b077cf034886")),
+        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMajor(from: "0.1.0")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("c21513d9b2211d2e14f2a36696d8d85a64295d57")),
     ],
     targets: [
         .target(
@@ -30,7 +30,9 @@ let package = Package(
         ),
         .testTarget(
             name: "AWSXRayRecorderTests",
-            dependencies: [.target(name: "AWSXRayRecorder")]
+            dependencies: [
+                .target(name: "AWSXRayRecorder"),
+            ]
         ),
         .target(
             name: "AWSXRayInstrument",
