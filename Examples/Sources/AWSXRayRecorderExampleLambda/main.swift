@@ -11,11 +11,20 @@
 //
 //===----------------------------------------------------------------------===//
 
+import AnyCodable
 import AWSLambdaEvents
 import AWSLambdaRuntime
 import AWSXRayRecorder
-import AWSXRayRecorderLambda
 import NIO
+
+// TODO: Implement AWS plugins https://github.com/pokryfka/aws-xray-sdk-swift/issues/26
+
+private var metadata: XRayRecorder.Segment.Metadata = {
+    let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
+    let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
+        .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
+    return XRayRecorder.Segment.Metadata(uniqueKeysWithValues: metadataKeyValues)
+}()
 
 private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     typealias In = Cloudwatch.ScheduledEvent
@@ -28,7 +37,8 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
     }
 
     func handle(context: Lambda.Context, event: In) -> EventLoopFuture<Void> {
-        recorder.segment(name: "ExampleLambdaHandler", context: context) {
+        let traceContext: XRayRecorder.TraceContext = (try? .init(tracingHeader: context.traceID)) ?? .init()
+        return recorder.segment(name: "ExampleLambdaHandler", context: traceContext, metadata: metadata) {
             self.doWork(on: context.eventLoop)
         }.flatMap {
             self.recorder.flush(on: context.eventLoop)

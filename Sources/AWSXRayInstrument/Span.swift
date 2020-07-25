@@ -48,13 +48,6 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         end()
     }
 
-    public var baggage: BaggageContext {
-        // TODO: make a Segment attribute
-        var baggage = BaggageContext()
-        baggage.xRayContext = context
-        return baggage
-    }
-
     public var events: [SpanEvent] { [SpanEvent]() } // TODO: getter to be removed
 
     public func addEvent(_ event: SpanEvent) {
@@ -102,7 +95,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     }
 
     public var isRecording: Bool {
-        context.sampled == .sampled
+        baggage.xRayContext?.sampled == .sampled
     }
 
     public var links: [SpanLink] { [SpanLink]() } // TODO: getter to be removed

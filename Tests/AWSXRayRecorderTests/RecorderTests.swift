@@ -15,6 +15,7 @@ import XCTest
 
 @testable import AWSXRayRecorder
 
+private typealias TraceContext = XRayRecorder.TraceContext
 private typealias Segment = XRayRecorder.Segment
 private typealias SegmentError = XRayRecorder.SegmentError
 
@@ -23,7 +24,7 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        let segment = recorder.beginSegment(name: UUID().uuidString)
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: .init())
         XCTAssertEqual(0, emitter.segments.count)
         segment.end()
 
@@ -36,7 +37,7 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        recorder.segment(name: UUID().uuidString) { _ in
+        recorder.segment(name: UUID().uuidString, context: .init()) { _ in
             XCTAssertEqual(0, emitter.segments.count)
         }
 
@@ -49,7 +50,7 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        let segment = recorder.beginSegment(name: UUID().uuidString) // 1
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: .init()) // 1
 
         // subsegments are not counted
         segment.subsegment(name: UUID().uuidString) { _ in }
@@ -62,7 +63,7 @@ final class RecorderTests: XCTestCase {
         // TODO: is it expected behaviour? fix or at least signal (throw?)
         _ = segment.beginSubsegment(name: UUID().uuidString) // not finished
 
-        recorder.segment(name: UUID().uuidString) { _ in } // 2
+        recorder.segment(name: UUID().uuidString, context: .init()) { _ in } // 2
         recorder.beginSegment(name: UUID().uuidString, context: .init(sampled: .sampled)).end() // 3
 
         recorder.wait()
@@ -79,30 +80,34 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        recorder.segment(name: UUID().uuidString, traceHeader: .init(sampled: .sampled)) { _ in }
-        recorder.segment(name: UUID().uuidString) { _ in }
+        let contextSampled = TraceContext(sampled: .sampled)
+        recorder.segment(name: UUID().uuidString, context: contextSampled) { _ in }
+        recorder.segment(name: UUID().uuidString, context: contextSampled) { _ in }
         recorder.wait()
         XCTAssertEqual(2, emitter.segments.count)
 
         emitter.reset()
 
-        recorder.segment(name: UUID().uuidString, traceHeader: .init(sampled: .notSampled)) { _ in }
-        recorder.segment(name: UUID().uuidString) { _ in }
+        let contextNotSampled = TraceContext(sampled: .notSampled)
+        recorder.segment(name: UUID().uuidString, context: contextNotSampled) { _ in }
+        recorder.segment(name: UUID().uuidString, context: contextNotSampled) { _ in }
         recorder.wait()
         XCTAssertEqual(0, emitter.segments.count)
 
         emitter.reset()
 
-        recorder.segment(name: UUID().uuidString, traceHeader: .init(sampled: .unknown)) { _ in }
-        recorder.segment(name: UUID().uuidString) { _ in }
+        let contextUnkownSampling = TraceContext(sampled: .unknown)
+        recorder.segment(name: UUID().uuidString, context: contextUnkownSampling) { _ in }
+        recorder.segment(name: UUID().uuidString, context: contextUnkownSampling) { _ in }
         recorder.wait()
-        XCTAssertEqual(2, emitter.segments.count)
+        XCTAssertEqual(0, emitter.segments.count)
 
         emitter.reset()
 
-        recorder.segment(name: UUID().uuidString, traceHeader: .init(sampled: .requested)) { _ in }
-        recorder.segment(name: UUID().uuidString) { _ in }
+        let contextRequestedSampling = TraceContext(sampled: .requested)
+        recorder.segment(name: UUID().uuidString, context: contextRequestedSampling) { _ in }
+        recorder.segment(name: UUID().uuidString, context: contextRequestedSampling) { _ in }
         recorder.wait()
-        XCTAssertEqual(2, emitter.segments.count)
+        XCTAssertEqual(0, emitter.segments.count)
     }
 }

@@ -32,7 +32,7 @@ final class SpanTests: XCTestCase {
         var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
         XCTAssertTrue(span.isRecording)
 
         span.end()
@@ -48,7 +48,7 @@ final class SpanTests: XCTestCase {
         var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
         XCTAssertFalse(span.isRecording)
 
         span.end()

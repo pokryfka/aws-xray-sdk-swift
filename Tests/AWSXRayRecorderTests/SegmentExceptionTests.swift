@@ -21,7 +21,7 @@ private typealias SegmentError = XRayRecorder.SegmentError
 
 final class SegmentExceptionTests: XCTestCase {
     func testRecordingExceptionsWithMessageAndType() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let messageWithType = (UUID().uuidString, UUID().uuidString)
         segment.setException(message: messageWithType.0, type: messageWithType.1)
@@ -38,7 +38,7 @@ final class SegmentExceptionTests: XCTestCase {
     }
 
     func testRecordingErrors() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         enum TestError: Error {
             case test1
@@ -57,7 +57,7 @@ final class SegmentExceptionTests: XCTestCase {
     }
 
     func testRecordingHttpErrors() {
-        let segment = Segment(name: UUID().uuidString, traceId: XRayRecorder.TraceID())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let errorWithoutCause = Segment.HTTPError.throttle(cause: nil)
         let errorWithCause = Segment.HTTPError.server(statusCode: 500, cause: .init(message: "Error 500", type: nil))

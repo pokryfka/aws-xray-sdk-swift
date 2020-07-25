@@ -16,10 +16,14 @@ import Baggage
 import Dispatch // TODO: remove if/when not needed
 import Instrumentation
 
+private enum AmazonHeaders {
+    static let traceId = "X-Amzn-Trace-Id"
+}
+
 extension XRayRecorder: TracingInstrument {
     public func extract<Carrier, Extractor>(_ carrier: Carrier, into baggage: inout BaggageContext, using extractor: Extractor) where Carrier == Extractor.Carrier, Extractor: ExtractorProtocol {
         guard let tracingHeader = extractor.extract(key: AmazonHeaders.traceId, from: carrier) else { return }
-        if let context = try? XRayContext(tracingHeader: tracingHeader) {
+        if let context = try? XRayRecorder.TraceContext(tracingHeader: tracingHeader) {
             baggage.xRayContext = context
         }
     }
@@ -32,6 +36,6 @@ extension XRayRecorder: TracingInstrument {
     public func startSpan(named operationName: String, context: BaggageContext, ofKind kind: SpanKind, at timestamp: DispatchTime?) -> Span {
         // TODO: map time type, see https://github.com/slashmo/gsoc-swift-tracing/pull/82#issuecomment-661868753
         // TODO: does kind map anyhow to Subsegment?
-        beginSegment(name: operationName, context: context)
+        beginSegment(name: operationName, baggage: context)
     }
 }

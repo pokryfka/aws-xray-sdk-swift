@@ -6,6 +6,9 @@
 public struct TraceContext
 ```
 
+XRay Trace Context propagated in a tracing header.
+
+# Tracing header
 All requests are traced, up to a configurable minimum.
 After reaching that minimum, a percentage of requests are traced to avoid unnecessary cost.
 The sampling decision and trace ID are added to HTTP requests in **tracing headers** named `X-Amzn-Trace-Id`.
@@ -46,7 +49,7 @@ root trace ID
 ### `parentId`
 
 ```swift
-public let parentId: Segment.ID?
+public var parentId: Segment.ID?
 ```
 
 parent segment ID
@@ -54,7 +57,7 @@ parent segment ID
 ### `sampled`
 
 ```swift
-public let sampled: XRayRecorder.SampleDecision
+public var sampled: XRayRecorder.SampleDecision
 ```
 
 sampling decision
@@ -63,7 +66,7 @@ sampling decision
 ### `init(traceId:parentId:sampled:)`
 
 ```swift
-public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision)
+public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision = .sampled)
 ```
 
 Creates new Trace Context.

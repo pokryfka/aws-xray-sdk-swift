@@ -11,9 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import AWSXRayInstrument
+import AWSXRayRecorder
 import Baggage
 
-@testable import AWSXRayInstrument
+private typealias XRayContext = XRayRecorder.TraceContext
 
 extension BaggageContext {
     static func empty() -> BaggageContext {

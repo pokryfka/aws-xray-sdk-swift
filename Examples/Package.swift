@@ -17,9 +17,10 @@ let package = Package(
         .package(name: "aws-xray-sdk-swift", path: ".."),
         .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("0d96630f614bda1bd88c9422cf05b077cf034886")),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
-        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
         .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
+        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
+        .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
+//        .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
     ],
     targets: [
         .target(
@@ -43,7 +44,6 @@ let package = Package(
             name: "AWSXRayRecorderExampleSDK",
             dependencies: [
                 .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
-                .product(name: "AWSXRayRecorderSDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
             ]
@@ -52,7 +52,7 @@ let package = Package(
             name: "AWSXRayRecorderExampleLambda",
             dependencies: [
                 .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
-                .product(name: "AWSXRayRecorderLambda", package: "aws-xray-sdk-swift"),
+                .product(name: "AnyCodable", package: "AnyCodable"),
                 .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
             ]

@@ -12,8 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 import AnyCodable
+import Baggage
 
 // TODO: document
+// TODO: validate the name, truncate to 200 chars, replace invalid chars
 
 private typealias SegmentError = XRayRecorder.SegmentError
 
@@ -79,9 +81,9 @@ extension XRayRecorder {
 
         private let callback: StateChangeCallback?
 
-        private let _context: TraceContext
         private let _id: ID
         private let _name: String
+        private let _context: TraceContext
         private var _state: State {
             didSet {
                 guard oldValue != _state else { return }
@@ -89,14 +91,15 @@ extension XRayRecorder {
             }
         }
 
-        public var context: TraceContext { lock.withReaderLock { _context } }
-
         private var state: State { lock.withReaderLock { _state } }
+
+        private let _baggage: BaggageContext
+        public var baggage: BaggageContext { lock.withReaderLock { _baggage } }
 
         // MARK: Required Segment Fields
 
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
-        public var id: ID { lock.withReaderLock { _id } }
+        internal var id: ID { lock.withReaderLock { _id } }
 
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
@@ -118,7 +121,7 @@ extension XRayRecorder {
         ///
         /// # Subsegment
         /// Required only if sending a subsegment separately.
-        private var traceId: TraceID { _context.traceId }
+        private var traceId: TraceID { lock.withReaderLock { _context.traceId } }
 
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
@@ -150,7 +153,7 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
-        private var parentId: ID? { _context.parentId }
+        private var parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
         private let service: Service?
@@ -197,21 +200,23 @@ extension XRayRecorder {
         private let precursorIDs: [String]? = nil
 
         init(
-            id: ID = ID(),
-            name: String, traceId: TraceID, startTime: Timestamp = Timestamp(),
-            parentId: ID? = nil, subsegment: Bool = false,
+            id: ID,
+            name: String,
+            context: TraceContext,
+            baggage: BaggageContext,
+            startTime: Timestamp = Timestamp(),
+            subsegment: Bool = false,
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
-            sampled: SampleDecision = .sampled,
             callback: StateChangeCallback? = nil
         ) {
-            _context = TraceContext(traceId: traceId, parentId: parentId, sampled: sampled)
-            // TODO: should we check if parentId is different than id?
             _id = id
             _name = name
+            _context = context
             _state = .inProgress(started: startTime)
-            type = subsegment && parentId != nil ? .subsegment : nil
+            _baggage = (try? baggage.withParent(id)) ?? baggage
+            type = subsegment && context.parentId != nil ? .subsegment : nil
             self.service = service
             self.user = user
             self.origin = origin
@@ -314,7 +319,9 @@ extension XRayRecorder.Segment {
     public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
         lock.withWriterLock {
             let newSegment = XRayRecorder.Segment(
-                name: name, traceId: _context.traceId, parentId: _id, subsegment: true,
+                id: ID(), name: name,
+                context: _context, baggage: _baggage,
+                subsegment: true,
                 metadata: metadata,
                 callback: self.callback
             )
@@ -383,6 +390,8 @@ extension XRayRecorder.Segment {
 }
 
 // MARK: - Annotations
+
+// TODO: disable if not recording?
 
 extension XRayRecorder.Segment {
     internal enum AnnotationValue {
@@ -500,7 +509,7 @@ extension XRayRecorder.Segment: Encodable {
                 try container.encode(true, forKey: .inProgress)
             }
             try container.encodeIfPresent(type, forKey: .type)
-            try container.encodeIfPresent(parentId, forKey: .parentId)
+            try container.encodeIfPresent(_context.parentId, forKey: .parentId)
             try container.encodeIfPresent(service, forKey: .service)
             try container.encodeIfPresent(user, forKey: .user)
             try container.encodeIfPresent(origin, forKey: .origin)

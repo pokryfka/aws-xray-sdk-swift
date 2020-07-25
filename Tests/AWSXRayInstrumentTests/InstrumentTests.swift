@@ -21,6 +21,10 @@ import NIOInstrumentation
 @testable import AWSXRayInstrument
 @testable import AWSXRayRecorder
 
+private enum AmazonHeaders {
+    static let traceId = "X-Amzn-Trace-Id"
+}
+
 final class InstrumentTests: XCTestCase {
     func testExtractingContext() {
         let tracingHeader = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
@@ -62,7 +66,7 @@ final class InstrumentTests: XCTestCase {
         var span: Span = instrument.startSpan(named: name, context: context, at: nil)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
         XCTAssertTrue(span.isRecording)
 
         span.end()
@@ -90,7 +94,7 @@ final class InstrumentTests: XCTestCase {
         var span: Span = instrument.startSpan(named: name, context: context, at: nil)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
         XCTAssertFalse(span.isRecording)
 
         span.end()
