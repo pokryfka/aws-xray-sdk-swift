@@ -115,7 +115,7 @@ extension XRayRecorder.Segment: Instrumentation.Span {
 
 private enum MetadataKeys {
     static let events = "events"
-    static let links = "events"
+    static let links = "links"
     static func attribute(_ key: String) -> String { "attr_\(key)" }
 }
 
