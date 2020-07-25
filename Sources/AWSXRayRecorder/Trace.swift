@@ -17,6 +17,7 @@ extension XRayRecorder {
         case invalidParentID(String)
         case invalidSampleDecision(String)
         case invalidTracingHeader(String)
+        case missingContext
     }
 
     /// # Trace ID Format
@@ -114,11 +115,10 @@ extension XRayRecorder {
     }
 }
 
-// TODO: make TraceContext RawRepresentable or Codable from/to single value container?
-// TODO: check https://github.com/slashmo/gsoc-swift-baggage-context
-// TODO: check https://www.w3.org/TR/trace-context-1/#trace-context-http-headers-format
-
 extension XRayRecorder {
+    /// XRay Trace Context propagated in a tracing header.
+    ///
+    /// # Tracing header
     /// All requests are traced, up to a configurable minimum.
     /// After reaching that minimum, a percentage of requests are traced to avoid unnecessary cost.
     /// The sampling decision and trace ID are added to HTTP requests in **tracing headers** named `X-Amzn-Trace-Id`.
@@ -150,15 +150,15 @@ extension XRayRecorder {
         /// root trace ID
         public let traceId: TraceID
         /// parent segment ID
-        public let parentId: Segment.ID?
+        public var parentId: Segment.ID?
         /// sampling decision
-        public let sampled: XRayRecorder.SampleDecision
+        public var sampled: XRayRecorder.SampleDecision
 
         /// Creates new Trace Context.
         /// - parameter traceId: root trace ID
         /// - parameter parentId: parent segment ID
         /// - parameter sampled: sampling decision
-        public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision) {
+        public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision = .sampled) {
             self.traceId = traceId
             self.parentId = parentId
             self.sampled = sampled
@@ -229,5 +229,11 @@ extension XRayRecorder.TraceContext {
 extension XRayRecorder.TraceContext: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.traceId == rhs.traceId && lhs.parentId == rhs.parentId && lhs.sampled == rhs.sampled
+    }
+}
+
+internal extension XRayRecorder.TraceContext {
+    var isSampled: Bool {
+        sampled.isSampled == true
     }
 }

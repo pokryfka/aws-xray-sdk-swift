@@ -15,8 +15,6 @@ import NIO
 
 // TODO: document
 
-// TODO: expose group provider intsead?
-
 extension XRayRecorder {
     public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
         if !config.enabled {
@@ -52,30 +50,15 @@ extension XRayRecorder {
 
 extension XRayRecorder {
     @inlinable
-    public func segment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
+    public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
+        let segment = beginSegment(name: name, context: context, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.setError(error)
             }
             segment.end()
         }
-    }
-
-    // TODO: hopefully there will be a better way to pass the context, per https://github.com/slashmo/gsoc-swift-tracing/issues/48
-
-    @inlinable
-    public func beginSegment<T>(name: String, parentId: Segment.ID? = nil, metadata: Segment.Metadata? = nil,
-                                body: (Segment) -> EventLoopFuture<T>) -> EventLoopFuture<(Segment, T)> {
-        let segment = beginSegment(name: name, parentId: parentId, metadata: metadata)
-        return body(segment)
-            .always { result in
-                if case Result<T, Error>.failure(let error) = result {
-                    segment.setError(error)
-                }
-            }
-            .map { (segment, $0) }
     }
 }
 

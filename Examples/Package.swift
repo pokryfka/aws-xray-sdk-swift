@@ -29,7 +29,6 @@ let package = Package(
             name: "AWSXRayRecorderExampleSDK",
             dependencies: [
                 .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
-                .product(name: "AWSXRayRecorderSDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
             ]

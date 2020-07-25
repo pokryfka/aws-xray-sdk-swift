@@ -31,11 +31,13 @@ extension XRayRecorder {
     }
 
     public func beginSegment(name: String, context: Lambda.Context) -> Segment {
-        let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
-        if let traceHeader = try? XRayRecorder.TraceContext(tracingHeader: context.traceID) {
-            return beginSegment(name: name, context: traceHeader, aws: aws, metadata: metadata)
+        // TODO: Implement AWS plugins https://github.com/pokryfka/aws-xray-sdk-swift/issues/26
+//        let aws = XRayRecorder.Segment.AWS(region: AWSLambdaEnv.region.value, requestId: context.requestID)
+        if let context = try? XRayRecorder.TraceContext(tracingHeader: context.traceID) {
+            return beginSegment(name: name, context: context, metadata: metadata)
         } else {
-            return beginSegment(name: name, aws: aws, metadata: metadata)
+            let context = XRayRecorder.TraceContext()
+            return beginSegment(name: name, context: context, metadata: metadata)
         }
     }
 }
