@@ -47,32 +47,32 @@ let recorder = XRayRecorder(
 
 // TODO: WIP https://github.com/pokryfka/aws-xray-sdk-swift/issues/19
 
-let awsClient = AWSClient(
-    //    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-    httpClientProvider: .shared(httpClient)
-)
-let s3 = S3(client: awsClient)
-
-let aFuture = recorder.segment(name: "Segment 1") {
-    group.next().submit { usleep(100_000) }.map { _ in }
-}
-
-let s3futures = recorder.beginSegment(name: "Segment 2", body: { segment in
-    segment.subsegment(name: "List Buckets") {
-        s3.listBuckets().map { _ in }
-    }
-})
-    .flatMap { segment, _ in
-        segment.subsegment(name: "Get Invalid Object") {
-            s3.getObject(.init(bucket: "invalidBucket", key: "invalidKey")).map { _ in }
-        }
-        .recover { _ in }
-        .map { (segment, $0) } // pass the segment
-    }
-    .map { $0.0.end() } // end the segment
-
-_ = try aFuture.and(s3futures).wait()
-
-try recorder.flush(on: eventLoop).wait()
-
-exit(0)
+// let awsClient = AWSClient(
+//    //    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
+//    httpClientProvider: .shared(httpClient)
+// )
+// let s3 = S3(client: awsClient)
+//
+// let aFuture = recorder.segment(name: "Segment 1", context: context) {
+//    group.next().submit { usleep(100_000) }.map { _ in }
+// }
+//
+// let s3futures = recorder.beginSegment(name: "Segment 2", context: context, body: { segment in
+//    segment.subsegment(name: "List Buckets") {
+//        s3.listBuckets().map { _ in }
+//    }
+// })
+//    .flatMap { segment, _ in
+//        segment.subsegment(name: "Get Invalid Object") {
+//            s3.getObject(.init(bucket: "invalidBucket", key: "invalidKey")).map { _ in }
+//        }
+//        .recover { _ in }
+//        .map { (segment, $0) } // pass the segment
+//    }
+//    .map { $0.0.end() } // end the segment
+//
+// _ = try aFuture.and(s3futures).wait()
+//
+// try recorder.flush(on: eventLoop).wait()
+//
+// exit(0)
