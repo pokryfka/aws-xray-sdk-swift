@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import AWSXRayRecorder
 import Logging
 
 import struct Foundation.Data
@@ -22,7 +23,12 @@ private extension JSONEncoder {
     }
 }
 
-// TODO: document
+private extension String {
+    /// - returns: A 32-bit identifier in 8 hexadecimal digits.
+    static func random32() -> String {
+        String(UInt32.random(in: UInt32.min ... UInt32.max) | 1 << 31, radix: 16, uppercase: false)
+    }
+}
 
 public struct XRayLogEmitter: XRayEmitter {
     private let logger: Logger
@@ -32,6 +38,10 @@ public struct XRayLogEmitter: XRayEmitter {
         encoder.outputFormatting = .prettyPrinted
         return encoder
     }()
+
+    public init(logger: Logger) {
+        self.logger = logger
+    }
 
     public init(label: String? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"

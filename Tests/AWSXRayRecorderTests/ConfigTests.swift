@@ -50,7 +50,7 @@ final class ConfigTests: XCTestCase {
         }
         XCTAssertFalse(config.enabled)
     }
-    
+
     func testEnvEnabledTrue() {
         let config = XRayRecorder.Config { key in
             if key == "AWS_XRAY_SDK_ENABLED" {

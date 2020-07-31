@@ -9,6 +9,8 @@ let package = Package(
     ],
     products: [
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
+        // for testing only
+        .library(name: "AWSXRayTesting", targets: ["AWSXRayTesting"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
@@ -29,7 +31,18 @@ let package = Package(
         ),
         .testTarget(
             name: "AWSXRayRecorderTests",
-            dependencies: ["AWSXRayRecorder"]
+            dependencies: [.target(name: "AWSXRayRecorder")]
+        ),
+        .target(
+            name: "AWSXRayTesting",
+            dependencies: [
+                .target(name: "AWSXRayRecorder"),
+                .product(name: "Logging", package: "swift-log"),
+            ]
+        ),
+        .testTarget(
+            name: "AWSXRayTestingTests",
+            dependencies: [.target(name: "AWSXRayTesting")]
         ),
     ]
 )
