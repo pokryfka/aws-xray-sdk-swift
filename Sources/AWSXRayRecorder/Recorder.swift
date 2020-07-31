@@ -43,15 +43,10 @@ public class XRayRecorder {
     }
 
     internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
-                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment {
+                               aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
+    {
         guard config.enabled, context.isSampled else {
-            // create dummy segment
-            return Segment(
-                id: .init(), name: name,
-                context: context, baggage: baggage,
-                aws: aws, metadata: metadata,
-                callback: nil
-            )
+            return NoOpSegment(id: .init(), name: name, baggage: baggage)
         }
 
         let callback: Segment.StateChangeCallback = { [weak self] id, state in

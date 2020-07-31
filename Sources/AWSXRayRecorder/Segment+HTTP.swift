@@ -84,7 +84,7 @@ extension XRayRecorder.Segment {
             namespace = url.contains(".amazonaws.com/") ? .aws : .remote
         }
         if let statusCode = http.response?.status, let error = HTTPError(statusCode: statusCode) {
-            setError(error)
+            addError(error)
         }
     }
 }
