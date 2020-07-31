@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 import AnyCodable
+import Logging
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -40,13 +41,19 @@ final class SegmentTests: XCTestCase {
 
     // MARK: State
 
-    func testStateChanges() {
+    func testLoggingErrors() {
+        let logHandler = TestLogHandler()
+        let logger = Logger(label: "test", factory: { _ in logHandler })
+
         let now = Date().timeIntervalSince1970
         let startTime = Timestamp(secondsSinceEpoch: now)!
         let beforeTime = Timestamp(secondsSinceEpoch: now - 1)!
 
+        var numErrors: Int = 0
+
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(),
-                              startTime: startTime)
+                              startTime: startTime,
+                              logger: logger)
 
         // cannot emit if still in progress
         XCTAssertThrowsError(try segment.emit()) { error in
@@ -54,14 +61,16 @@ final class SegmentTests: XCTestCase {
                 XCTFail()
                 return
             }
+            numErrors += 1
         }
 
         // cannot end before started
         XCTAssertThrowsError(try segment.end(beforeTime)) { error in
-            guard case SegmentError.startedInFuture = error else {
+            guard case SegmentError.backToTheFuture = error else {
                 XCTFail()
                 return
             }
+            numErrors += 1
         }
 
         XCTAssertNoThrow(try segment.end(Timestamp()))
@@ -72,7 +81,11 @@ final class SegmentTests: XCTestCase {
                 XCTFail()
                 return
             }
+            numErrors += 1
         }
+        // public API does not throw but should log the error
+        segment.end()
+        numErrors += 1
 
         XCTAssertNoThrow(try segment.emit())
 
@@ -82,7 +95,20 @@ final class SegmentTests: XCTestCase {
                 XCTFail()
                 return
             }
+            numErrors += 1
         }
+
+        XCTAssertEqual(numErrors, logHandler.errorMessages.count)
+
+        // log error if not emitted
+        var notEmittedSegment: Segment? = Segment(id: .init(), name: UUID().uuidString,
+                                                  context: .init(), baggage: .init(),
+                                                  logger: logger)
+        XCTAssertTrue(notEmittedSegment!.isSampled)
+        notEmittedSegment = nil
+        numErrors += 1
+
+        XCTAssertEqual(numErrors, logHandler.errorMessages.count)
     }
 
     // MARK: Subsegments

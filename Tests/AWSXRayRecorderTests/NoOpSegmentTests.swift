@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Logging
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -135,9 +136,24 @@ final class NoOpSegmentTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
         XCTAssertTrue(segment is NoOpSegment)
+
         segment.setMetadata(["test": "\(UUID().uuidString)"])
         segment.setMetadata("\(UUID().uuidString)", forKey: UUID().uuidString)
         segment.appendMetadata("\(UUID().uuidString)", forKey: UUID().uuidString)
         XCTAssertEqual(0, segment.metadata.count)
+    }
+
+    func testLoggingErrors() {
+        let logHandler = TestLogHandler()
+        let logger = Logger(label: "test", factory: { _ in logHandler })
+
+        var segment: Segment? = NoOpSegment(id: .init(), name: UUID().uuidString, baggage: .init(), logger: logger)
+        XCTAssertFalse(segment!.isSampled)
+        XCTAssertTrue(segment is NoOpSegment)
+
+        segment?.end()
+        segment?.end()
+        segment = nil
+        XCTAssertEqual(0, logHandler.errorMessages.count)
     }
 }
