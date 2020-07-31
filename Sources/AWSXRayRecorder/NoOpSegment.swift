@@ -13,6 +13,7 @@
 
 import AnyCodable
 import Baggage
+import Logging
 
 // TODO: reduce allocation by by making Segment an abstract class extended by NoOpSegment and DoOpSegment ?
 
@@ -30,16 +31,17 @@ extension XRayRecorder {
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
+            logger: Logger? = nil,
             callback: StateChangeCallback? = nil
         ) {
             fatalError()
         }
 
-        init(id: ID, name: String, baggage: BaggageContext) {
+        init(id: ID, name: String, baggage: BaggageContext, logger: Logger? = nil) {
             // the context is not of much importance as the segment will not be emitted
             // however pass the baggage which may contain more than just the XRay trace
             let context = baggage.xRayContext ?? XRayRecorder.TraceContext()
-            super.init(id: id, name: name, context: context, baggage: baggage)
+            super.init(id: id, name: name, context: context, baggage: baggage, logger: logger)
         }
 
         override func end() {}

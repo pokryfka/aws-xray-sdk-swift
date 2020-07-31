@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 import AnyCodable
+import Logging
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -35,53 +36,6 @@ final class SegmentTests: XCTestCase {
         for string in ["ce7cc02792adb89e"] {
             let id = Segment.ID(rawValue: string)
             XCTAssertNotNil(id)
-        }
-    }
-
-    // MARK: State
-
-    func testStateChanges() {
-        let now = Date().timeIntervalSince1970
-        let startTime = Timestamp(secondsSinceEpoch: now)!
-        let beforeTime = Timestamp(secondsSinceEpoch: now - 1)!
-
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(),
-                              startTime: startTime)
-
-        // cannot emit if still in progress
-        XCTAssertThrowsError(try segment.emit()) { error in
-            guard case SegmentError.inProgress = error else {
-                XCTFail()
-                return
-            }
-        }
-
-        // cannot end before started
-        XCTAssertThrowsError(try segment.end(beforeTime)) { error in
-            guard case SegmentError.startedInFuture = error else {
-                XCTFail()
-                return
-            }
-        }
-
-        XCTAssertNoThrow(try segment.end(Timestamp()))
-
-        // cannot end if already end
-        XCTAssertThrowsError(try segment.end(Timestamp())) { error in
-            guard case SegmentError.alreadyEnded = error else {
-                XCTFail()
-                return
-            }
-        }
-
-        XCTAssertNoThrow(try segment.emit())
-
-        // cannot emit twice
-        XCTAssertThrowsError(try segment.emit()) { error in
-            guard case SegmentError.alreadyEmitted = error else {
-                XCTFail()
-                return
-            }
         }
     }
 

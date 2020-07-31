@@ -13,6 +13,8 @@
 
 import AnyCodable
 import Baggage
+import Logging
+import NIOHTTP1
 
 // TODO: document
 // TODO: validate the name, truncate to 200 chars, replace invalid chars
@@ -22,7 +24,7 @@ private typealias SegmentError = XRayRecorder.SegmentError
 extension XRayRecorder {
     enum SegmentError: Error {
         case inProgress
-        case startedInFuture
+        case backToTheFuture
         case alreadyEnded
         case alreadyEmitted
     }
@@ -88,9 +90,11 @@ extension XRayRecorder {
         /// Field keys (debug in the following example) starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
         public typealias Metadata = [String: AnyEncodable]
 
+        private let logger: Logger?
+
         private let lock = ReadWriteLock()
 
-        private let callback: StateChangeCallback?
+        private let _callback: StateChangeCallback?
 
         private let _id: ID
         private let _name: String
@@ -98,7 +102,7 @@ extension XRayRecorder {
         private var _state: State {
             didSet {
                 guard oldValue != _state else { return }
-                callback?(_id, _state)
+                _callback?(_id, _state)
             }
         }
 
@@ -224,6 +228,7 @@ extension XRayRecorder {
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
+            logger: Logger? = nil,
             callback: StateChangeCallback? = nil
         ) {
             _id = id
@@ -239,45 +244,67 @@ extension XRayRecorder {
             _aws = aws
             _annotations = annotations ?? Annotations()
             _metadata = metadata ?? Metadata()
-            self.callback = callback
+            self.logger = logger
+            _callback = callback
+        }
+
+        deinit {
+            guard isSampled else { return }
+            lock.withReaderLockVoid {
+                if _state.hasEmitted == false {
+                    logger?.error("Segment \(_id) has not been emitted, current state: \(_state)")
+                }
+            }
         }
 
         // MARK: State
 
         /// Updates `endTime` of the Segment.
+        ///
+        /// Has no effect if the segment has been already ended or emitted in which case an error will be logged.
         public func end() {
             try? end(Timestamp())
         }
 
         internal func end(_ timestamp: Timestamp) throws {
-            try lock.withWriterLockVoid {
-                switch _state {
-                case .inProgress(let startTime):
-                    guard startTime < timestamp else {
-                        throw SegmentError.startedInFuture
+            do {
+                try lock.withWriterLockVoid {
+                    switch _state {
+                    case .inProgress(let startTime):
+                        guard startTime < timestamp else {
+                            throw SegmentError.backToTheFuture
+                        }
+                        _state = .ended(started: startTime, ended: timestamp)
+                    case .ended:
+                        throw SegmentError.alreadyEnded
+                    case .emitted:
+                        throw SegmentError.alreadyEmitted
                     }
-                    _state = .ended(started: startTime, ended: timestamp)
-                case .ended:
-                    throw SegmentError.alreadyEnded
-                case .emitted:
-                    throw SegmentError.alreadyEmitted
                 }
+            } catch {
+                logger?.error("Failed to end segment: \(error)")
+                throw error
             }
         }
 
         internal func emit() throws {
-            try lock.withWriterLockVoid {
-                switch _state {
-                case .inProgress:
-                    // for now we limit sending of in-progress segments to subsegments
-                    // to make sure that their parent was already emitted
-                    throw SegmentError.inProgress
-                case .ended(let started, let ended):
-                    let now = Timestamp()
-                    _state = .emitted(started: started, ended: ended, emitted: now)
-                case .emitted:
-                    throw SegmentError.alreadyEmitted
+            do {
+                try lock.withWriterLockVoid {
+                    switch _state {
+                    case .inProgress:
+                        // for now we limit sending of in-progress segments to subsegments
+                        // to make sure that their parent was already emitted
+                        throw SegmentError.inProgress
+                    case .ended(let started, let ended):
+                        let now = Timestamp()
+                        _state = .emitted(started: started, ended: ended, emitted: now)
+                    case .emitted:
+                        throw SegmentError.alreadyEmitted
+                    }
                 }
+            } catch {
+                logger?.error("Failed to emit segment: \(error)")
+                throw error
             }
         }
 
@@ -290,7 +317,7 @@ extension XRayRecorder {
                     context: _context, baggage: _baggage,
                     subsegment: true,
                     metadata: metadata,
-                    callback: self.callback
+                    callback: self._callback
                 )
                 _subsegments.append(newSegment)
                 return newSegment
@@ -341,13 +368,20 @@ extension XRayRecorder {
         ///
         /// The IP address of the requester can be retrieved from the IP packet's `Source Address` or, for forwarded requests,
         /// from an `X-Forwarded-For` header.
+        ///
+        /// Has no effect if the HTTP method is invalid in which case an error will be logged.
+        ///
         /// - Parameters:
         ///   - method: The request method. For example, `GET`.
         ///   - url: The full URL of the request, compiled from the protocol, hostname, and path of the request.
         ///   - userAgent: The user agent string from the requester's client.
         ///   - clientIP: The IP address of the requester.
         public func setHTTPRequest(method: String, url: String, userAgent: String? = nil, clientIP: String? = nil) {
-            // TODO: ignore/log error if invalid HTTP method?
+            let httpMethod = HTTPMethod(rawValue: method)
+            if case HTTPMethod.RAW(let rawValue) = httpMethod {
+                logger?.error("Invalid HTTP method: \(rawValue)")
+                return
+            }
             lock.withWriterLockVoid {
                 _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
                 _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
@@ -361,6 +395,7 @@ extension XRayRecorder {
         /// - `error` - if response status code was 4XX Client Error
         /// - `throttle` - if response status code was 429 Too Many Requests
         /// - `fault` - if response status code was 5XX Server Error
+        ///
         /// - Parameters:
         ///   - status: HTTP status of the response.
         ///   - contentLength: the length of the response body in bytes.
@@ -467,6 +502,17 @@ private extension XRayRecorder.Segment.State {
 
     var inProgress: Bool {
         endTime == nil
+    }
+
+    var hasEmitted: Bool {
+        switch self {
+        case .inProgress:
+            return false
+        case .ended:
+            return false
+        case .emitted:
+            return true
+        }
     }
 }
 

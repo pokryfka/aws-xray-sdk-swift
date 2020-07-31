@@ -26,9 +26,9 @@ struct Synchronized<Value> {
         set { lock.withWriterLockVoid { _value = newValue } }
     }
 
-    var projectedValue: Value {
-        _value
-    }
+//    var projectedValue: Value {
+//        _value
+//    }
 }
 
 extension Synchronized: Encodable where Value: Encodable {
