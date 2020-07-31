@@ -32,9 +32,9 @@ _ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
 usleep(100_000)
 let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 usleep(100_000)
-segment.setError(ExampleError.test)
-segment.setError(ExampleError.test2)
-segment.setError(ExampleError.test3)
+segment.addError(ExampleError.test)
+segment.addError(ExampleError.test2)
+segment.addError(ExampleError.test3)
 segment.end()
 
 // subsegment may end after parent

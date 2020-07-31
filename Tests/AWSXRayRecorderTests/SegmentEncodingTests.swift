@@ -111,7 +111,7 @@ final class SegmentEncodingTests: XCTestCase {
         let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
-        segment.setError(throttleError!)
+        segment.addError(throttleError!)
         XCTAssertEqual(try! encode(segment),
                        #"""
                        {"error":true,"id":"ce7cc02792adb89e","in_progress":true,"name":"test","start_time":1,"throttle":true,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}
@@ -126,9 +126,9 @@ final class SegmentEncodingTests: XCTestCase {
         let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
 
         let exceptionId = Segment.Exception.ID(rawValue: "9ad32cb3ede3e000")!
-        segment.setException(Segment.Exception(id: exceptionId, error: EnumError.test))
+        segment.addException(Segment.Exception(id: exceptionId, error: EnumError.test))
         let exceptionId2 = Segment.Exception.ID(rawValue: "80265802f849a556")!
-        segment.setException(Segment.Exception(id: exceptionId2, error: StructError(message: "test2")))
+        segment.addException(Segment.Exception(id: exceptionId2, error: StructError(message: "test2")))
 
         XCTAssertEqual(try! encode(segment),
                        #"""
