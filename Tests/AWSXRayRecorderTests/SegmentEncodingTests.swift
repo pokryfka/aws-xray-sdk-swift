@@ -102,21 +102,21 @@ final class SegmentEncodingTests: XCTestCase {
 
     // MARK: - Errors and exceptions
 
-    func testEncodingSegmentWithHTTPError() {
-        let throttleError = Segment.HTTPError(statusCode: 429)
-        XCTAssertNotNil(throttleError)
-
-        let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
-        let name = "test"
-        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
-        let startTime = Timestamp(secondsSinceEpoch: 1)!
-        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
-        segment.addError(throttleError!)
-        XCTAssertEqual(try! encode(segment),
-                       #"""
-                       {"error":true,"id":"ce7cc02792adb89e","in_progress":true,"name":"test","start_time":1,"throttle":true,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}
-                       """#)
-    }
+//    func testEncodingSegmentWithHTTPError() {
+//        let throttleError = Segment.HTTPError(statusCode: 429)
+//        XCTAssertNotNil(throttleError)
+//
+//        let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
+//        let name = "test"
+//        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
+//        let startTime = Timestamp(secondsSinceEpoch: 1)!
+//        let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
+//        segment.addError(throttleError!)
+//        XCTAssertEqual(try! encode(segment),
+//                       #"""
+//                       {"error":true,"id":"ce7cc02792adb89e","in_progress":true,"name":"test","start_time":1,"throttle":true,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}
+//                       """#)
+//    }
 
     func testEncodingSegmentWithExceptions() {
         let id = Segment.ID(rawValue: "ce7cc02792adb89e")!

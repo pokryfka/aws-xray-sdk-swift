@@ -18,7 +18,7 @@ extension XRayRecorder.Segment {
     /// For example, a Multicontainer Docker Elastic Beanstalk environment runs your application on an Amazon ECS container,
     /// which in turn runs on an Amazon EC2 instance.
     /// In this case you would set the origin to `AWS::ElasticBeanstalk::Environment` as the environment is the parent of the other two resources.
-    enum Origin: String, Encodable {
+    internal enum Origin: String, Encodable {
         /// An Amazon EC2 instance.
         case ec2Instance = "AWS::EC2::Instance"
         /// An Amazon ECS container.
@@ -34,7 +34,7 @@ extension XRayRecorder.Segment {
     ///
     /// # References
     /// - [AWS X-Ray segment documents - AWS resource data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-aws)
-    public struct AWS: Encodable {
+    internal struct AWS: Encodable {
         /// If your application sends segments to a different AWS account, record the ID of the account running your application.
         var accountId: String?
 
@@ -80,22 +80,10 @@ extension XRayRecorder.Segment {
         /// If the resource is in a region different from your application, record the region. For example, `us-west-2`.
         var region: String?
         /// Unique identifier for the request.
-        public var requestId: String?
+        var requestId: String?
         /// For operations on an Amazon SQS queue, the queue's URL.
         var queueURL: String?
         /// For operations on a DynamoDB table, the name of the table.
         var tableName: String?
-
-        public init(operation: String? = nil, region: String? = nil, requestId: String? = nil) {
-            self.operation = operation
-            self.region = region
-            self.requestId = requestId
-        }
-    }
-}
-
-extension XRayRecorder.Segment {
-    public func setAWS(_ aws: AWS) {
-        self.aws = aws
     }
 }
