@@ -14,6 +14,7 @@
 import AnyCodable
 import Baggage
 import Logging
+import NIOHTTP1
 
 // TODO: document
 // TODO: validate the name, truncate to 200 chars, replace invalid chars
@@ -259,6 +260,8 @@ extension XRayRecorder {
         // MARK: State
 
         /// Updates `endTime` of the Segment.
+        ///
+        /// Has no effect if the segment has been already ended or emitted in which case an error will be logged.
         public func end() {
             try? end(Timestamp())
         }
@@ -365,13 +368,20 @@ extension XRayRecorder {
         ///
         /// The IP address of the requester can be retrieved from the IP packet's `Source Address` or, for forwarded requests,
         /// from an `X-Forwarded-For` header.
+        ///
+        /// Has no effect if the HTTP method is invalid in which case an error will be logged.
+        ///
         /// - Parameters:
         ///   - method: The request method. For example, `GET`.
         ///   - url: The full URL of the request, compiled from the protocol, hostname, and path of the request.
         ///   - userAgent: The user agent string from the requester's client.
         ///   - clientIP: The IP address of the requester.
         public func setHTTPRequest(method: String, url: String, userAgent: String? = nil, clientIP: String? = nil) {
-            // TODO: ignore/log error if invalid HTTP method?
+            let httpMethod = HTTPMethod(rawValue: method)
+            if case HTTPMethod.RAW(let rawValue) = httpMethod {
+                logger?.error("Invalid HTTP method: \(rawValue)")
+                return
+            }
             lock.withWriterLockVoid {
                 _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
                 _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
@@ -385,6 +395,7 @@ extension XRayRecorder {
         /// - `error` - if response status code was 4XX Client Error
         /// - `throttle` - if response status code was 429 Too Many Requests
         /// - `fault` - if response status code was 5XX Server Error
+        ///
         /// - Parameters:
         ///   - status: HTTP status of the response.
         ///   - contentLength: the length of the response body in bytes.
