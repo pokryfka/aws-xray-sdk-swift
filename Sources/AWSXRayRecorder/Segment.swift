@@ -169,19 +169,20 @@ extension XRayRecorder {
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
-        private let service: Service?
+        private let _service: Service?
 
         /// A string that identifies the user who sent the request.
-        private let user: String?
+        private let _user: String?
 
         /// The type of AWS resource running your application.
-        @Synchronized internal var origin: Origin?
+        private var _origin: Origin?
 
         /// http objects with information about the original HTTP request.
-        @Synchronized internal var http: HTTP?
+        private var _http: HTTP
+        internal var _test_http: HTTP { lock.withReaderLock { _http } }
 
         /// aws object with information about the AWS resource on which your application served the request
-        @Synchronized internal var aws: AWS?
+        private var _aws: AWS?
 
         /// **boolean** indicating that a client error occurred (response status code was 4XX Client Error).
         private var _error: Bool?
@@ -207,10 +208,11 @@ extension XRayRecorder {
         // MARK: Optional Subsegment Fields
 
         /// `aws` for AWS SDK calls; `remote` for other downstream calls.
-        @Synchronized internal var namespace: Namespace?
+        private var _namespace: Namespace?
+        internal var _test_namespace: Namespace? { lock.withReaderLock { _namespace } }
 
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
-        private let precursorIDs: [String]? = nil
+        private let _precursorIDs: [String]? = nil
 
         init(
             id: ID,
@@ -230,11 +232,11 @@ extension XRayRecorder {
             _state = .inProgress(started: startTime)
             _baggage = (try? baggage.withParent(id)) ?? baggage
             type = subsegment && context.parentId != nil ? .subsegment : nil
-            self.service = service
-            self.user = user
-            self.origin = origin
-            self.http = http
-            self.aws = aws
+            _service = service
+            _user = user
+            _origin = origin
+            _http = http ?? HTTP()
+            _aws = aws
             _annotations = annotations ?? Annotations()
             _metadata = metadata ?? Metadata()
             self.callback = callback
@@ -332,21 +334,51 @@ extension XRayRecorder {
             addException(Exception(error))
         }
 
-        // TODO: replace with setHttpResponse()
+        // MARK: HTTP request data
 
-        internal func addError(_ httpError: HTTPError) {
+        /// Records details about an HTTP request that your application served (in a segment) or
+        /// that your application made to a downstream HTTP API (in a subsegment).
+        ///
+        /// The IP address of the requester can be retrieved from the IP packet's `Source Address` or, for forwarded requests,
+        /// from an `X-Forwarded-For` header.
+        /// - Parameters:
+        ///   - method: The request method. For example, `GET`.
+        ///   - url: The full URL of the request, compiled from the protocol, hostname, and path of the request.
+        ///   - userAgent: The user agent string from the requester's client.
+        ///   - clientIP: The IP address of the requester.
+        public func setHTTPRequest(method: String, url: String, userAgent: String? = nil, clientIP: String? = nil) {
+            // TODO: ignore/log error if invalid HTTP method?
             lock.withWriterLockVoid {
-                _error = true
-                if let cause = httpError.cause {
-                    _cause.exceptions.append(cause)
-                }
-                switch httpError {
-                case .throttle:
-                    _throttle = true
-                case .server:
+                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+                _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
+            }
+        }
+
+        /// Records details about an HTTP response that your application served (in a segment) or
+        /// that your application made to a downstream HTTP API (in a subsegment).
+        ///
+        /// Set one or more of the error fields:
+        /// - `error` - if response status code was 4XX Client Error
+        /// - `throttle` - if response status code was 429 Too Many Requests
+        /// - `fault` - if response status code was 5XX Server Error
+        /// - Parameters:
+        ///   - status: HTTP status of the response.
+        ///   - contentLength: the length of the response body in bytes.
+        public func setHTTPResponse(status: UInt, contentLength: UInt? = nil) {
+            lock.withWriterLockVoid {
+                _http.response = HTTP.Response(status: status, contentLength: contentLength)
+
+                switch status {
+                case 400 ..< 500:
+                    _error = true
+                case 500 ..< 600:
                     _fault = true
                 default:
                     break
+                }
+
+                if status == 429 {
+                    _throttle = true
                 }
             }
         }
@@ -504,24 +536,29 @@ extension XRayRecorder.Segment: Encodable {
             }
             try container.encodeIfPresent(type, forKey: .type)
             try container.encodeIfPresent(_context.parentId, forKey: .parentId)
-            try container.encodeIfPresent(service, forKey: .service)
-            try container.encodeIfPresent(user, forKey: .user)
-            try container.encodeIfPresent(origin, forKey: .origin)
-            try container.encodeIfPresent(http, forKey: .http)
-            try container.encodeIfPresent(aws, forKey: .aws)
+            try container.encodeIfPresent(_service, forKey: .service)
+            try container.encodeIfPresent(_user, forKey: .user)
+            try container.encodeIfPresent(_origin, forKey: .origin)
+            if _http.request != nil || _http.response != nil {
+                try container.encode(_http, forKey: .http)
+            }
+            try container.encodeIfPresent(_aws, forKey: .aws)
             try container.encodeIfPresent(_error, forKey: ._error)
             try container.encodeIfPresent(_throttle, forKey: ._throttle)
             try container.encodeIfPresent(_fault, forKey: ._fault)
             if _cause.exceptions.isEmpty == false {
                 try container.encode(_cause, forKey: ._cause)
             }
-            try container.encodeIfPresent(namespace, forKey: .namespace)
-            try container.encodeIfPresent(precursorIDs, forKey: .precursorIDs)
             try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
             // do not throw if encoding of AnyCodable failed
             // TODO: make it configurable, maybe safer not to throw in production
             try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
             try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
+            // subsegments only
+            if _context.parentId != nil {
+                try container.encodeIfPresent(_namespace, forKey: .namespace)
+                try container.encodeIfPresent(_precursorIDs, forKey: .precursorIDs)
+            }
         }
     }
 }

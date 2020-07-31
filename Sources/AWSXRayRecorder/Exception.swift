@@ -56,7 +56,7 @@ extension XRayRecorder.Segment {
         /// **integer** indicating the number of exceptions that were skipped between this exception and its child, that is, the exception that it caused.
         var skipped: UInt?
         /// Exception ID of the exception's parent, that is, the exception that caused this exception.
-        var cause: String?
+        var cause: ID?
         /// **array** of **stackFrame** objects.
         var stack: [StackFrame]?
 
@@ -77,39 +77,6 @@ extension XRayRecorder.Segment {
 
         init(_ error: Error) {
             self.init(id: ID(), error: error)
-        }
-    }
-
-    internal enum HTTPError: Error {
-        /// client error occurred (response status code was 4XX Client Error)
-        case client(statusCode: UInt, cause: Exception?)
-        /// request was throttled (response status code was 429 Too Many Requests)
-        case throttle(cause: Exception?)
-        /// server error occurred (response status code was 5XX Server Error)
-        case server(statusCode: UInt, cause: Exception?)
-
-        init?(statusCode: UInt) {
-            switch statusCode {
-            case 429:
-                self = .throttle(cause: nil)
-            case 400 ..< 500:
-                self = .client(statusCode: statusCode, cause: nil)
-            case 500 ..< 600:
-                self = .server(statusCode: statusCode, cause: nil)
-            default:
-                return nil
-            }
-        }
-
-        var cause: Exception? {
-            switch self {
-            case .client(_, let cause):
-                return cause
-            case .throttle(let cause):
-                return cause
-            case .server(_, let cause):
-                return cause
-            }
         }
     }
 }

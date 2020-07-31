@@ -87,6 +87,32 @@ final class NoOpSegmentTests: XCTestCase {
         XCTAssertEqual(0, segment.exceptions.count)
     }
 
+    func testRecordingHTTPRequest() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+        XCTAssertFalse(segment.isSampled)
+        XCTAssertTrue(segment is NoOpSegment)
+
+        segment.setHTTPRequest(method: "GET", url: "https://www.example.com/health")
+        XCTAssertNil(segment._test_http.request)
+        XCTAssertNil(segment._test_http.response)
+    }
+
+    func testRecordingHTTPResponse() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+        XCTAssertFalse(segment.isSampled)
+        XCTAssertTrue(segment is NoOpSegment)
+
+        segment.setHTTPResponse(status: 200)
+        XCTAssertNil(segment._test_http.request)
+        XCTAssertNil(segment._test_http.response)
+    }
+
     func testAddingAnnotations() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
         let context = TraceContext(traceId: .init(), sampled: .notSampled)

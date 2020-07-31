@@ -56,6 +56,9 @@ extension XRayRecorder {
         override func addException(message: String, type: String? = nil) {}
         override func addError(_: Error) {}
 
+        override func setHTTPRequest(method: String, url: String, userAgent: String? = nil, clientIP: String? = nil) {}
+        override func setHTTPResponse(status: UInt, contentLength: UInt? = nil) {}
+
         override func setAnnotation(_ value: AnnotationValue, forKey key: String) { assertionFailure() }
         override func setAnnotation(_ value: String, forKey key: String) {}
         override func setAnnotation(_ value: Bool, forKey key: String) {}

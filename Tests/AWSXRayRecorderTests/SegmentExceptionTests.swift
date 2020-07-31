@@ -55,19 +55,4 @@ final class SegmentExceptionTests: XCTestCase {
         XCTAssertEqual("test2", exceptions[1].message) // may be a bit different
         XCTAssertNil(exceptions[1].type)
     }
-
-    func testRecordingHttpErrors() {
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
-
-        let errorWithoutCause = Segment.HTTPError.throttle(cause: nil)
-        let errorWithCause = Segment.HTTPError.server(statusCode: 500, cause: .init(message: "Error 500", type: nil))
-
-        segment.addError(errorWithoutCause)
-        segment.addError(errorWithCause)
-
-        let exceptions = segment.exceptions
-        XCTAssertEqual(1, exceptions.count)
-        XCTAssertEqual("Error 500", exceptions.first?.message)
-        XCTAssertNil(exceptions.first?.type)
-    }
 }

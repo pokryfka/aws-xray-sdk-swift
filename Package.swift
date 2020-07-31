@@ -21,6 +21,7 @@ let package = Package(
             name: "AWSXRayRecorder",
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "AnyCodable", package: "AnyCodable"),
                 .product(name: "Baggage", package: "swift-baggage-context"),
