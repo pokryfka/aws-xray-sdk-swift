@@ -14,15 +14,6 @@
 import AWSXRayRecorder
 import Logging
 
-import struct Foundation.Data
-import class Foundation.JSONEncoder
-
-private extension JSONEncoder {
-    func encode<T: Encodable>(_ value: T) throws -> String {
-        String(decoding: try encode(value), as: UTF8.self)
-    }
-}
-
 private extension String {
     /// - returns: A 32-bit identifier in 8 hexadecimal digits.
     static func random32() -> String {
@@ -32,25 +23,22 @@ private extension String {
 
 public struct XRayLogEmitter: XRayEmitter {
     private let logger: Logger
+    private let encoder: XRayRecorder.SegmentEncoder
 
-    private let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        return encoder
-    }()
-
-    public init(logger: Logger) {
+    public init(logger: Logger, encoder: @escaping XRayRecorder.SegmentEncoder) {
         self.logger = logger
+        self.encoder = encoder
     }
 
-    public init(label: String? = nil) {
+    public init(label: String? = nil, encoder: XRayRecorder.SegmentEncoder? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
         logger = Logger(label: label)
+        self.encoder = encoder ?? FoundationJSON.segmentEncoder
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
         do {
-            let document: String = try encoder.encode(segment)
+            let document: String = try encoder(segment)
             logger.info("\n\(document)")
         } catch {
             logger.error("Failed to encode a segment: \(error)")
