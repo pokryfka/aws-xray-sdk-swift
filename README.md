@@ -149,18 +149,20 @@ See [`AWSXRayRecorderExampleLambda/main.swift`](./Examples/Sources/AWSXRayRecord
 
 The library’s behavior can be configured using environment variables:
 
-- `AWS_XRAY_SDK_DISABLED`: set `true` to disable tracing, enabled by default.
-- `AWS_XRAY_DAEMON_ADDRESS` – the IP address and port of the X-Ray daemon, `127.0.0.1:2000` by default.
-- `XRAY_RECORDER_LOG_LEVEL`: [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+- `AWS_XRAY_SDK_ENABLED` - set `false` to disable tracing, enabled by default.
+- `AWS_XRAY_DAEMON_ADDRESS` - the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default.
+- `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
+    - `RUNTIME_ERROR` - Indicate that a precondition was violated.
+    - `LOG_ERROR` - Log an error and continue (default).
+- `XRAY_RECORDER_LOG_LEVEL` - [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
 
 Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will override environment variables:
 
 ```swift
 let recorder = XRayRecorder(
     config: .init(enabled: true,
-                  logLevel: .debug,
                   daemonEndpoint: "127.0.0.1:2000",
-                  serviceVersion: "aws-xray-sdk-swift-example-sdk")
+                  logLevel: .debug)
 )                  
 ```
 
