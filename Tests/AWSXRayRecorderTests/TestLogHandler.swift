@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
 import Logging
 
 class TestLogHandler: LogHandler {
@@ -26,6 +25,7 @@ class TestLogHandler: LogHandler {
              line: UInt)
     {
         print("\(level): \(message)")
+
         if level == .error {
             errorMessages.append("\(message)")
         }

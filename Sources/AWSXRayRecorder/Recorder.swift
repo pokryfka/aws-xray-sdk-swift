@@ -22,8 +22,7 @@ import Logging
 /// - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 public class XRayRecorder {
     private let config: Config
-
-    private lazy var logger = Logger(label: "xray.recorder.\(String.random32())")
+    private let logger: Logger
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -32,14 +31,20 @@ public class XRayRecorder {
     private let emitQueue = DispatchQueue(label: "net.pokryfka.xray.recorder.emit.\(String.random32())")
     private let emitGroup = DispatchGroup()
 
-    public init(emitter: XRayEmitter, config: Config = Config()) {
+    internal init(emitter: XRayEmitter, config: Config = Config(), logger: Logger) {
         self.config = config
+        self.logger = logger
+        self.emitter = emitter
+    }
+
+    public convenience init(emitter: XRayEmitter, config: Config = Config()) {
+        let logger = Logger(label: "xray.recorder.\(String.random32())")
         if !config.enabled {
-            self.emitter = XRayNoOpEmitter()
+            // disable the emitter, een if provided, if disabled
+            self.init(emitter: XRayNoOpEmitter(), config: config, logger: logger)
         } else {
-            self.emitter = emitter
+            self.init(emitter: emitter, config: config, logger: logger)
         }
-        logger.logLevel = config.logLevel
     }
 
     internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
@@ -60,11 +65,13 @@ public class XRayRecorder {
             }
         }
         let segmentId = Segment.ID()
+        let service = Segment.Service(version: config.serviceVersion)
         let subsegment = context.parentId != nil
         let newSegment = Segment(
             id: segmentId, name: name,
             context: context, baggage: baggage,
             subsegment: subsegment,
+            service: service,
             aws: aws, metadata: metadata,
             callback: callback
         )
@@ -93,9 +100,20 @@ public class XRayRecorder {
     ///   - metadata: segment metadata
     /// - Returns: new segment
     public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment {
-        // TODO: Configure context missing strategy https://github.com/pokryfka/aws-xray-sdk-swift/issues/28
-        let context = baggage.xRayContext ?? TraceContext(sampled: .unknown)
-        return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+        if let context = baggage.xRayContext {
+            return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+        } else {
+            switch config.contextMissingStrategy {
+            case .runtimeError:
+                preconditionFailure("Missing Context")
+            case .logError:
+                let context = TraceContext(sampled: .unknown)
+                logger.error("Missing Context")
+                var baggage = baggage
+                baggage.xRayContext = context
+                return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+            }
+        }
     }
 
     internal func waitEmitting() {

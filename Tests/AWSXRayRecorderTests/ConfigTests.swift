@@ -21,6 +21,7 @@ final class ConfigTests: XCTestCase {
         let config = XRayRecorder.Config()
         XCTAssertTrue(config.enabled)
         XCTAssertEqual("127.0.0.1:2000", config.daemonEndpoint)
+        XCTAssertEqual(XRayRecorder.Config.ContextMissingStrategy.logError, config.contextMissingStrategy)
         XCTAssertEqual(Logger.Level.info, config.logLevel)
         XCTAssertEqual("aws-xray-sdk-swift", config.serviceVersion)
 
