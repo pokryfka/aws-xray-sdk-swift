@@ -66,7 +66,7 @@ extension XRayRecorder.Segment {
     ///
     /// - Parameters:
     ///   - status: HTTP  status.
-    public func setHTTPResponse(_ status: HTTPResponseStatus) {
+    public func setHTTPResponse(status: HTTPResponseStatus) {
         setHTTPResponse(status: status.code)
     }
 }

@@ -28,7 +28,7 @@ let context = XRayContext()
 let segment = recorder.beginSegment(name: "Segment 1", context: context)
 // record details about an HTTP request that your application served or made to a downstream HTTP API
 segment.setHTTPRequest(method: .POST, url: "http://www.example.com/api/user")
-segment.setHTTPResponse(.ok) // for the sake of an example
+segment.setHTTPResponse(status: .ok) // for the sake of an example
 // segments and subsegments can include annotations
 segment.setAnnotation(98101, forKey: "zip_code")
 // and metadata

@@ -3,7 +3,7 @@
 ![CI](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift)
 
-Unofficial AWS X-Ray Recorder SDK for Swift.
+Unofficial AWS X-Ray SDK for Swift.
 
 ## Project status
 
@@ -74,7 +74,7 @@ You can record details about an HTTP request that your application served or mad
 
 ```swift
 segment.setHTTPRequest(method: .POST, url: "http://www.example.com/api/user")
-segment.setHTTPResponse(.ok)
+segment.setHTTPResponse(status: .ok)
 ```
 
 #### Annotations and Metadata
@@ -114,6 +114,12 @@ Make sure all segments are sent before program exits:
 recorder.wait()
 ```
 
+or, if using [SwiftNIO](https://github.com/apple/swift-nio):
+
+```swift
+try recorder.flush(on: eventLoop).wait()
+```
+
 Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 ![Screenshot of the AWS X-Ray console](./images/example.png?raw=true)
@@ -131,7 +137,7 @@ The library’s behavior can be configured using environment variables:
     - `LOG_ERROR` - Log an error and continue (default).
 - `XRAY_RECORDER_LOG_LEVEL` - [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
 
-Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will override environment variables:
+Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will **override** environment variables:
 
 ```swift
 let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))
@@ -183,6 +189,19 @@ The emitter has to be provided when creating an instance of `XRayRecorder`:
 let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 ```
 
+## Testing
+
+ You can run the AWS X-Ray daemon locally or in a Docker container, see [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
+
+You can also use the `XRayLogEmitter`:
+
+```swift
+import AWSXRaySDK
+import AWSXRayTesting
+
+let recorder = XRayRecorder(emitter: XRayLogEmitter())
+```
+
 ## Examples
 
 ### AWS Lambda using [Swift AWS Lambda Runtime](https://github.com/swift-server/swift-aws-lambda-runtime)
@@ -217,7 +236,3 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
 ```
 
 See [`AWSXRaySDKExampleLambda/main.swift`](./Examples/Sources/AWSXRaySDKExampleLambda/main.swift) for a complete example.
-
-## References
-
-- [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
