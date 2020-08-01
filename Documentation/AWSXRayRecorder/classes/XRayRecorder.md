@@ -14,7 +14,7 @@ public class XRayRecorder
 ### `init(emitter:config:)`
 
 ```swift
-public init(emitter: XRayEmitter, config: Config = Config())
+public convenience init(emitter: XRayEmitter, config: Config = Config())
 ```
 
 ### `beginSegment(name:context:metadata:)`

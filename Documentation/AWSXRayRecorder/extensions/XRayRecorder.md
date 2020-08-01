@@ -22,12 +22,6 @@ public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayReco
     rethrows -> T
 ```
 
-### `init(config:eventLoopGroup:)`
-
-```swift
-public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil)
-```
-
 ### `flush(on:)`
 
 ```swift
