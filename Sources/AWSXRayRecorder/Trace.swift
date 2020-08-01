@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+public typealias XRayContext = XRayRecorder.TraceContext
+
 extension XRayRecorder {
     enum TraceError: Error {
         case invalidTraceID(String)
