@@ -25,6 +25,7 @@ private extension JSONEncoder {
 internal enum FoundationJSON {
     public static let encoding: XRayRecorder.Segment.Encoding = {
         let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = .prettyPrinted
         return XRayRecorder.Segment.Encoding { segment in
             try jsonEncoder.encode(segment) as String
         }
