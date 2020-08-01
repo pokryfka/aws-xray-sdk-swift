@@ -16,6 +16,10 @@ import Baggage
 import Instrumentation
 import NIO
 import NIOInstrumentation
+import TracingInstrumentation
+
+private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
+private typealias Span = TracingInstrumentation.Span
 
 class BetterHTTPClient {
     private let client: HTTPClient
@@ -33,7 +37,8 @@ class BetterHTTPClient {
     }
 
     func execute(request: HTTPClient.Request, baggage: BaggageContext) -> NIO.EventLoopFuture<AsyncHTTPClient.HTTPClient.Response> {
-        let tracer = InstrumentationSystem.tracer
+        // TODO: ?
+        let tracer = InstrumentationSystem.instrument as! TracingInstrument
         var span = tracer.startHTTPSpan(request: request, context: baggage)
         var request = request
         tracer.inject(span.baggage, into: &request.headers, using: HTTPHeadersInjector())
@@ -63,12 +68,14 @@ private extension TracingInstrument {
 
 private extension Span {
     mutating func setHTTPAttributes(request: HTTPClient.Request) {
-        setAttribute(request.method.rawValue, forKey: OpenTelemetry.SpanAttributes.HTTP.method)
-        setAttribute(request.url.absoluteString, forKey: OpenTelemetry.SpanAttributes.HTTP.url)
+        // TODO: missing
+//        setAttribute(request.method.rawValue, forKey: OpenTelemetry.SpanAttributes.HTTP.method)
+//        setAttribute(request.url.absoluteString, forKey: OpenTelemetry.SpanAttributes.HTTP.url)
     }
 
     mutating func setHTTPAttributes(response: HTTPClient.Response) {
-        setAttribute(response.status.code, forKey: OpenTelemetry.SpanAttributes.HTTP.statusCode)
-        setAttribute(response.body?.readableBytes ?? -1, forKey: OpenTelemetry.SpanAttributes.HTTP.responseContentLength)
+        // TODO: missing
+//        setAttribute(response.status.code, forKey: OpenTelemetry.SpanAttributes.HTTP.statusCode)
+//        setAttribute(response.body?.readableBytes ?? -1, forKey: OpenTelemetry.SpanAttributes.HTTP.responseContentLength)
     }
 }

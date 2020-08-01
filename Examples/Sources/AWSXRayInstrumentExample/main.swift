@@ -12,18 +12,19 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayInstrument
-import AWSXRayRecorder
+import AWSXRaySDK
 import Baggage // BaggageContext
 import Instrumentation // InstrumentationSystem
 import NIOHTTP1 // HTTPHeaders
 import NIOInstrumentation // HTTPHeadersExtractor
+import TracingInstrumentation
 
 // create and boostrap the instrument
-// let instrument = XRayRecorder(emitter: XRayLogEmitter(), config: .init(logLevel: .debug))
 let instrument = XRayRecorder(config: .init(logLevel: .debug)) // XRayUDPEmitter
 InstrumentationSystem.bootstrap(instrument)
 
-let tracer = InstrumentationSystem.tracer // the instrument
+// TODO: ?
+let tracer = InstrumentationSystem.instrument as! TracingInstrumentation.TracingInstrument // the instrument
 
 // create new trace
 let tracingHeader = XRayRecorder.TraceContext().tracingHeader
@@ -40,13 +41,13 @@ let http = BetterHTTPClient()
 
 // create new span
 var span = tracer.startSpan(named: "Span 1", context: baggage)
-span.setAttribute("Attribute 1", forKey: "key1")
+// span.setAttribute("Attribute 1", forKey: "key1")
 span.addLink(.init(context: baggage))
 span.addEvent(.init(name: "Event"))
 span.addEvent(.init(name: "Event 2"))
 
 var span2 = tracer.startSpan(named: "Span 2", context: baggage)
-span2.setAttribute("Attribute 2", forKey: "key2")
+// span2.setAttribute("Attribute 2", forKey: "key2")
 
 // TODO: XRay subsegment parent needs to be sent before, consider sending parent twice - when started and when ended (?)
 span.end()

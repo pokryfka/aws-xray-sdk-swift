@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(name: "aws-xray-sdk-swift", path: ".."),
         .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMajor(from: "0.1.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("8c641d3efa0951433fe67acf2d6af92ea1e528ad")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("e0cb182bf3966061da7d70de1bbf40ad211aba21")),
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
         .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
@@ -37,7 +37,7 @@ let package = Package(
                 .product(name: "AWSXRayInstrument", package: "aws-xray-sdk-swift"),
                 .product(name: "Baggage", package: "swift-baggage-context"),
                 .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
-//                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
