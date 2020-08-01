@@ -27,6 +27,8 @@
 import NIO
 import NIOConcurrencyHelpers
 
+// TODO: use RWLock
+
 /// Based on the NIO UDP Client implementation in swift-statsd-client with removed dependency on Metrics.
 /// # References
 /// - [swift-statsd-client](https://github.com/apple/swift-statsd-client)

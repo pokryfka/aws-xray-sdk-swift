@@ -35,6 +35,9 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: info.lcov
+    - name: Run Performance tests
+      run: swift test -c release --enable-test-discovery
+      working-directory: ./PerformanceTests
 
   test-linux:
     runs-on: ubuntu-latest
@@ -60,6 +63,9 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: info.lcov
+    - name: Run Performance tests
+      run: swift test -c release --enable-test-discovery
+      working-directory: ./PerformanceTests
 
   lint:
     runs-on: macos-latest

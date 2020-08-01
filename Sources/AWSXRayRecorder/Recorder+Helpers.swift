@@ -15,7 +15,6 @@ import Baggage
 
 extension XRayRecorder {
     @inlinable
-    @discardableResult
     public func segment<T>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
@@ -33,7 +32,6 @@ extension XRayRecorder {
     }
 
     @inlinable
-    @discardableResult
     public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
@@ -53,7 +51,6 @@ extension XRayRecorder {
 
 extension XRayRecorder.Segment {
     @inlinable
-    @discardableResult
     public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
                               body: (XRayRecorder.Segment) throws -> T) rethrows -> T
     {

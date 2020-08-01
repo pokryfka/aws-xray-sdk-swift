@@ -11,36 +11,28 @@
 //
 //===----------------------------------------------------------------------===//
 
+import AWSXRayRecorder
 import Logging
 
-import struct Foundation.Data
-import class Foundation.JSONEncoder
-
-private extension JSONEncoder {
-    func encode<T: Encodable>(_ value: T) throws -> String {
-        String(decoding: try encode(value), as: UTF8.self)
-    }
-}
-
-// TODO: document
-
+/// "Emits" segments by logging them using provided logger instance.
 public struct XRayLogEmitter: XRayEmitter {
     private let logger: Logger
+    private let encoding: XRayRecorder.Segment.Encoding
 
-    private let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        return encoder
-    }()
+    public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
+        self.logger = logger
+        self.encoding = encoding ?? FoundationJSON.segmentEncoding
+    }
 
-    public init(label: String? = nil) {
+    public init(label: String? = nil, encoding: XRayRecorder.Segment.Encoding? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
         logger = Logger(label: label)
+        self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
         do {
-            let document: String = try encoder.encode(segment)
+            let document: String = try encoding.encode(segment)
             logger.info("\n\(document)")
         } catch {
             logger.error("Failed to encode a segment: \(error)")

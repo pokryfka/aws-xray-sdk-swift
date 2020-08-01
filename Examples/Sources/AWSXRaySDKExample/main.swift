@@ -11,16 +11,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AWSXRayRecorder
+import AWSXRaySDK
+//import AWSXRayTesting // uses Foundation JSON encoder
 import NIO // usleep
 
 enum ExampleError: Error {
     case test
     case test2
-    case test3
 }
 
 let recorder = XRayRecorder()
+//let recorder = XRayRecorder(emitter: XRayLogEmitter())
 
 let context = XRayRecorder.TraceContext()
 
@@ -34,7 +35,6 @@ let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 usleep(100_000)
 segment.addError(ExampleError.test)
 segment.addError(ExampleError.test2)
-segment.addError(ExampleError.test3)
 segment.end()
 
 // subsegment may end after parent
@@ -56,5 +56,3 @@ recorder.segment(name: "Segment 2", context: context) { segment in
 }
 
 recorder.wait()
-
-exit(0)
