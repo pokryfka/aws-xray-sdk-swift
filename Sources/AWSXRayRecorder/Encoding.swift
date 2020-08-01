@@ -11,8 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import PureSwiftJSON
-
 extension XRayRecorder.Segment {
     public struct Encoding {
         /// How to encode a segment to JSON string.
