@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRaySDK
+//import AWSXRayTesting // uses Foundation JSON encoder
 import NIO // usleep
 
 enum ExampleError: Error {
@@ -20,6 +21,7 @@ enum ExampleError: Error {
 }
 
 let recorder = XRayRecorder()
+//let recorder = XRayRecorder(emitter: XRayLogEmitter())
 
 let context = XRayRecorder.TraceContext()
 

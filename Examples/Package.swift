@@ -23,6 +23,7 @@ let package = Package(
             name: "AWSXRaySDKExample",
             dependencies: [
                 .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
+//                .product(name: "AWSXRayTesting", package: "aws-xray-sdk-swift"),
             ]
         ),
         .target(
