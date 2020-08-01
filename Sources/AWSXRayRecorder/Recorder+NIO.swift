@@ -16,19 +16,6 @@ import NIO
 // TODO: document
 
 extension XRayRecorder {
-    public convenience init(config: Config = Config(), eventLoopGroup: EventLoopGroup? = nil) {
-        if !config.enabled {
-            self.init(emitter: XRayNoOpEmitter(), config: config)
-        } else {
-            do {
-                let emitter = try XRayUDPEmitter(config: .init(config), eventLoopGroup: eventLoopGroup)
-                self.init(emitter: emitter, config: config)
-            } catch {
-                preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
-            }
-        }
-    }
-
     public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         waitEmitting()
         // wait for the emitter to send them
@@ -51,11 +38,12 @@ extension XRayRecorder {
 extension XRayRecorder {
     @inlinable
     public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
-                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    {
         let segment = beginSegment(name: name, context: context, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
-                segment.setError(error)
+                segment.addError(error)
             }
             segment.end()
         }
@@ -65,11 +53,12 @@ extension XRayRecorder {
 extension XRayRecorder.Segment {
     @inlinable
     public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+                              body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    {
         let segment = beginSubsegment(name: name, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
-                segment.setError(error)
+                segment.addError(error)
             }
             segment.end()
         }

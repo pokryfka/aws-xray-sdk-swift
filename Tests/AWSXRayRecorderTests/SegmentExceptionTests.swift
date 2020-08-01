@@ -24,10 +24,10 @@ final class SegmentExceptionTests: XCTestCase {
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
 
         let messageWithType = (UUID().uuidString, UUID().uuidString)
-        segment.setException(message: messageWithType.0, type: messageWithType.1)
+        segment.addException(message: messageWithType.0, type: messageWithType.1)
 
         let messageWithoutType = UUID().uuidString
-        segment.setException(message: messageWithoutType)
+        segment.addException(message: messageWithoutType)
 
         let exceptions = segment.exceptions
         XCTAssertEqual(2, exceptions.count)
@@ -45,8 +45,8 @@ final class SegmentExceptionTests: XCTestCase {
             case test2
         }
 
-        segment.setError(TestError.test1)
-        segment.setError(TestError.test2)
+        segment.addError(TestError.test1)
+        segment.addError(TestError.test2)
 
         let exceptions = segment.exceptions
         XCTAssertEqual(2, exceptions.count)
@@ -54,20 +54,5 @@ final class SegmentExceptionTests: XCTestCase {
         XCTAssertNil(exceptions[0].type)
         XCTAssertEqual("test2", exceptions[1].message) // may be a bit different
         XCTAssertNil(exceptions[1].type)
-    }
-
-    func testRecordingHttpErrors() {
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
-
-        let errorWithoutCause = Segment.HTTPError.throttle(cause: nil)
-        let errorWithCause = Segment.HTTPError.server(statusCode: 500, cause: .init(message: "Error 500", type: nil))
-
-        segment.setError(errorWithoutCause)
-        segment.setError(errorWithCause)
-
-        let exceptions = segment.exceptions
-        XCTAssertEqual(1, exceptions.count)
-        XCTAssertEqual("Error 500", exceptions.first?.message)
-        XCTAssertNil(exceptions.first?.type)
     }
 }

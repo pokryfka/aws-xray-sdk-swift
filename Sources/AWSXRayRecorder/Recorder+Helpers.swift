@@ -15,7 +15,6 @@ import Baggage
 
 extension XRayRecorder {
     @inlinable
-    @discardableResult
     public func segment<T>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
@@ -27,13 +26,12 @@ extension XRayRecorder {
         do {
             return try body(segment)
         } catch {
-            segment.setError(error)
+            segment.addError(error)
             throw error
         }
     }
 
     @inlinable
-    @discardableResult
     public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
         rethrows -> T
@@ -45,7 +43,7 @@ extension XRayRecorder {
         do {
             return try body(segment)
         } catch {
-            segment.setError(error)
+            segment.addError(error)
             throw error
         }
     }
@@ -53,9 +51,9 @@ extension XRayRecorder {
 
 extension XRayRecorder.Segment {
     @inlinable
-    @discardableResult
     public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (XRayRecorder.Segment) throws -> T) rethrows -> T {
+                              body: (XRayRecorder.Segment) throws -> T) rethrows -> T
+    {
         let segment = beginSubsegment(name: name, metadata: metadata)
         defer {
             segment.end()
@@ -63,7 +61,7 @@ extension XRayRecorder.Segment {
         do {
             return try body(segment)
         } catch {
-            segment.setError(error)
+            segment.addError(error)
             throw error
         }
     }

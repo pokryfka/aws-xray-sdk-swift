@@ -13,6 +13,8 @@
 
 import AnyCodable
 import Baggage
+import Logging
+import NIOHTTP1
 
 // TODO: document
 // TODO: validate the name, truncate to 200 chars, replace invalid chars
@@ -22,7 +24,7 @@ private typealias SegmentError = XRayRecorder.SegmentError
 extension XRayRecorder {
     enum SegmentError: Error {
         case inProgress
-        case startedInFuture
+        case backToTheFuture
         case alreadyEnded
         case alreadyEmitted
     }
@@ -63,6 +65,17 @@ extension XRayRecorder {
             let version: String
         }
 
+        /// Segments and subsegments can include an `annotations` object containing one or more fields that X-Ray indexes for use with filter expressions.
+        /// Fields can have string, number, or Boolean values (no objects or arrays). X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        internal enum AnnotationValue: Equatable {
+            case string(String)
+            case integer(Int)
+            case double(Double)
+            case bool(Bool)
+        }
+
         /// Segments and subsegments can include an annotations object containing one or more fields that
         /// X-Ray indexes for use with filter expressions.
         /// Fields can have string, number, or Boolean values (no objects or arrays).
@@ -77,9 +90,11 @@ extension XRayRecorder {
         /// Field keys (debug in the following example) starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
         public typealias Metadata = [String: AnyEncodable]
 
+        private let logger: Logger?
+
         private let lock = ReadWriteLock()
 
-        private let callback: StateChangeCallback?
+        private let _callback: StateChangeCallback?
 
         private let _id: ID
         private let _name: String
@@ -87,7 +102,7 @@ extension XRayRecorder {
         private var _state: State {
             didSet {
                 guard oldValue != _state else { return }
-                callback?(_id, _state)
+                _callback?(_id, _state)
             }
         }
 
@@ -95,6 +110,8 @@ extension XRayRecorder {
 
         private let _baggage: BaggageContext
         public var baggage: BaggageContext { lock.withReaderLock { _baggage } }
+
+        public var isSampled: Bool { true }
 
         // MARK: Required Segment Fields
 
@@ -156,19 +173,20 @@ extension XRayRecorder {
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
-        private let service: Service?
+        private let _service: Service?
 
         /// A string that identifies the user who sent the request.
-        private let user: String?
+        private let _user: String?
 
         /// The type of AWS resource running your application.
-        @Synchronized internal var origin: Origin?
+        private var _origin: Origin?
 
         /// http objects with information about the original HTTP request.
-        @Synchronized internal var http: HTTP?
+        private var _http: HTTP
+        internal var _test_http: HTTP { lock.withReaderLock { _http } }
 
         /// aws object with information about the AWS resource on which your application served the request
-        @Synchronized internal var aws: AWS?
+        private var _aws: AWS?
 
         /// **boolean** indicating that a client error occurred (response status code was 4XX Client Error).
         private var _error: Bool?
@@ -194,10 +212,11 @@ extension XRayRecorder {
         // MARK: Optional Subsegment Fields
 
         /// `aws` for AWS SDK calls; `remote` for other downstream calls.
-        @Synchronized internal var namespace: Namespace?
+        private var _namespace: Namespace?
+        internal var _test_namespace: Namespace? { lock.withReaderLock { _namespace } }
 
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
-        private let precursorIDs: [String]? = nil
+        private let _precursorIDs: [String]? = nil
 
         init(
             id: ID,
@@ -209,6 +228,7 @@ extension XRayRecorder {
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
             annotations: Annotations? = nil, metadata: Metadata? = nil,
+            logger: Logger? = nil,
             callback: StateChangeCallback? = nil
         ) {
             _id = id
@@ -217,14 +237,245 @@ extension XRayRecorder {
             _state = .inProgress(started: startTime)
             _baggage = (try? baggage.withParent(id)) ?? baggage
             type = subsegment && context.parentId != nil ? .subsegment : nil
-            self.service = service
-            self.user = user
-            self.origin = origin
-            self.http = http
-            self.aws = aws
+            _service = service
+            _user = user
+            _origin = origin
+            _http = http ?? HTTP()
+            _aws = aws
             _annotations = annotations ?? Annotations()
             _metadata = metadata ?? Metadata()
-            self.callback = callback
+            self.logger = logger
+            _callback = callback
+        }
+
+        deinit {
+            guard isSampled else { return }
+            lock.withReaderLockVoid {
+                if _state.hasEmitted == false {
+                    logger?.error("Segment \(_id) has not been emitted, current state: \(_state)")
+                }
+            }
+        }
+
+        // MARK: State
+
+        /// Updates `endTime` of the Segment.
+        ///
+        /// Has no effect if the segment has been already ended or emitted in which case an error will be logged.
+        public func end() {
+            try? end(Timestamp())
+        }
+
+        internal func end(_ timestamp: Timestamp) throws {
+            do {
+                try lock.withWriterLockVoid {
+                    switch _state {
+                    case .inProgress(let startTime):
+                        guard startTime < timestamp else {
+                            throw SegmentError.backToTheFuture
+                        }
+                        _state = .ended(started: startTime, ended: timestamp)
+                    case .ended:
+                        throw SegmentError.alreadyEnded
+                    case .emitted:
+                        throw SegmentError.alreadyEmitted
+                    }
+                }
+            } catch {
+                logger?.error("Failed to end segment: \(error)")
+                throw error
+            }
+        }
+
+        internal func emit() throws {
+            do {
+                try lock.withWriterLockVoid {
+                    switch _state {
+                    case .inProgress:
+                        // for now we limit sending of in-progress segments to subsegments
+                        // to make sure that their parent was already emitted
+                        throw SegmentError.inProgress
+                    case .ended(let started, let ended):
+                        let now = Timestamp()
+                        _state = .emitted(started: started, ended: ended, emitted: now)
+                    case .emitted:
+                        throw SegmentError.alreadyEmitted
+                    }
+                }
+            } catch {
+                logger?.error("Failed to emit segment: \(error)")
+                throw error
+            }
+        }
+
+        // MARK: Subsegments
+
+        public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
+            lock.withWriterLock {
+                // TODO: document/test/discuss where/how it should be updated and propagated
+                // for now the context contain the segment parentId
+                // while the baggage contains the segment id to be propagated as parent
+                var context = _context
+                context.parentId = _id
+                let newSegment = XRayRecorder.Segment(
+                    id: ID(), name: name,
+                    context: context, baggage: _baggage,
+                    subsegment: true,
+                    metadata: metadata,
+                    callback: self._callback
+                )
+                _subsegments.append(newSegment)
+                return newSegment
+            }
+        }
+
+        internal func subsegmentsInProgress() -> [XRayRecorder.Segment] {
+            lock.withReaderLock {
+                guard _subsegments.isEmpty == false else {
+                    return [XRayRecorder.Segment]()
+                }
+                var segmentsInProgess = [XRayRecorder.Segment]()
+                for segment in _subsegments {
+                    // add subsegment if in progress
+                    if segment.state.inProgress {
+                        segmentsInProgess.append(segment)
+                    }
+                    // otherwise check if any of its subsegments are in progress
+                    else {
+                        segmentsInProgess.append(contentsOf: segment.subsegmentsInProgress())
+                    }
+                }
+                return segmentsInProgess
+            }
+        }
+
+        // MARK: Errors and exceptions
+
+        internal func addException(_ exception: Exception) {
+            lock.withWriterLockVoid {
+                self._error = true
+                _cause.exceptions.append(exception)
+            }
+        }
+
+        public func addException(message: String, type: String? = nil) {
+            addException(Exception(message: message, type: type))
+        }
+
+        public func addError(_ error: Error) {
+            addException(Exception(error))
+        }
+
+        // MARK: HTTP request data
+
+        /// Records details about an HTTP request that your application served (in a segment) or
+        /// that your application made to a downstream HTTP API (in a subsegment).
+        ///
+        /// The IP address of the requester can be retrieved from the IP packet's `Source Address` or, for forwarded requests,
+        /// from an `X-Forwarded-For` header.
+        ///
+        /// Has no effect if the HTTP method is invalid in which case an error will be logged.
+        ///
+        /// - Parameters:
+        ///   - method: The request method. For example, `GET`.
+        ///   - url: The full URL of the request, compiled from the protocol, hostname, and path of the request.
+        ///   - userAgent: The user agent string from the requester's client.
+        ///   - clientIP: The IP address of the requester.
+        public func setHTTPRequest(method: String, url: String, userAgent: String? = nil, clientIP: String? = nil) {
+            let httpMethod = HTTPMethod(rawValue: method)
+            if case HTTPMethod.RAW(let rawValue) = httpMethod {
+                logger?.error("Invalid HTTP method: \(rawValue)")
+                return
+            }
+            lock.withWriterLockVoid {
+                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+                _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
+            }
+        }
+
+        /// Records details about an HTTP response that your application served (in a segment) or
+        /// that your application made to a downstream HTTP API (in a subsegment).
+        ///
+        /// Set one or more of the error fields:
+        /// - `error` - if response status code was 4XX Client Error
+        /// - `throttle` - if response status code was 429 Too Many Requests
+        /// - `fault` - if response status code was 5XX Server Error
+        ///
+        /// - Parameters:
+        ///   - status: HTTP status of the response.
+        ///   - contentLength: the length of the response body in bytes.
+        public func setHTTPResponse(status: UInt, contentLength: UInt? = nil) {
+            lock.withWriterLockVoid {
+                _http.response = HTTP.Response(status: status, contentLength: contentLength)
+
+                switch status {
+                case 400 ..< 500:
+                    _error = true
+                case 500 ..< 600:
+                    _fault = true
+                default:
+                    break
+                }
+
+                if status == 429 {
+                    _throttle = true
+                }
+            }
+        }
+
+        // MARK: Annotations
+
+        // TODO: Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+
+        internal func setAnnotation(_ value: AnnotationValue, forKey key: String) {
+            lock.withWriterLockVoid {
+                _annotations[key] = value
+            }
+        }
+
+        public func setAnnotation(_ value: String, forKey key: String) {
+            setAnnotation(.string(value), forKey: key)
+        }
+
+        public func setAnnotation(_ value: Bool, forKey key: String) {
+            setAnnotation(.bool(value), forKey: key)
+        }
+
+        public func setAnnotation(_ value: Int, forKey key: String) {
+            setAnnotation(.integer(value), forKey: key)
+        }
+
+        public func setAnnotation(_ value: Double, forKey key: String) {
+            setAnnotation(.double(value), forKey: key)
+        }
+
+        // MARK: Metadata
+
+        // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+
+        public func setMetadata(_ newElements: Metadata) {
+            lock.withWriterLockVoid {
+                for (k, v) in newElements {
+                    _metadata.updateValue(v, forKey: k)
+                }
+            }
+        }
+
+        public func setMetadata(_ value: AnyEncodable, forKey key: String) {
+            lock.withWriterLockVoid {
+                _metadata[key] = value
+            }
+        }
+
+        public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
+            lock.withWriterLockVoid {
+                if var array = _metadata[key]?.value as? [Any] {
+                    array.append(value.value)
+                    _metadata[key] = AnyEncodable(array)
+                } else {
+                    _metadata[key] = [value.value]
+                }
+            }
         }
     }
 }
@@ -257,6 +508,17 @@ private extension XRayRecorder.Segment.State {
     var inProgress: Bool {
         endTime == nil
     }
+
+    var hasEmitted: Bool {
+        switch self {
+        case .inProgress:
+            return false
+        case .ended:
+            return false
+        case .emitted:
+            return true
+        }
+    }
 }
 
 extension XRayRecorder.Segment.State: Equatable {}
@@ -270,191 +532,6 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
             return "ended @ \(ended.secondsSinceEpoch)"
         case .emitted(started: _, ended: _, let emitted):
             return "emitted @ \(emitted.secondsSinceEpoch)"
-        }
-    }
-}
-
-extension XRayRecorder.Segment {
-    /// Updates `endTime` of the Segment.
-    public func end() {
-        try? end(Timestamp())
-    }
-
-    internal func end(_ timestamp: Timestamp) throws {
-        try lock.withWriterLockVoid {
-            switch _state {
-            case .inProgress(let startTime):
-                guard startTime < timestamp else {
-                    throw SegmentError.startedInFuture
-                }
-                _state = .ended(started: startTime, ended: timestamp)
-            case .ended:
-                throw SegmentError.alreadyEnded
-            case .emitted:
-                throw SegmentError.alreadyEmitted
-            }
-        }
-    }
-
-    internal func emit() throws {
-        try lock.withWriterLockVoid {
-            switch _state {
-            case .inProgress:
-                // for now we limit sending of in-progress segments to subsegments
-                // to make sure that their parent was already emitted
-                throw SegmentError.inProgress
-            case .ended(let started, let ended):
-                let now = Timestamp()
-                _state = .emitted(started: started, ended: ended, emitted: now)
-            case .emitted:
-                throw SegmentError.alreadyEmitted
-            }
-        }
-    }
-}
-
-// MARK: - Subsegments
-
-extension XRayRecorder.Segment {
-    public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
-        lock.withWriterLock {
-            let newSegment = XRayRecorder.Segment(
-                id: ID(), name: name,
-                context: _context, baggage: _baggage,
-                subsegment: true,
-                metadata: metadata,
-                callback: self.callback
-            )
-            _subsegments.append(newSegment)
-            return newSegment
-        }
-    }
-
-    internal func subsegmentsInProgress() -> [XRayRecorder.Segment] {
-        lock.withReaderLock {
-            guard _subsegments.isEmpty == false else {
-                return [XRayRecorder.Segment]()
-            }
-            var segmentsInProgess = [XRayRecorder.Segment]()
-            for segment in _subsegments {
-                // add subsegment if in progress
-                if segment.state.inProgress {
-                    segmentsInProgess.append(segment)
-                }
-                // otherwise check if any of its subsegments are in progress
-                else {
-                    segmentsInProgess.append(contentsOf: segment.subsegmentsInProgress())
-                }
-            }
-            return segmentsInProgess
-        }
-    }
-}
-
-// MARK: - Errors and exceptions
-
-// TODO: rename to indicate that Exceptions/Errors are appended?
-
-extension XRayRecorder.Segment {
-    internal func setException(_ exception: Exception) {
-        lock.withWriterLockVoid {
-            self._error = true
-            _cause.exceptions.append(exception)
-        }
-    }
-
-    public func setException(message: String, type: String? = nil) {
-        setException(Exception(message: message, type: type))
-    }
-
-    public func setError(_ error: Error) {
-        setException(Exception(error))
-    }
-
-    internal func setError(_ httpError: HTTPError) {
-        lock.withWriterLockVoid {
-            _error = true
-            if let cause = httpError.cause {
-                _cause.exceptions.append(cause)
-            }
-            switch httpError {
-            case .throttle:
-                _throttle = true
-            case .server:
-                _fault = true
-            default:
-                break
-            }
-        }
-    }
-}
-
-// MARK: - Annotations
-
-// TODO: disable if not recording?
-
-extension XRayRecorder.Segment {
-    internal enum AnnotationValue {
-        case string(String)
-        case integer(Int)
-        case double(Double)
-        case bool(Bool)
-    }
-
-    private func setAnnotation(_ value: AnnotationValue, forKey key: String) {
-        lock.withWriterLockVoid {
-            _annotations[key] = value
-        }
-    }
-
-    public func setAnnotation(_ value: String, forKey key: String) {
-        setAnnotation(.string(value), forKey: key)
-    }
-
-    public func setAnnotation(_ value: Bool, forKey key: String) {
-        setAnnotation(.bool(value), forKey: key)
-    }
-
-    public func setAnnotation(_ value: Int, forKey key: String) {
-        setAnnotation(.integer(value), forKey: key)
-    }
-
-    public func setAnnotation(_ value: Double, forKey key: String) {
-        setAnnotation(.double(value), forKey: key)
-    }
-}
-
-extension XRayRecorder.Segment.AnnotationValue: Equatable {}
-
-// MARK: - Metadata
-
-extension XRayRecorder.Segment {
-    public func setMetadata(_ newElements: Metadata) {
-        lock.withWriterLockVoid {
-            for (k, v) in newElements {
-                _metadata.updateValue(v, forKey: k)
-            }
-        }
-    }
-
-    public func setMetadata(_ value: AnyEncodable, forKey key: String) {
-        lock.withWriterLockVoid {
-            _metadata[key] = value
-        }
-    }
-
-    // TODO: consider changing name, describe what exactly it does
-
-    // TODO: add tests
-
-    public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
-        lock.withWriterLockVoid {
-            if var array = _metadata[key]?.value as? [Any] {
-                array.append(value.value)
-                _metadata[key] = AnyEncodable(array)
-            } else {
-                _metadata[key] = [value.value]
-            }
         }
     }
 }
@@ -510,24 +587,29 @@ extension XRayRecorder.Segment: Encodable {
             }
             try container.encodeIfPresent(type, forKey: .type)
             try container.encodeIfPresent(_context.parentId, forKey: .parentId)
-            try container.encodeIfPresent(service, forKey: .service)
-            try container.encodeIfPresent(user, forKey: .user)
-            try container.encodeIfPresent(origin, forKey: .origin)
-            try container.encodeIfPresent(http, forKey: .http)
-            try container.encodeIfPresent(aws, forKey: .aws)
+            try container.encodeIfPresent(_service, forKey: .service)
+            try container.encodeIfPresent(_user, forKey: .user)
+            try container.encodeIfPresent(_origin, forKey: .origin)
+            if _http.request != nil || _http.response != nil {
+                try container.encode(_http, forKey: .http)
+            }
+            try container.encodeIfPresent(_aws, forKey: .aws)
             try container.encodeIfPresent(_error, forKey: ._error)
             try container.encodeIfPresent(_throttle, forKey: ._throttle)
             try container.encodeIfPresent(_fault, forKey: ._fault)
             if _cause.exceptions.isEmpty == false {
                 try container.encode(_cause, forKey: ._cause)
             }
-            try container.encodeIfPresent(namespace, forKey: .namespace)
-            try container.encodeIfPresent(precursorIDs, forKey: .precursorIDs)
             try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
             // do not throw if encoding of AnyCodable failed
             // TODO: make it configurable, maybe safer not to throw in production
             try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
             try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
+            // subsegments only
+            if _context.parentId != nil {
+                try container.encodeIfPresent(_namespace, forKey: .namespace)
+                try container.encodeIfPresent(_precursorIDs, forKey: .precursorIDs)
+            }
         }
     }
 }
