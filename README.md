@@ -154,31 +154,13 @@ public protocol XRayEmitter {
 }
 ```
 
-example of an emitter which logs emitted segments (included in `AWSXRayTesting` library):
+it may also implement `XRayNIOEmitter`:
 
 ```swift
-public struct XRayLogEmitter: XRayEmitter {
-    private let logger: Logger
-    private let encoding: XRayRecorder.Segment.Encoding
-
-    public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
-        self.logger = logger
-        self.encoding = encoding ?? FoundationJSON.segmentEncoding
-    }
-
-    public func send(_ segment: XRayRecorder.Segment) {
-        do {
-            let document: String = try encoding.encode(segment)
-            logger.info("\n\(document)")
-        } catch {
-            logger.error("Failed to encode a segment: \(error)")
-        }
-    }
-
-    public func flush(_: @escaping (Error?) -> Void) {}
+public protocol XRayNIOEmitter: XRayEmitter {
+    func flush(on eventLoop: EventLoop?) -> EventLoopFuture<Void>
 }
 ```
-
 
 The emitter has to be provided when creating an instance of `XRayRecorder`:
 
@@ -190,7 +172,7 @@ let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 
  You can run the AWS X-Ray daemon locally or in a Docker container, see [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
 
-You can use the `XRayLogEmitter` to "emit" the segments to a console:
+You can use the `XRayLogEmitter` from `AWSXRayTesting` to "emit" the segments to a console:
 
 ```swift
 import AWSXRaySDK
