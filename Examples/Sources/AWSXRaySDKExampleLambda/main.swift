@@ -11,19 +11,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AnyCodable
 import AWSLambdaEvents
 import AWSLambdaRuntime
-import AWSXRayRecorder
-import NIO
+import AWSXRaySDK
+import NIO // usleep
 
 // TODO: Implement AWS plugins https://github.com/pokryfka/aws-xray-sdk-swift/issues/26
 
-private var metadata: XRayRecorder.Segment.Metadata = {
-    let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
-    let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
-        .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
-    return XRayRecorder.Segment.Metadata(uniqueKeysWithValues: metadataKeyValues)
+private var metadata: XRayRecorder.Segment.Metadata? = {
+//    let metadataKeys: [AWSLambdaEnv] = [.functionName, .funtionVersion, .memorySizeInMB]
+//    let metadataKeyValues = zip(metadataKeys, metadataKeys.map(\.value))
+//        .filter { $0.1 != nil }.map { ($0.0.rawValue, AnyEncodable($0.1)) }
+//    return XRayRecorder.Segment.Metadata(uniqueKeysWithValues: metadataKeyValues)
+    nil
 }()
 
 private struct ExampleLambdaHandler: EventLoopLambdaHandler {

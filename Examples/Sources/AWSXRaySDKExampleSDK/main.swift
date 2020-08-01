@@ -13,7 +13,7 @@
 
 import AsyncHTTPClient
 import AWSS3
-import AWSXRayRecorder
+import AWSXRaySDK
 import NIO
 
 func env(_ name: String) -> String? {
@@ -37,13 +37,7 @@ defer {
     try? httpClient.syncShutdown()
 }
 
-let recorder = XRayRecorder(
-    config: .init(enabled: true,
-                  daemonEndpoint: "127.0.0.1:2000",
-                  logLevel: .debug,
-                  serviceVersion: "aws-xray-sdk-swift-example-sdk"),
-    eventLoopGroup: group
-)
+let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))
 
 // TODO: WIP https://github.com/pokryfka/aws-xray-sdk-swift/issues/19
 

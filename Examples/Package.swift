@@ -8,39 +8,37 @@ let package = Package(
         .macOS(.v10_14),
     ],
     products: [
-        .executable(name: "AWSXRayRecorderExample", targets: ["AWSXRayRecorderExample"]),
-        .executable(name: "AWSXRayRecorderExampleSDK", targets: ["AWSXRayRecorderExampleSDK"]),
-        .executable(name: "AWSXRayRecorderExampleLambda", targets: ["AWSXRayRecorderExampleLambda"]),
+        .executable(name: "AWSXRaySDKExample", targets: ["AWSXRaySDKExample"]),
+        .executable(name: "AWSXRaySDKExampleSDK", targets: ["AWSXRaySDKExampleSDK"]),
+        .executable(name: "AWSXRaySDKExampleLambda", targets: ["AWSXRaySDKExampleLambda"]),
     ],
     dependencies: [
         .package(name: "aws-xray-sdk-swift", path: ".."),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
         .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
-        .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
     ],
     targets: [
         .target(
-            name: "AWSXRayRecorderExample",
+            name: "AWSXRaySDKExample",
             dependencies: [
-                .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
+                .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
             ]
         ),
         .target(
-            name: "AWSXRayRecorderExampleSDK",
+            name: "AWSXRaySDKExampleSDK",
             dependencies: [
-                .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
+                .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "AWSS3", package: "aws-sdk-swift"),
             ]
         ),
         .target(
-            name: "AWSXRayRecorderExampleLambda",
+            name: "AWSXRaySDKExampleLambda",
             dependencies: [
-                .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
-                .product(name: "AnyCodable", package: "AnyCodable"),
-                .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
+                .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
+                .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-runtime"),
             ]
         ),
     ]
