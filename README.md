@@ -24,11 +24,9 @@ Add the package dependency to your package [Swift Package Manager](https://swift
 and `AWSXRaySDK` library to your target (here `AWSXRaySDKExample`):
 
 ```swift
-.target(name: "AWSXRaySDKExample",
-        dependencies: [
-            .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
-        ]
-)
+.target(name: "AWSXRaySDKExample", dependencies: [
+    .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
+])
 ```
 
 ### Recording
@@ -114,7 +112,7 @@ Make sure all segments are sent before program exits:
 recorder.wait()
 ```
 
-or, if using [SwiftNIO](https://github.com/apple/swift-nio):
+or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:
 
 ```swift
 try recorder.flush(on: eventLoop).wait()
@@ -140,8 +138,7 @@ The library’s behavior can be configured using environment variables:
 Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will **override** environment variables:
 
 ```swift
-let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))
-)                  
+let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))              
 ```
 
 ### Custom emitter
@@ -193,7 +190,7 @@ let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 
  You can run the AWS X-Ray daemon locally or in a Docker container, see [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
 
-You can also use the `XRayLogEmitter`:
+You can use the `XRayLogEmitter` to "emit" the segments to a console:
 
 ```swift
 import AWSXRaySDK
