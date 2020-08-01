@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-extension XRayRecorder {
-    /// Encodes segment to string with JSON document.
-    public typealias SegmentEncoder = (XRayRecorder.Segment) throws -> String
+internal extension String {
+    /// - returns: A 32-bit identifier in 8 hexadecimal digits.
+    static func random32() -> String {
+        String(UInt32.random(in: UInt32.min ... UInt32.max) | 1 << 31, radix: 16, uppercase: false)
+    }
 }

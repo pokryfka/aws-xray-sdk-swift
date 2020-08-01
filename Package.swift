@@ -8,8 +8,11 @@ let package = Package(
         .macOS(.v10_14),
     ],
     products: [
+        // the core library without emitter, no dependency on Foundation
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
-        // for testing only
+        // UDP emitter without JSON encoder, no dependency on Foundation
+        .library(name: "AWSXRayUDPEmitterCore", targets: ["AWSXRayUDPEmitterCore"]),
+        // for testing only, may have dependency on Foundation
         .library(name: "AWSXRayTesting", targets: ["AWSXRayTesting"]),
     ],
     dependencies: [
@@ -32,6 +35,17 @@ let package = Package(
         .testTarget(
             name: "AWSXRayRecorderTests",
             dependencies: [.target(name: "AWSXRayRecorder")]
+        ),
+        .target(
+            name: "AWSXRayUDPEmitterCore",
+            dependencies: [
+                .target(name: "AWSXRayRecorder"),
+//                .product(name: "Logging", package: "swift-log"),
+            ]
+        ),
+        .testTarget(
+            name: "AWSXRayUDPEmitterCoreTests",
+            dependencies: [.target(name: "AWSXRayUDPEmitterCore")]
         ),
         .target(
             name: "AWSXRayTesting",

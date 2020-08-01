@@ -14,31 +14,25 @@
 import AWSXRayRecorder
 import Logging
 
-private extension String {
-    /// - returns: A 32-bit identifier in 8 hexadecimal digits.
-    static func random32() -> String {
-        String(UInt32.random(in: UInt32.min ... UInt32.max) | 1 << 31, radix: 16, uppercase: false)
-    }
-}
-
+/// "Emits" segments by logging them using provided logger instance.
 public struct XRayLogEmitter: XRayEmitter {
     private let logger: Logger
-    private let encoder: XRayRecorder.SegmentEncoder
+    private let encoding: XRayRecorder.Segment.Encoding
 
-    public init(logger: Logger, encoder: @escaping XRayRecorder.SegmentEncoder) {
+    public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
         self.logger = logger
-        self.encoder = encoder
+        self.encoding = encoding ?? FoundationJSON.encoding
     }
 
-    public init(label: String? = nil, encoder: XRayRecorder.SegmentEncoder? = nil) {
+    public init(label: String? = nil, encoding: XRayRecorder.Segment.Encoding? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
         logger = Logger(label: label)
-        self.encoder = encoder ?? FoundationJSON.segmentEncoder
+        self.encoding = encoding ?? FoundationJSON.encoding
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
         do {
-            let document: String = try encoder(segment)
+            let document: String = try encoding.encode(segment)
             logger.info("\n\(document)")
         } catch {
             logger.error("Failed to encode a segment: \(error)")

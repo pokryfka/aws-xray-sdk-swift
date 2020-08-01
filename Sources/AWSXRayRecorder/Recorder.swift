@@ -33,6 +33,8 @@ public class XRayRecorder {
 
     internal init(emitter: XRayEmitter, config: Config = Config(), logger: Logger) {
         self.config = config
+        var logger = logger
+        logger.logLevel = config.logLevel
         self.logger = logger
         self.emitter = emitter
     }
@@ -40,7 +42,7 @@ public class XRayRecorder {
     public convenience init(emitter: XRayEmitter, config: Config = Config()) {
         let logger = Logger(label: "xray.recorder.\(String.random32())")
         if !config.enabled {
-            // disable the emitter, een if provided, if disabled
+            // disable the emitter, even if provided, if recording is disabled
             self.init(emitter: XRayNoOpEmitter(), config: config, logger: logger)
         } else {
             self.init(emitter: emitter, config: config, logger: logger)

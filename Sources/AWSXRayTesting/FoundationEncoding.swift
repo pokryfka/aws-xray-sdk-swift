@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
+
 import struct Foundation.Data
 import class Foundation.JSONEncoder
 
@@ -21,14 +22,11 @@ private extension JSONEncoder {
     }
 }
 
-private let jsonEncoder: JSONEncoder = {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = .prettyPrinted
-    return encoder
-}()
-
-public enum FoundationJSON {
-    public static let segmentEncoder: XRayRecorder.SegmentEncoder = { segment in
-        try jsonEncoder.encode(segment)
-    }
+internal enum FoundationJSON {
+    public static let encoding: XRayRecorder.Segment.Encoding = {
+        let jsonEncoder = JSONEncoder()
+        return XRayRecorder.Segment.Encoding { segment in
+            try jsonEncoder.encode(segment) as String
+        }
+    }()
 }

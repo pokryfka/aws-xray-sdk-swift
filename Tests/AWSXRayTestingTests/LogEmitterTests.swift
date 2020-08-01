@@ -21,7 +21,7 @@ final class LogEmitterTests: XCTestCase {
     func testEmmiting() {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })
-        let emitter = XRayLogEmitter(logger: logger, encoder: FoundationJSON.segmentEncoder)
+        let emitter = XRayLogEmitter(logger: logger)
         let recorder = XRayRecorder(emitter: emitter)
         let context = XRayRecorder.TraceContext()
 

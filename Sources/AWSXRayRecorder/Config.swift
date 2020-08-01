@@ -23,21 +23,18 @@ public extension XRayRecorder {
         }
 
         internal let enabled: Bool
-        internal let daemonEndpoint: String
         internal let contextMissingStrategy: ContextMissingStrategy
         internal let logLevel: Logger.Level
         internal let serviceVersion: String
 
         internal init(
             enabled: Bool? = nil,
-            daemonEndpoint: String? = nil,
             contextMissingStrategy: ContextMissingStrategy? = nil,
             logLevel: Logger.Level? = nil,
             serviceVersion: String? = nil,
             env: (String) -> String?
         ) {
             self.enabled = enabled ?? (env("AWS_XRAY_SDK_ENABLED").flatMap(Bool.init) ?? true)
-            self.daemonEndpoint = daemonEndpoint ?? env("AWS_XRAY_DAEMON_ADDRESS") ?? "127.0.0.1:2000"
             self.contextMissingStrategy = contextMissingStrategy ??
                 env("AWS_XRAY_CONTEXT_MISSING").flatMap(ContextMissingStrategy.init) ?? .logError
             self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
@@ -58,37 +55,20 @@ public extension XRayRecorder {
         ///   - serviceVersion: A string that identifies the version of your application that served the request, `aws-xray-sdk-swift` by default.
         public init(
             enabled: Bool? = nil,
-            daemonEndpoint: String? = nil,
             contextMissingStrategy: ContextMissingStrategy? = nil,
             logLevel: Logger.Level? = nil,
             serviceVersion: String? = nil
         ) {
-            self.init(enabled: enabled, daemonEndpoint: daemonEndpoint,
-                      contextMissingStrategy: contextMissingStrategy, logLevel: logLevel,
-                      serviceVersion: serviceVersion, env: _env)
-        }
-    }
-}
-
-extension XRayUDPEmitter {
-    internal struct Config {
-        let daemonEndpoint: String
-        let logLevel: Logger.Level
-
-        init(logLevel: Logger.Level? = nil, daemonEndpoint: String? = nil, env: (String) -> String? = _env) {
-            self.daemonEndpoint = daemonEndpoint ?? env("AWS_XRAY_DAEMON_ADDRESS") ?? "127.0.0.1:2000"
-            self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
-        }
-
-        init(_ config: XRayRecorder.Config) {
-            daemonEndpoint = config.daemonEndpoint
-            logLevel = config.logLevel
+            self.init(enabled: enabled,
+                      contextMissingStrategy: contextMissingStrategy,
+                      logLevel: logLevel,
+                      serviceVersion: serviceVersion,
+                      env: _env)
         }
     }
 }
 
 extension XRayRecorder.Config: Equatable {}
-extension XRayUDPEmitter.Config: Equatable {}
 
 #if canImport(Darwin)
 import Darwin

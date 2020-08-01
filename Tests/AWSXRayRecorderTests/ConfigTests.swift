@@ -16,32 +16,19 @@ import XCTest
 
 @testable import AWSXRayRecorder
 
+private typealias Config = XRayRecorder.Config
+
 final class ConfigTests: XCTestCase {
     func testDefaultConfig() {
-        let config = XRayRecorder.Config()
+        let config = Config()
         XCTAssertTrue(config.enabled)
-        XCTAssertEqual("127.0.0.1:2000", config.daemonEndpoint)
         XCTAssertEqual(XRayRecorder.Config.ContextMissingStrategy.logError, config.contextMissingStrategy)
         XCTAssertEqual(Logger.Level.info, config.logLevel)
         XCTAssertEqual("aws-xray-sdk-swift", config.serviceVersion)
-
-        let emitterConfig = XRayUDPEmitter.Config()
-        XCTAssertEqual("127.0.0.1:2000", emitterConfig.daemonEndpoint)
-        XCTAssertEqual(Logger.Level.info, emitterConfig.logLevel)
-
-        XCTAssertEqual(config.daemonEndpoint, emitterConfig.daemonEndpoint)
-        XCTAssertEqual(config.logLevel, emitterConfig.logLevel)
-    }
-
-    func testCopyConfig() {
-        let config = XRayRecorder.Config(daemonEndpoint: "127.0.0.1:4000", logLevel: .debug)
-        let emitterConfig = XRayUDPEmitter.Config(config)
-        XCTAssertEqual(config.daemonEndpoint, emitterConfig.daemonEndpoint)
-        XCTAssertEqual(config.logLevel, emitterConfig.logLevel)
     }
 
     func testEnvDisabled() {
-        let config = XRayRecorder.Config { key in
+        let config = Config { key in
             if key == "AWS_XRAY_SDK_ENABLED" {
                 return "false"
             } else {
@@ -52,7 +39,7 @@ final class ConfigTests: XCTestCase {
     }
 
     func testEnvEnabledTrue() {
-        let config = XRayRecorder.Config { key in
+        let config = Config { key in
             if key == "AWS_XRAY_SDK_ENABLED" {
                 return "true"
             } else {
@@ -63,7 +50,7 @@ final class ConfigTests: XCTestCase {
     }
 
     func testEnvEnabledOverride() {
-        let config = XRayRecorder.Config(enabled: true) { key in
+        let config = Config(enabled: true) { key in
             if key == "AWS_XRAY_SDK_ENABLED" {
                 return "false"
             } else {
@@ -74,10 +61,10 @@ final class ConfigTests: XCTestCase {
     }
 
     func testEnvEnabledDefault() {
-        let defaultConfig = XRayRecorder.Config()
+        let defaultConfig = Config()
         let invalidValues: [String?] = [nil, "True", "TRUE", "FALSE"]
         for value in invalidValues {
-            let config = XRayRecorder.Config { key in
+            let config = Config { key in
                 if key == "AWS_XRAY_SDK_ENABLED" {
                     return value
                 } else {
@@ -88,22 +75,8 @@ final class ConfigTests: XCTestCase {
         }
     }
 
-    func testEnvDaemonEndpoint() {
-        // TODO: validate?
-        for value in ["True", "TRUE", "FALSE"] {
-            let config = XRayRecorder.Config { key in
-                if key == "AWS_XRAY_DAEMON_ADDRESS" {
-                    return value
-                } else {
-                    return nil
-                }
-            }
-            XCTAssertEqual(value, config.daemonEndpoint)
-        }
-    }
-
     func testEnvContextMissingStrategyLogError() {
-        let config = XRayRecorder.Config { key in
+        let config = Config { key in
             if key == "AWS_XRAY_CONTEXT_MISSING" {
                 return "LOG_ERROR"
             } else {
@@ -114,7 +87,7 @@ final class ConfigTests: XCTestCase {
     }
 
     func testEnvContextMissingStrategyRuntimeError() {
-        let config = XRayRecorder.Config { key in
+        let config = Config { key in
             if key == "AWS_XRAY_CONTEXT_MISSING" {
                 return "RUNTIME_ERROR"
             } else {
@@ -125,11 +98,37 @@ final class ConfigTests: XCTestCase {
     }
 
     func testEnvContextMissingDefault() {
-        let defaultConfig = XRayRecorder.Config()
+        let defaultConfig = Config()
         let invalidValues: [String?] = [nil, "LogError", "log_error", "RuntimeError", "runtime_error"]
         for value in invalidValues {
-            let config = XRayRecorder.Config { key in
+            let config = Config { key in
                 if key == "LOG_ERROR" {
+                    return value
+                } else {
+                    return nil
+                }
+            }
+            XCTAssertEqual(defaultConfig, config)
+        }
+    }
+
+    func testEnvLogLevelError() {
+        let config = Config { key in
+            if key == "XRAY_RECORDER_LOG_LEVEL" {
+                return "error"
+            } else {
+                return nil
+            }
+        }
+        XCTAssertEqual(Logger.Level.error, config.logLevel)
+    }
+
+    func testEnvLogLevelDefault() {
+        let defaultConfig = Config()
+        let invalidValues: [String?] = [nil, "DEBUG", "test"]
+        for value in invalidValues {
+            let config = Config { key in
+                if key == "XRAY_RECORDER_LOG_LEVEL" {
                     return value
                 } else {
                     return nil
