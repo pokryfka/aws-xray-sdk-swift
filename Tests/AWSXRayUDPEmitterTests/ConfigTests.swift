@@ -41,7 +41,7 @@ final class ConfigTests: XCTestCase {
 
     func testEnvLogLevelError() {
         let config = Config { key in
-            if key == "XRAY_RECORDER_LOG_LEVEL" {
+            if key == "XRAY_EMITTER_LOG_LEVEL" {
                 return "error"
             } else {
                 return nil
@@ -55,7 +55,7 @@ final class ConfigTests: XCTestCase {
         let invalidValues: [String?] = [nil, "DEBUG", "test"]
         for value in invalidValues {
             let config = Config { key in
-                if key == "XRAY_RECORDER_LOG_LEVEL" {
+                if key == "XRAY_EMITTER_LOG_LEVEL" {
                     return value
                 } else {
                     return nil

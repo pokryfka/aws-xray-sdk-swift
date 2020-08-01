@@ -133,7 +133,8 @@ The library’s behavior can be configured using environment variables:
 - `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
     - `RUNTIME_ERROR` - Indicate that a precondition was violated.
     - `LOG_ERROR` - Log an error and continue (default).
-- `XRAY_RECORDER_LOG_LEVEL` - [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+- `XRAY_RECORDER_LOG_LEVEL` - recorder [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+- `XRAY_EMITTER_LOG_LEVEL` - emitter [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
 
 Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will **override** environment variables:
 

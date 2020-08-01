@@ -20,7 +20,7 @@ extension XRayUDPEmitter {
 
         internal init(daemonEndpoint: String? = nil, logLevel: Logger.Level? = nil, env: (String) -> String?) {
             self.daemonEndpoint = daemonEndpoint ?? env("AWS_XRAY_DAEMON_ADDRESS") ?? "127.0.0.1:2000"
-            self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
+            self.logLevel = logLevel ?? env("XRAY_EMITTER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
         }
 
         /// - Parameters:
