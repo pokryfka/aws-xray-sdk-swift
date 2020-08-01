@@ -12,22 +12,22 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
-import PureSwiftJSON
 
-internal extension XRayRecorder.Segment.Encoding {
-    enum EncodingError: Error {
-        case failedToCreateString
+import struct Foundation.Data
+import class Foundation.JSONEncoder
+
+private extension JSONEncoder {
+    func encode<T: Encodable>(_ value: T) throws -> String {
+        String(decoding: try encode(value), as: UTF8.self)
     }
+}
 
-    internal static let `default`: XRayRecorder.Segment.Encoding = {
-        let jsonEncoder = PSJSONEncoder()
+internal enum FoundationJSON {
+    internal static let segmentEncoding: XRayRecorder.Segment.Encoding = {
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = .prettyPrinted
         return XRayRecorder.Segment.Encoding { segment in
-            let bytes = try jsonEncoder.encode(segment)
-            if let string = String(bytes: bytes, encoding: .utf8) {
-                return string
-            } else {
-                throw EncodingError.failedToCreateString
-            }
+            try jsonEncoder.encode(segment) as String
         }
     }()
 }

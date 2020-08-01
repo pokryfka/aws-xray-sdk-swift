@@ -12,27 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
-import Foundation
-import IkigaJSON
-import PureSwiftJSON
 import XCTest
 
 private typealias Segment = XRayRecorder.Segment
-
-private protocol SegmentEncoder {
-    func encode(_ value: Segment) throws -> Data
-}
-
-extension PureSwiftJSON.PSJSONEncoder {
-    public func encode<T>(_ value: T) throws -> Data where T: Encodable {
-        let bytes: [UInt8] = try encode(value)
-        return Data(bytes)
-    }
-}
-
-extension Foundation.JSONEncoder: SegmentEncoder {}
-extension IkigaJSON.IkigaJSONEncoder: SegmentEncoder {} // has dependency on Foundation.Data
-extension PureSwiftJSON.PSJSONEncoder: SegmentEncoder {}
+private typealias SegmentEncoding = XRayRecorder.Segment.Encoding
 
 final class EncodingTests: XCTestCase {
     override func setUp() {
@@ -44,31 +27,37 @@ final class EncodingTests: XCTestCase {
     private let segment: Segment = {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), config: .init(logLevel: .error))
         let segment = recorder.beginSegment(name: "Root Segment", context: .init())
-        // TODO: add metadata?
+        segment.setAnnotation("key", forKey: "value")
+        segment.setMetadata(["key": 42])
+        segment.addException(message: "Root Segment Exception")
         for i in 1 ... 10 {
-            segment.subsegment(name: "Subsegment \(i)") { _ in }
+            segment.subsegment(name: "Subsegment \(i)") { segment in
+                segment.setAnnotation("key", forKey: "value")
+                segment.setMetadata(["key": 42])
+                segment.addException(message: "Subsegment \(i) Exception")
+            }
         }
         segment.end()
         return segment
     }()
 
-    private func measureEncoding(_ segment: Segment, encoder: SegmentEncoder, count: UInt = 1000) {
+    private func measureEncoding(_ segment: Segment, encoding: SegmentEncoding, count: UInt = 1000) {
         measure {
             for _ in 0 ..< count {
-                _ = try! encoder.encode(segment)
+                _ = try! encoding.encode(segment)
             }
         }
     }
 
     func testEncodingUsingFoundationJSON() {
-        measureEncoding(segment, encoder: Foundation.JSONEncoder())
+        measureEncoding(segment, encoding: FoundationJSON.segmentEncoding)
     }
 
     func testEncodingUsingIkigaJSON() {
-        measureEncoding(segment, encoder: IkigaJSON.IkigaJSONEncoder())
+        measureEncoding(segment, encoding: Ikiga.segmentEncoding)
     }
 
     func testEncodingUsingPureSwiftJSON() {
-        measureEncoding(segment, encoder: PureSwiftJSON.PSJSONEncoder())
+        measureEncoding(segment, encoding: PureSwift.segmentEncoding)
     }
 }

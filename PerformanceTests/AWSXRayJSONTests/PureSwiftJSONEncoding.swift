@@ -14,12 +14,12 @@
 import AWSXRayRecorder
 import PureSwiftJSON
 
-internal extension XRayRecorder.Segment.Encoding {
+public enum PureSwift {
     enum EncodingError: Error {
         case failedToCreateString
     }
 
-    internal static let `default`: XRayRecorder.Segment.Encoding = {
+    public static let segmentEncoding: XRayRecorder.Segment.Encoding = {
         let jsonEncoder = PSJSONEncoder()
         return XRayRecorder.Segment.Encoding { segment in
             let bytes = try jsonEncoder.encode(segment)

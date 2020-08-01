@@ -12,22 +12,14 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
-import PureSwiftJSON
+@_exported import IkigaJSON
 
-internal extension XRayRecorder.Segment.Encoding {
-    enum EncodingError: Error {
-        case failedToCreateString
-    }
-
-    internal static let `default`: XRayRecorder.Segment.Encoding = {
-        let jsonEncoder = PSJSONEncoder()
+internal enum Ikiga {
+    internal static let segmentEncoding: XRayRecorder.Segment.Encoding = {
+        let jsonEncoder = IkigaJSONEncoder()
         return XRayRecorder.Segment.Encoding { segment in
-            let bytes = try jsonEncoder.encode(segment)
-            if let string = String(bytes: bytes, encoding: .utf8) {
-                return string
-            } else {
-                throw EncodingError.failedToCreateString
-            }
+            let data = try jsonEncoder.encode(segment) // uses Foundation.Data
+            return String(decoding: data, as: UTF8.self)
         }
     }()
 }

@@ -25,7 +25,6 @@ let package = Package(
             name: "AWSXRayJSONTests",
             dependencies: [
                 .product(name: "AWSXRayRecorder", package: "aws-xray-sdk-swift"),
-                .product(name: "AWSXRayTesting", package: "aws-xray-sdk-swift"),
                 .product(name: "IkigaJSON", package: "IkigaJSON"),
                 .product(name: "PureSwiftJSON", package: "pure-swift-json"),
             ],

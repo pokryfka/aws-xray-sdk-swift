@@ -21,13 +21,13 @@ public struct XRayLogEmitter: XRayEmitter {
 
     public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
         self.logger = logger
-        self.encoding = encoding ?? FoundationJSON.encoding
+        self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
     public init(label: String? = nil, encoding: XRayRecorder.Segment.Encoding? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
         logger = Logger(label: label)
-        self.encoding = encoding ?? FoundationJSON.encoding
+        self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
