@@ -15,11 +15,14 @@ import XCTest
 
 import Baggage
 import Instrumentation
+import TracingInstrumentation
 
 @testable import AWSXRayInstrument
 @testable import AWSXRayRecorder
 
 // TODO: test encoding BaggageContext, Events, Links ...
+
+private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
 
 final class SpanTests: XCTestCase {
     func testCreatingSpanWithoutParentSampled() {

@@ -17,6 +17,7 @@ import Baggage
 import Instrumentation
 import NIOHTTP1
 import NIOInstrumentation
+import TracingInstrumentation
 
 @testable import AWSXRayInstrument
 @testable import AWSXRayRecorder
@@ -24,6 +25,8 @@ import NIOInstrumentation
 private enum AmazonHeaders {
     static let traceId = "X-Amzn-Trace-Id"
 }
+
+private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
 
 final class InstrumentTests: XCTestCase {
     func testExtractingContext() {

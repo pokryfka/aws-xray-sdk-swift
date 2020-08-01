@@ -14,19 +14,17 @@
 import AnyCodable
 import AWSXRayRecorder
 import Baggage
-import Dispatch // TODO: remove
 import Instrumentation
-
-public typealias Timestamp = DispatchTime
+import TracingInstrumentation
 
 // TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
 
-extension XRayRecorder.Segment: Instrumentation.Span {
+extension XRayRecorder.Segment: TracingInstrumentation.Span {
     public var operationName: String { name }
 
     public var kind: SpanKind { .internal }
 
-    public var status: SpanStatus? {
+    public var status: TracingInstrumentation.SpanStatus? {
         get { nil } // TODO: getter to be removed
         set(newValue) {
             if let status = newValue {
@@ -35,11 +33,10 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         }
     }
 
-    public func setStatus(_ status: SpanStatus) {
+    public func setStatus(_ status: TracingInstrumentation.SpanStatus) {
         // TODO: should the status be set just once?
-        guard status.cannonicalCode != .ok else { return }
-        // note that contrary to what the name may suggest, exceptions are added not set
-        setException(message: status.message ?? "\(status.cannonicalCode)", type: "\(status.cannonicalCode)")
+        guard status.canonicalCode != .ok else { return }
+        addException(message: status.message ?? "\(status.canonicalCode)", type: "\(status.canonicalCode)")
     }
 
     public var startTimestamp: Timestamp { .now() } // TODO: getter to be removed
@@ -47,13 +44,13 @@ extension XRayRecorder.Segment: Instrumentation.Span {
     public var endTimestamp: Timestamp? { nil } // TODO: getter to be removed
 
     public func end(at timestamp: Timestamp) {
-        // TODO: setting entTime explicitly is currently not exposed (internal)
+        // setting endTime explicitly is not supported
         end()
     }
 
     public var events: [SpanEvent] { [SpanEvent]() } // TODO: getter to be removed
 
-    public func addEvent(_ event: SpanEvent) {
+    public func addEvent(_ event: TracingInstrumentation.SpanEvent) {
         // XRay segment does not have direct Span Event equivalent
         // Arguably the closest match is a subsegment with startTime == endTime (?)
         // TODO: test different approaches, make it configurable
@@ -102,11 +99,9 @@ extension XRayRecorder.Segment: Instrumentation.Span {
         setMetadata(AnyEncodable(value), forKey: MetadataKeys.attribute(key))
     }
 
-    public var isRecording: Bool {
-        baggage.xRayContext?.sampled == .sampled
-    }
+    public var isRecording: Bool { isSampled }
 
-    public func addLink(_ link: SpanLink) {
+    public func addLink(_ link: TracingInstrumentation.SpanLink) {
         appendMetadata("\(link)", forKey: MetadataKeys.links)
     }
 }
@@ -121,14 +116,14 @@ private enum MetadataKeys {
 
 // TODO: use AnyCodable to box Encodable and CustomStringConvertible values
 
-extension Instrumentation.SpanEvent: CustomStringConvertible {
+extension TracingInstrumentation.SpanEvent: CustomStringConvertible {
     public var description: String {
         // TODO: add attributes and timestamp after their types are updated
         "SpanEvent(name: \(name))"
     }
 }
 
-extension Instrumentation.SpanLink: CustomStringConvertible {
+extension TracingInstrumentation.SpanLink: CustomStringConvertible {
     public var description: String {
         // TODO: add attributes and timestamp after their types are updated
         "SpanLink(name: \(context))"

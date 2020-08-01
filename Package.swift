@@ -25,7 +25,7 @@ let package = Package(
         .package(url: "https://github.com/Flight-School/AnyCodable.git", .upToNextMajor(from: "0.3.0")),
         .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.1.0")),
         .package(url: "https://github.com/fabianfett/pure-swift-json.git", .upToNextMinor(from: "0.4.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("2d9bd96dac591dec215c5614766ce15d81cbbf8e")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("e0cb182bf3966061da7d70de1bbf40ad211aba21")),
     ],
     targets: [
         .target(
@@ -79,7 +79,7 @@ let package = Package(
             name: "AWSXRayInstrument",
             dependencies: [
                 .target(name: "AWSXRayRecorder"),
-                .product(name: "Instrumentation", package: "gsoc-swift-tracing"),
+                .product(name: "TracingInstrumentation", package: "gsoc-swift-tracing"),
             ]
         ),
         .testTarget(
