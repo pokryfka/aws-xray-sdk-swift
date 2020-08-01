@@ -14,7 +14,7 @@
 import NIO
 import XCTest
 
-@testable import AWSXRayUDPEmitterCore
+@testable import AWSXRayUDPEmitter
 
 final class NIOHelpersTests: XCTestCase {
     func testSocketAddressParsingPositive() {

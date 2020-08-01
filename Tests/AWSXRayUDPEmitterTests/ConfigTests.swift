@@ -14,7 +14,7 @@
 import Logging
 import XCTest
 
-@testable import AWSXRayUDPEmitterCore
+@testable import AWSXRayUDPEmitter
 
 private typealias Config = XRayUDPEmitter.Config
 

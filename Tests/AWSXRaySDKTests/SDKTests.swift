@@ -11,15 +11,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-import PureSwiftJSON
+import Logging
+import XCTest
 
-extension XRayRecorder.Segment {
-    public struct Encoding {
-        /// How to encode a segment to JSON string.
-        public let encode: (XRayRecorder.Segment) throws -> String
+import AWSXRaySDK
 
-        public init(encode: @escaping (XRayRecorder.Segment) throws -> String) {
-            self.encode = encode
-        }
-    }
+final class SDKTests: XCTestCase {
+    // TODO: fix shutdown of the UDP emitter
+//    func testDefaultInit() {
+//        let recorder = XRayRecorder()
+//        recorder.wait() // TODO: shutdown?
+//    }
 }
