@@ -55,4 +55,18 @@ extension XRayRecorder.Segment {
     public func setHTTPResponse(_ response: HTTPResponseHead) {
         setHTTPResponse(status: response.status.code)
     }
+
+    /// Records details about an HTTP response that your application served (in a segment) or
+    /// that your application made to a downstream HTTP API (in a subsegment).
+    ///
+    /// Set one or more of the error fields:
+    /// - `error` - if response status code was 4XX Client Error
+    /// - `throttle` - if response status code was 429 Too Many Requests
+    /// - `fault` - if response status code was 5XX Server Error
+    ///
+    /// - Parameters:
+    ///   - status: HTTP  status.
+    public func setHTTPResponse(_ status: HTTPResponseStatus) {
+        setHTTPResponse(status: status.code)
+    }
 }

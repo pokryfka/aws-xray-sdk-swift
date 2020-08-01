@@ -12,29 +12,34 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRaySDK
-//import AWSXRayTesting // uses Foundation JSON encoder
+// import AWSXRayTesting // uses Foundation JSON encoder
 import NIO // usleep
 
 enum ExampleError: Error {
     case test
-    case test2
 }
 
 let recorder = XRayRecorder()
-//let recorder = XRayRecorder(emitter: XRayLogEmitter())
+// let recorder = XRayRecorder(emitter: XRayLogEmitter())
 
-let context = XRayRecorder.TraceContext()
+let context = XRayContext()
 
 // begin and end (sub)segments explicitly
 let segment = recorder.beginSegment(name: "Segment 1", context: context)
+// record details about an HTTP request that your application served or made to a downstream HTTP API
+segment.setHTTPRequest(method: .POST, url: "http://www.example.com/api/user")
+segment.setHTTPResponse(.ok) // for the sake of an example
+// segments and subsegments can include annotations
 segment.setAnnotation(98101, forKey: "zip_code")
+// and metadata
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 _ = segment.beginSubsegment(name: "Subsegment 1.1 in progress")
 usleep(100_000)
 let subsegment = segment.beginSubsegment(name: "Subsegment 1.2 async")
 usleep(100_000)
+// record errors and exceptions
 segment.addError(ExampleError.test)
-segment.addError(ExampleError.test2)
+segment.addException(message: "Test Exception")
 segment.end()
 
 // subsegment may end after parent

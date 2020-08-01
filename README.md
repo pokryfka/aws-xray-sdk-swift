@@ -5,30 +5,48 @@
 
 Unofficial AWS X-Ray Recorder SDK for Swift.
 
+## Project status
+
+Functional beta.
+
+**aws-xray-sdk-swift** uses [Semantic Versioning](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
+
 ## Getting started
 
-### Installation
+### Adding the dependency
 
-Add a dependency using [Swift Package Manager](https://swift.org/package-manager/).
+Add the package dependency to your package [Swift Package Manager](https://swift.org/package-manager/) manifest file `Package.swift`:
 
 ```swift
-dependencies: [
-    .package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", from: "0.3.0")
-]
+.package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", upToNextMinor(from: "0.5.0"))
+```
+
+and `AWSXRaySDK` library to your target (here `AWSXRaySDKExample`):
+
+```swift
+.target(name: "AWSXRaySDKExample",
+        dependencies: [
+            .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
+        ]
+)
 ```
 
 ### Recording
 
-Create an instance of `XRayRecorder`:
+Create an instance of `XRayRecorder` and new context:
 
 ```swift
+import AWSXRaySDK
+
 let recorder = XRayRecorder()
+
+let context = XRayContext()
 ```
 
 Begin and end (sub)segments explicitly:
 
 ```swift
-let segment = recorder.beginSegment(name: "Segment 1")
+let segment = recorder.beginSegment(name: "Segment 1", context: context)
 usleep(100_000)
 segment.end()
 ```
@@ -36,7 +54,7 @@ segment.end()
 use closures for convenience:
 
 ```swift
-recorder.segment(name: "Segment 2") { segment in
+recorder.segment(name: "Segment 2", context: context) { segment in
     try? segment.subsegment(name: "Subsegment 2.1") { segment in
         _ = segment.subsegment(name: "Subsegment 2.1.1 with Result") { _ -> String in
             usleep(100_000)
@@ -48,6 +66,38 @@ recorder.segment(name: "Segment 2") { segment in
         }
     }
 }
+```
+
+#### HTTP request data
+
+You can record details about an HTTP request that your application served or made to a downstream HTTP API, see [HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http):
+
+```swift
+segment.setHTTPRequest(method: .POST, url: "http://www.example.com/api/user")
+segment.setHTTPResponse(.ok)
+```
+
+#### Annotations and Metadata
+
+Segments and subsegments can include [annotations](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-annotations):
+
+```swift
+segment.setAnnotation(98101, forKey: "zip_code")
+```
+
+and [metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-metadata):
+
+```swift
+segment.setMetadata(["debug": ["test": "Metadata string"]])
+```
+
+#### Errors and exceptions
+
+You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
+
+```swift
+segment.addError(ExampleError.test)
+segment.addException(message: "Test Exception")
 ```
 
 ### Emitting
@@ -68,49 +118,72 @@ Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 ![Screenshot of the AWS X-Ray console](./images/example.png?raw=true)
 
-See [`AWSXRayRecorderExample/main.swift`](./Examples/Sources/AWSXRayRecorderExample/main.swift) for a complete example.
+See [`AWSXRaySDKExample/main.swift`](./Examples/Sources/AWSXRaySDKExample/main.swift) for a complete example.
 
-### [Annotations](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-annotations)
+## Configuration
 
-> Segments and subsegments can include an annotations object containing one or more fields that X-Ray indexes for use with filter expressions. (...)
+The library’s behavior can be configured using environment variables:
+
+- `AWS_XRAY_SDK_ENABLED` - set `false` to disable tracing, enabled by default.
+- `AWS_XRAY_DAEMON_ADDRESS` - the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default.
+- `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
+    - `RUNTIME_ERROR` - Indicate that a precondition was violated.
+    - `LOG_ERROR` - Log an error and continue (default).
+- `XRAY_RECORDER_LOG_LEVEL` - [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+
+Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will override environment variables:
 
 ```swift
-segment.setAnnotation(98101, forKey: "zip_code")
+let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))
+)                  
 ```
 
-### [Metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-metadata)
+### Custom emitter
 
-> Segments and subsegments can include a metadata object containing one or more fields with values of any type, including objects and arrays. X-Ray does not index metadata (...)
+By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays it to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
 
-```swift
-segment.setMetadata(["debug": ["test": "Metadata string"]])
-```
-
-### AWS SDK (WIP)
-
-Record [AWSClient](https://github.com/swift-aws/aws-sdk-swift) requests with `XRayMiddleware`:
+A custom emitter has to implement `XRayEmitter` protocol:
 
 ```swift
-let awsClient = AWSClient(
-    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],
-    httpClientProvider: .shared(httpClient)
-)
-let s3 = S3(client: awsClient)
-```
-
-and/or recording [SwiftNIO futures](https://github.com/apple/swift-nio#promises-and-futures):
-
-```swift
-recorder.segment(name: "List Buckets") {
-    s3.listBuckets()
+public protocol XRayEmitter {
+    func send(_ segment: XRayRecorder.Segment)
+    func flush(_ callback: @escaping (Error?) -> Void)
 }
 ```
 
-Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
+example of an emitter which logs emitted segments (included in `AWSXRayTesting` library):
 
-![Screenshot of the AWS X-Ray console](./images/example_sdk.png?raw=true)
+```swift
+public struct XRayLogEmitter: XRayEmitter {
+    private let logger: Logger
+    private let encoding: XRayRecorder.Segment.Encoding
 
-See [`AWSXRayRecorderExampleSDK/main.swift`](./Examples/Sources/AWSXRayRecorderExampleSDK/main.swift) for a complete example.
+    public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
+        self.logger = logger
+        self.encoding = encoding ?? FoundationJSON.segmentEncoding
+    }
+
+    public func send(_ segment: XRayRecorder.Segment) {
+        do {
+            let document: String = try encoding.encode(segment)
+            logger.info("\n\(document)")
+        } catch {
+            logger.error("Failed to encode a segment: \(error)")
+        }
+    }
+
+    public func flush(_: @escaping (Error?) -> Void) {}
+}
+```
+
+
+The emitter has to be provided when creating an instance of `XRayRecorder`:
+
+```swift
+let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+```
+
+## Examples
 
 ### AWS Lambda using [Swift AWS Lambda Runtime](https://github.com/swift-server/swift-aws-lambda-runtime)
 
@@ -143,96 +216,8 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
 }
 ```
 
-See [`AWSXRayRecorderExampleLambda/main.swift`](./Examples/Sources/AWSXRayRecorderExampleLambda/main.swift) for a complete example.
-
-## Configuration
-
-The library’s behavior can be configured using environment variables:
-
-- `AWS_XRAY_SDK_ENABLED` - set `false` to disable tracing, enabled by default.
-- `AWS_XRAY_DAEMON_ADDRESS` - the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default.
-- `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
-    - `RUNTIME_ERROR` - Indicate that a precondition was violated.
-    - `LOG_ERROR` - Log an error and continue (default).
-- `XRAY_RECORDER_LOG_LEVEL` - [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
-
-Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will override environment variables:
-
-```swift
-let recorder = XRayRecorder(
-    config: .init(enabled: true,
-                  daemonEndpoint: "127.0.0.1:2000",
-                  logLevel: .debug)
-)                  
-```
-
-### SwiftNIO
-
-Segments can be emitted on provided [SwiftNIO](https://github.com/apple/swift-nio#eventloops-and-eventloopgroups) `EventLoopGroup`:
-
-```swift
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let eventLoop = group.next()
-let recorder = XRayRecorder(eventLoopGroup: group)
-
-// ...
-
-try recorder.flush(on: eventLoop).wait()
-```
-
-### Custom emitter
-
-By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays it to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
-
-A custom emitter has to implement `XRayEmitter` protocol:
-
-```swift
-public protocol XRayEmitter {
-    func send(_ segment: XRayRecorder.Segment)
-    func flush(_ callback: @escaping (Error?) -> Void)
-}
-```
-
-example of an emitter which logs emitted segments:
-
-```swift
-public struct XRayLogEmitter: XRayEmitter {
-    private let logger: Logger
-
-    private let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        return encoder
-    }()
-
-    public init(label: String? = nil) {
-        let label = label ?? "xray.log_emitter.\(String.random32())"
-        logger = Logger(label: label)
-    }
-
-    public func send(_ segment: XRayRecorder.Segment) {
-        do {
-            let document: String = try encoder.encode(segment)
-            logger.info("\n\(document)")
-        } catch {
-            logger.error("Failed to encode a segment: \(error)")
-        }
-    }
-
-    public func flush(_: @escaping (Error?) -> Void) {}
-}
-```
-
-
-The emitter has to be provided when creating an instance of `XRayRecorder`:
-
-```swift
-let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-```
+See [`AWSXRaySDKExampleLambda/main.swift`](./Examples/Sources/AWSXRaySDKExampleLambda/main.swift) for a complete example.
 
 ## References
 
-- [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 - [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
-- [AWS SDK Swift](https://github.com/swift-aws/aws-sdk-swift)
-- [Swift AWS Lambda Runtime](https://github.com/swift-server/swift-aws-lambda-runtime)
