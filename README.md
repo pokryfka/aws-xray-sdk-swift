@@ -182,6 +182,22 @@ import AWSXRayTesting
 let recorder = XRayRecorder(emitter: XRayLogEmitter())
 ```
 
+## Contributing
+
+### Code Formatting
+
+Format code using [swiftformat](https://github.com/nicklockwood/SwiftFormat):
+
+```
+swiftformat .
+```
+
+Consider creating [Git pre-commit hook](https://github.com/nicklockwood/SwiftFormat#git-pre-commit-hook)
+
+```
+echo 'swiftformat --lint .' > .git/hooks/pre-commit
+```
+
 ## Examples
 
 ### AWS Lambda using [Swift AWS Lambda Runtime](https://github.com/swift-server/swift-aws-lambda-runtime)
