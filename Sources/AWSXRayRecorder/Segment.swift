@@ -522,7 +522,7 @@ extension XRayRecorder {
             }
         }
 
-        // TODO: allow to set nil value removing the previous one
+        // TODO: allow to set nil value removing the previous one?
 
         /// Sets a metadata value.
         ///

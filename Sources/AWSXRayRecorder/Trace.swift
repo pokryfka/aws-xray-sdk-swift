@@ -100,7 +100,7 @@ extension XRayRecorder.TraceID {
     }
 }
 
-// TODO: make SampleDecision RawREpresentable internal type?
+// TODO: make SampleDecision RawRepresentable internal type?
 
 extension XRayRecorder {
     /// Sampling decision.

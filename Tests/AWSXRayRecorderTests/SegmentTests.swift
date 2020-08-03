@@ -20,8 +20,6 @@ import XCTest
 private typealias Segment = XRayRecorder.Segment
 private typealias SegmentError = XRayRecorder.SegmentError
 
-// TODO: test segment name?
-
 final class SegmentTests: XCTestCase {
     // MARK: ID
 

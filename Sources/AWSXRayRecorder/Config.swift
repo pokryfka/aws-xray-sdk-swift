@@ -40,7 +40,6 @@ extension XRayRecorder {
             self.contextMissingStrategy = contextMissingStrategy ??
                 env("AWS_XRAY_CONTEXT_MISSING").flatMap(ContextMissingStrategy.init) ?? .logError
             self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
-            // TODO: get package version
             self.serviceVersion = serviceVersion ?? "aws-xray-sdk-swift"
         }
 
