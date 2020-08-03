@@ -19,28 +19,47 @@ import NIO
 /// - [Sending segment documents to the X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-daemon)
 /// - [Using AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
 public class XRayUDPEmitter: XRayNIOEmitter {
-    static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
+    /// Specifies how `EventLoopGroup` will be created and establishes lifecycle ownership.
+    public enum EventLoopGroupProvider {
+        /// `EventLoopGroup` will be provided by the user. Owner of this group is responsible for its lifecycle.
+        case shared(EventLoopGroup)
+        /// `EventLoopGroup` will be created by the client. When `syncShutdown` is called, created `EventLoopGroup` will be shut down as well.
+        case createNew
+    }
 
+    private static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
+
+    private let logger: Logger
     private let encoding: XRayRecorder.Segment.Encoding
-
-    private lazy var logger = Logger(label: "xray.udp_emitter.\(String.random32())")
-
     private let udpClient: UDPClient
 
     private let lock = ReadWriteLock()
     private var _inFlight = [UInt64: EventLoopFuture<Void>]()
 
-    public init(encoding: XRayRecorder.Segment.Encoding, config: Config = Config(),
-                eventLoopGroup: EventLoopGroup? = nil) throws
+    internal init(encoding: XRayRecorder.Segment.Encoding,
+                  eventLoopGroupProvider: EventLoopGroupProvider,
+                  address: SocketAddress,
+                  logger: Logger)
     {
+        self.logger = logger
         self.encoding = encoding
-        let address = try SocketAddress(string: config.daemonEndpoint)
-        if let eventLoopGroup = eventLoopGroup {
-            udpClient = UDPClient(eventLoopGroupProvider: .shared(eventLoopGroup), address: address)
-        } else {
+        switch eventLoopGroupProvider {
+        case .createNew:
             udpClient = UDPClient(eventLoopGroupProvider: .createNew, address: address)
+        case .shared(let eventLoopGroup):
+            udpClient = UDPClient(eventLoopGroupProvider: .shared(eventLoopGroup), address: address)
         }
+    }
+
+    public convenience init(encoding: XRayRecorder.Segment.Encoding,
+                            eventLoopGroupProvider: EventLoopGroupProvider = .createNew,
+                            config: Config = Config()) throws
+    {
+        let address = try SocketAddress(string: config.daemonEndpoint)
+        var logger = Logger(label: "xray.udp_emitter.\(String.random32())")
         logger.logLevel = config.logLevel
+        self.init(encoding: encoding, eventLoopGroupProvider: eventLoopGroupProvider,
+                  address: address, logger: logger)
     }
 
     deinit {

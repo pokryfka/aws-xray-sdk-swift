@@ -16,10 +16,12 @@ import AWSXRayUDPEmitter
 
 extension XRayRecorder {
     /// Creates XRay recorder with UDP Emitter.
-    public convenience init(config: Config = Config()) {
-        // TODO: pass ELG
+    public convenience init(eventLoopGroupProvider: XRayUDPEmitter.EventLoopGroupProvider = .createNew,
+                            config: Config = Config())
+    {
         do {
-            let emitter = try XRayUDPEmitter(encoding: XRayRecorder.Segment.Encoding.default)
+            let emitter = try XRayUDPEmitter(encoding: XRayRecorder.Segment.Encoding.default,
+                                             eventLoopGroupProvider: eventLoopGroupProvider)
             self.init(emitter: emitter, config: config)
         } catch {
             preconditionFailure("Failed to create XRayUDPEmitter: \(error)")
