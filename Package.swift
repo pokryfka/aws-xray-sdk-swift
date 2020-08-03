@@ -10,7 +10,7 @@ let package = Package(
     products: [
         // the main library including the recorder, the UDP emitter and a JSON encoder; no dependency on Foundation
         .library(name: "AWSXRaySDK", targets: ["AWSXRaySDK"]),
-        // XRay recorder without emitter, no dependency on Foundation
+        // X-Ray recorder without emitter, no dependency on Foundation
         .library(name: "AWSXRayRecorder", targets: ["AWSXRayRecorder"]),
         // UDP emitter without JSON encoder, no dependency on Foundation
         .library(name: "AWSXRayUDPEmitter", targets: ["AWSXRayUDPEmitter"]),

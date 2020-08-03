@@ -15,7 +15,7 @@ import Baggage
 import Dispatch
 import Logging
 
-/// XRay tracer.
+/// X-Ray tracer.
 ///
 /// `XRayRecorder` allows to create new `XRayRecorder.Segment`s and sends them using provided `XRayEmitter`.
 ///

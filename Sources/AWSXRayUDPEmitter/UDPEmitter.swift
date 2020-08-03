@@ -15,7 +15,7 @@ import AWSXRayRecorder
 import Logging
 import NIO
 
-/// Send `XRayRecorder.Segment`s to the X-Ray daemon, which will buffer them and upload to the X-Ray API in batches.
+/// Sends `XRayRecorder.Segment`s to the X-Ray daemon, which will buffer them and upload to the X-Ray API in batches.
 /// The X-Ray SDK sends segment documents to the daemon to avoid making calls to AWS directly.
 ///
 /// The IP address and port of the X-Ray daemon is configured using `AWS_XRAY_DAEMON_ADDRESS` environment variable, `127.0.0.1:2000` by default.
