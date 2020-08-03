@@ -16,11 +16,6 @@ import Baggage
 import Logging
 import NIOHTTP1
 
-// TODO: document
-// TODO: validate the name, truncate to 200 chars, replace invalid chars
-
-private typealias SegmentError = XRayRecorder.SegmentError
-
 extension XRayRecorder {
     enum SegmentError: Error {
         case inProgress
@@ -44,6 +39,7 @@ extension XRayRecorder {
                 self.rawValue = rawValue
             }
 
+            /// Creates new `ID`.
             public init() { rawValue = String.random64() }
         }
 
@@ -109,8 +105,11 @@ extension XRayRecorder {
         private var state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
+
+        /// Context baggage containing `XRayContext`.
         public var baggage: BaggageContext { lock.withReaderLock { _baggage } }
 
+        /// Indicates if the segment is recording information.
         public var isSampled: Bool { true }
 
         // MARK: Required Segment Fields
@@ -118,6 +117,7 @@ extension XRayRecorder {
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
         internal var id: ID { lock.withReaderLock { _id } }
 
+        // TODO: validate name, see https://github.com/pokryfka/aws-xray-sdk-swift/issues/56
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
@@ -215,8 +215,10 @@ extension XRayRecorder {
         private var _namespace: Namespace?
         internal var _test_namespace: Namespace? { lock.withReaderLock { _namespace } }
 
+        #if false // not used
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
         private let _precursorIDs: [String]? = nil
+        #endif
 
         init(
             id: ID,
@@ -310,6 +312,11 @@ extension XRayRecorder {
 
         // MARK: Subsegments
 
+        /// Creates new subsegment.
+        ///
+        /// - Parameters:
+        ///   - name: segment name
+        ///   - metadata: segment metadata
         public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
             lock.withWriterLock {
                 // TODO: document/test/discuss where/how it should be updated and propagated
@@ -358,10 +365,18 @@ extension XRayRecorder {
             }
         }
 
+        /// Records an excaption.
+        ///
+        /// - Parameters:
+        ///   - message: exception message
+        ///   - type: excetion type
         public func addException(message: String, type: String? = nil) {
             addException(Exception(message: message, type: type))
         }
 
+        /// Records and error.
+        ///
+        /// - Parameter error: error
         public func addError(_ error: Error) {
             addException(Exception(error))
         }
@@ -426,6 +441,7 @@ extension XRayRecorder {
         // MARK: Annotations
 
         // TODO: Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/54
 
         internal func setAnnotation(_ value: AnnotationValue, forKey key: String) {
             lock.withWriterLockVoid {
@@ -433,18 +449,54 @@ extension XRayRecorder {
             }
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: String, forKey key: String) {
             setAnnotation(.string(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Bool, forKey key: String) {
             setAnnotation(.bool(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Int, forKey key: String) {
             setAnnotation(.integer(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Double, forKey key: String) {
             setAnnotation(.double(value), forKey: key)
         }
@@ -452,20 +504,42 @@ extension XRayRecorder {
         // MARK: Metadata
 
         // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/55
 
+        /// Sets a metadata object.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - newElements: metadata object
         public func setMetadata(_ newElements: Metadata) {
             lock.withWriterLockVoid {
+                // TODO: should we overwrite all metadata? document
+//                _metadata = metadata
                 for (k, v) in newElements {
                     _metadata.updateValue(v, forKey: k)
                 }
             }
         }
 
+        // TODO: allow to set nil value removing the previous one
+
+        /// Sets a metadata value.
+        ///
+        /// Overwrites previous value.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - value: metadata value
+        ///   - key: metadata key
         public func setMetadata(_ value: AnyEncodable, forKey key: String) {
             lock.withWriterLockVoid {
                 _metadata[key] = value
             }
         }
+
+        // TODO: document
 
         public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
             lock.withWriterLockVoid {
@@ -602,13 +676,18 @@ extension XRayRecorder.Segment: Encodable {
             }
             try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
             // do not throw if encoding of AnyCodable failed
-            // TODO: make it configurable, maybe safer not to throw in production
-            try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            do {
+                try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            } catch {
+                logger?.error("Failed to encode metadata: \(error)")
+            }
             try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
             // subsegments only
             if _context.parentId != nil {
                 try container.encodeIfPresent(_namespace, forKey: .namespace)
+                #if false // not used
                 try container.encodeIfPresent(_precursorIDs, forKey: .precursorIDs)
+                #endif
             }
         }
     }

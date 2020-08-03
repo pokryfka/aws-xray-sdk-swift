@@ -62,13 +62,15 @@ extension XRayRecorder.TraceID: Encodable {
     }
 }
 
+// TODO: change TraceID to RawRepresentable?
+
 extension XRayRecorder.TraceID {
-    /// Creates new Trace ID.
+    /// Creates new `TraceID`.
     public init() {
         self.init(secondsSinceEpoch: Timestamp().secondsSinceEpoch)
     }
 
-    init(secondsSinceEpoch: Double) {
+    internal init(secondsSinceEpoch: Double) {
         let value = UInt32(min(Double(UInt32.max), secondsSinceEpoch))
         let dateValue = String(value, radix: 16, uppercase: false)
         let datePadding = String(repeating: "0", count: max(0, 8 - dateValue.count))
@@ -76,7 +78,10 @@ extension XRayRecorder.TraceID {
         identifier = String.random96()
     }
 
-    /// Parses and validates string with Trace ID.
+    /// Parses and validates string with `TraceID`.
+    ///
+    /// - Parameter string: string with `TraceID`.
+    /// - Throws: may throw `XRayRecorder.TraceError` if the value is invalid.
     init(string: String) throws {
         let values = string.split(separator: "-")
         guard
@@ -95,15 +100,19 @@ extension XRayRecorder.TraceID {
     }
 }
 
+// TODO: make SampleDecision RawREpresentable internal type?
+
 extension XRayRecorder {
-    /// # References
-    /// - [AWS X-Ray concepts - Sampling](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-sampling)
+    /// Sampling decision.
     public enum SampleDecision: String, Encodable {
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
         case unknown = ""
         case requested = "Sampled=?"
 
+        // "?" is undocummented, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
+
+        /// True is the `sampled` flag is set, false otherwise.
         var isSampled: Bool? {
             switch self {
             case .sampled:
@@ -170,6 +179,9 @@ extension XRayRecorder {
 
 extension XRayRecorder.TraceContext {
     /// Parses and validates string with Tracing Header.
+    ///
+    /// - Parameter string: string with `TraceContext`.
+    /// - Throws: may throw `XRayRecorder.TraceError` if the value is invalid.
     public init(tracingHeader: String) throws {
         let values = tracingHeader.split(separator: ";")
         guard
@@ -228,11 +240,7 @@ extension XRayRecorder.TraceContext {
     }
 }
 
-extension XRayRecorder.TraceContext: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.traceId == rhs.traceId && lhs.parentId == rhs.parentId && lhs.sampled == rhs.sampled
-    }
-}
+extension XRayRecorder.TraceContext: Equatable {}
 
 internal extension XRayRecorder.TraceContext {
     var isSampled: Bool {

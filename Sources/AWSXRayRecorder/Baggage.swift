@@ -18,9 +18,9 @@ private enum XRayContextKey: BaggageContextKey {
     var name: String { "XRayTraceContext" }
 }
 
-public extension BaggageContext {
-    /// XRay Trace Context..
-    var xRayContext: XRayRecorder.TraceContext? {
+extension BaggageContext {
+    /// Contains `XRayContext`.
+    public var xRayContext: XRayContext? {
         get {
             self[XRayContextKey.self]
         }

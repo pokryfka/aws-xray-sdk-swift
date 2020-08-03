@@ -13,10 +13,12 @@
 
 extension XRayRecorder.Segment {
     internal struct Cause {
+        #if false // not used
         /// The full path of the working directory when the exception occurred.
         var workingDirectory: String?
         /// The **array** of paths to libraries or modules in use when the exception occurred.
         var paths: [String]?
+        #endif
         /// The **array** of **exception** objects.
         var exceptions: [Exception] = [Exception]()
     }
@@ -49,6 +51,7 @@ extension XRayRecorder.Segment {
         var message: String?
         /// The exception type.
         var type: String?
+        #if false // not used
         /// **boolean** indicating that the exception was caused by an error returned by a downstream service.
         var remote: Bool?
         /// **integer** indicating the number of stack frames that are omitted from the stack.
@@ -59,6 +62,7 @@ extension XRayRecorder.Segment {
         var cause: ID?
         /// **array** of **stackFrame** objects.
         var stack: [StackFrame]?
+        #endif
 
         init(id: ID, message: String, type: String? = nil) {
             self.id = id
@@ -92,8 +96,10 @@ extension XRayRecorder.Segment.Cause: Encodable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        #if false // not used
         try container.encodeIfPresent(workingDirectory, forKey: .workingDirectory)
         try container.encodeIfPresent(paths, forKey: .paths)
+        #endif
         try container.encode(exceptions, forKey: .exceptions)
     }
 }
@@ -102,12 +108,14 @@ extension XRayRecorder.Segment.Exception: Encodable {
     enum CodingKeys: String, CodingKey {
         case id
         case message
-        // for nowe we just only use id and message
+        case type
+        // for nowe we just only use id, message and type
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(message, forKey: .message)
+        try container.encodeIfPresent(type, forKey: .type)
     }
 }

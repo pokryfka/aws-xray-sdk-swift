@@ -12,8 +12,9 @@
 //===----------------------------------------------------------------------===//
 
 extension XRayRecorder.Segment {
+    /// A type representing the ability to encode a `XRayRecorder.Segment` to a String with its JSON representation.
     public struct Encoding {
-        /// How to encode a segment to JSON string.
+        /// How to encode a segment  to JSON string.
         public let encode: (XRayRecorder.Segment) throws -> String
 
         public init(encode: @escaping (XRayRecorder.Segment) throws -> String) {

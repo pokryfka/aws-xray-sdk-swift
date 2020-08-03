@@ -14,6 +14,13 @@
 import Baggage
 
 extension XRayRecorder {
+    /// Creates new segment.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - context: the trace context
+    ///   - metadata: segment metadata
+    ///   - body: segment body
     @inlinable
     public func segment<T>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
@@ -31,6 +38,18 @@ extension XRayRecorder {
         }
     }
 
+    /// Creates new segment.
+    ///
+    /// Extracts the trace context from the baggage.
+    /// Creates new one if the baggage does not contain a valid `XRayContext`.
+    ///
+    /// Depending on the context missing strategy configuration will log an error or fail if the context is missing.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - baggage: baggage with the trace context
+    ///   - metadata: segment metadata
+    ///   - body: segment body
     @inlinable
     public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: (Segment) throws -> T)
@@ -50,6 +69,12 @@ extension XRayRecorder {
 }
 
 extension XRayRecorder.Segment {
+    /// Creates new subsegment.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - metadata: segment metadata
+    ///   - body: subsegment body
     @inlinable
     public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
                               body: (XRayRecorder.Segment) throws -> T) rethrows -> T
