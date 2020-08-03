@@ -12,7 +12,4 @@
 ##
 ##===----------------------------------------------------------------------===##
 
-sourcedocs generate --spm-module AWSXRaySDK --output-folder ./Documentation/AWSXRaySDK
-sourcedocs generate --spm-module AWSXRayRecorder --output-folder ./Documentation/AWSXRayRecorder
-sourcedocs generate --spm-module AWSXRayUDPEmitter --output-folder ./Documentation/AWSXRayUDPEmitter
-sourcedocs generate --spm-module AWSXRayTesting --output-folder ./Documentation/AWSXRayTesting
+swift doc generate --module-name=aws-xray-sdk-swift --output=Documentation Sources
