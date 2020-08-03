@@ -1,5 +1,7 @@
 # XRayUDPEmitter.Config
 
+`XRayUDPEmitter` configuration.
+
 ``` swift
 public struct Config
 ```
@@ -7,6 +9,8 @@ public struct Config
 ## Initializers
 
 ### `init(daemonEndpoint:​logLevel:​)`
+
+Creates new `XRayUDPEmitter` configuration.
 
 ``` swift
 public init(daemonEndpoint:​ String? = nil, logLevel:​ Logger.Level? = nil)

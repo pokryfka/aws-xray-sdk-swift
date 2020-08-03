@@ -20,6 +20,8 @@ public init?(rawValue:​ String)
 
 ### `init()`
 
+Creates new `ID`.
+
 ``` swift
 public init()
 ```

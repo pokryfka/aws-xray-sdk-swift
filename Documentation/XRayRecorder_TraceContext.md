@@ -40,10 +40,6 @@ X-Amzn-Trace-Id:​ Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd
 
   - [AWS X-Ray concepts - Tracing header](https:​//docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
 
-## Inheritance
-
-`Equatable`
-
 ## Initializers
 
 ### `init(traceId:​parentId:​sampled:​)`
@@ -67,6 +63,14 @@ Parses and validates string with Tracing Header.
 ``` swift
 public init(tracingHeader:​ String) throws
 ```
+
+#### Parameters
+
+  - string:​ - string:​ string with `TraceContext`.
+
+#### Throws
+
+may throw `XRayRecorder.TraceError` if the value is invalid.
 
 ## Properties
 
@@ -100,12 +104,4 @@ Tracing header value.
 
 ``` swift
 var tracingHeader:​ String
-```
-
-## Methods
-
-### `==(lhs:​rhs:​)`
-
-``` swift
-public static func ==(lhs:​ Self, rhs:​ Self) -> Bool
 ```

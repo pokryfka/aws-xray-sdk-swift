@@ -1,8 +1,12 @@
 # XRayRecorder
 
+XRay tracer.
+
 ``` swift
 public class XRayRecorder
 ```
+
+`XRayRecorder` allows to create new `XRayRecorder.Segment`s and sends them using provided `XRayEmitter`.
 
 # References
 
@@ -14,9 +18,16 @@ public class XRayRecorder
 
 ### `init(emitter:​config:​)`
 
+Creates an instance of `XRayRecorder`.
+
 ``` swift
 public convenience init(emitter:​ XRayEmitter, config:​ Config = Config())
 ```
+
+#### Parameters
+
+  - emitter:​ - emitter:​ emitter used to send `XRayRecorder.Segment`s.
+  - config:​ - config:​ configuration, **overrides** enviromental variables.
 
 ### `init(eventLoopGroupProvider:​config:​)`
 
@@ -35,27 +46,65 @@ public convenience init(eventLoopGroupProvider:​ XRayUDPEmitter.EventLoopGroup
 
 ### `segment(name:​context:​metadata:​body:​)`
 
+Creates new segment.
+
 ``` swift
 @inlinable public func segment<T>(name:​ String, context:​ TraceContext, metadata:​ XRayRecorder.Segment.Metadata? = nil, body:​ (Segment) throws -> T) rethrows -> T
 ```
 
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - context:​ - context:​ the trace context
+  - metadata:​ - metadata:​ segment metadata
+  - body:​ - body:​ segment body
+
 ### `segment(name:​baggage:​metadata:​body:​)`
+
+Creates new segment.
 
 ``` swift
 @inlinable public func segment<T>(name:​ String, baggage:​ BaggageContext, metadata:​ XRayRecorder.Segment.Metadata? = nil, body:​ (Segment) throws -> T) rethrows -> T
 ```
 
+Extracts the trace context from the baggage.
+Creates new one if the baggage does not contain a valid `XRayContext`.
+
+Depending on the context missing strategy configuration will log an error or fail if the context is missing.
+
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - baggage:​ - baggage:​ baggage with the trace context
+  - metadata:​ - metadata:​ segment metadata
+  - body:​ - body:​ segment body
+
 ### `flush(on:​)`
+
+Flushes the emitter in `SwiftNIO` future.
 
 ``` swift
 public func flush(on eventLoop:​ EventLoop) -> EventLoopFuture<Void>
 ```
 
+#### Parameters
+
+  - eventLoop:​ - eventLoop:​ `EventLoop` used to "do the flushing".
+
 ### `segment(name:​context:​metadata:​body:​)`
+
+Creates new segment.
 
 ``` swift
 @inlinable public func segment<T>(name:​ String, context:​ TraceContext, metadata:​ Segment.Metadata? = nil, body:​ () -> EventLoopFuture<T>) -> EventLoopFuture<T>
 ```
+
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - context:​ - context:​ the trace context
+  - metadata:​ - metadata:​ segment metadata
+  - body:​ - body:​ segment body
 
 ### `beginSegment(name:​context:​metadata:​)`
 
@@ -78,12 +127,15 @@ new segment
 ### `beginSegment(name:​baggage:​metadata:​)`
 
 Creates new segment.
-Extracts the thre context from the baggage.
-Creates new if the baggage does not contain a valid XRay Trace Context.
 
 ``` swift
 public func beginSegment(name:​ String, baggage:​ BaggageContext, metadata:​ Segment.Metadata? = nil) -> XRayRecorder.Segment
 ```
+
+Extracts the trace context from the baggage.
+Creates new one if the baggage does not contain a valid `XRayContext`.
+
+Depending on the context missing strategy configuration will log an error or fail if the context is missing.
 
 #### Parameters
 
@@ -97,6 +149,13 @@ new segment
 
 ### `wait(_:​)`
 
+Flushes the emitter.
+May be blocking.
+
 ``` swift
 public func wait(_ callback:​ ((Error?) -> Void)? = nil)
 ```
+
+#### Parameters
+
+  - callback:​ - callback:​ callback with error if the operation failed.

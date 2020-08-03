@@ -1,5 +1,7 @@
 # XRayNoOpEmitter
 
+Implements `XRayEmitter` which does not do anything.
+
 ``` swift
 public struct XRayNoOpEmitter:​ XRayEmitter
 ```

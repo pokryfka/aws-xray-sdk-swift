@@ -32,11 +32,15 @@ public typealias Metadata = [String:​ AnyEncodable]
 
 ### `baggage`
 
+Context baggage containing `XRayContext`.
+
 ``` swift
 var baggage:​ BaggageContext
 ```
 
 ### `isSampled`
+
+Indicates if the segment is recording information.
 
 ``` swift
 var isSampled:​ Bool
@@ -56,15 +60,31 @@ var name:​ String
 
 ### `subsegment(name:​metadata:​body:​)`
 
+Creates new subsegment.
+
 ``` swift
 @inlinable public func subsegment<T>(name:​ String, metadata:​ XRayRecorder.Segment.Metadata? = nil, body:​ (XRayRecorder.Segment) throws -> T) rethrows -> T
 ```
 
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - metadata:​ - metadata:​ segment metadata
+  - body:​ - body:​ subsegment body
+
 ### `subsegment(name:​metadata:​body:​)`
+
+Creates new subsegment.
 
 ``` swift
 @inlinable public func subsegment<T>(name:​ String, metadata:​ XRayRecorder.Segment.Metadata? = nil, body:​ () -> EventLoopFuture<T>) -> EventLoopFuture<T>
 ```
+
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - metadata:​ - metadata:​ segment metadata
+  - body:​ - body:​ segment body
 
 ### `setHTTPRequest(method:​url:​userAgent:​clientIP:​)`
 
@@ -154,21 +174,41 @@ Has no effect if the segment has been already ended or emitted in which case an 
 
 ### `beginSubsegment(name:​metadata:​)`
 
+Creates new subsegment.
+
 ``` swift
 public func beginSubsegment(name:​ String, metadata:​ XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
 ```
 
+#### Parameters
+
+  - name:​ - name:​ segment name
+  - metadata:​ - metadata:​ segment metadata
+
 ### `addException(message:​type:​)`
+
+Records an excaption.
 
 ``` swift
 public func addException(message:​ String, type:​ String? = nil)
 ```
 
+#### Parameters
+
+  - message:​ - message:​ exception message
+  - type:​ - type:​ excetion type
+
 ### `addError(_:​)`
+
+Records and error.
 
 ``` swift
 public func addError(_ error:​ Error)
 ```
+
+#### Parameters
+
+  - error:​ - error:​ error
 
 ### `setHTTPRequest(method:​url:​userAgent:​clientIP:​)`
 
@@ -215,39 +255,102 @@ Set one or more of the error fields:​
 
 ### `setAnnotation(_:​forKey:​)`
 
+Sets an annotation.
+
 ``` swift
 public func setAnnotation(_ value:​ String, forKey key:​ String)
 ```
 
+Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+
+X-Ray indexes up to 50 annotations per trace.
+
+#### Parameters
+
+  - value:​ - value:​ annotation value
+  - key:​ - key:​ annotation key
+
 ### `setAnnotation(_:​forKey:​)`
+
+Sets an annotation.
 
 ``` swift
 public func setAnnotation(_ value:​ Bool, forKey key:​ String)
 ```
 
+Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+
+X-Ray indexes up to 50 annotations per trace.
+
+#### Parameters
+
+  - value:​ - value:​ annotation value
+  - key:​ - key:​ annotation key
+
 ### `setAnnotation(_:​forKey:​)`
+
+Sets an annotation.
 
 ``` swift
 public func setAnnotation(_ value:​ Int, forKey key:​ String)
 ```
 
+Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+
+X-Ray indexes up to 50 annotations per trace.
+
+#### Parameters
+
+  - value:​ - value:​ annotation value
+  - key:​ - key:​ annotation key
+
 ### `setAnnotation(_:​forKey:​)`
+
+Sets an annotation.
 
 ``` swift
 public func setAnnotation(_ value:​ Double, forKey key:​ String)
 ```
 
+Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+
+X-Ray indexes up to 50 annotations per trace.
+
+#### Parameters
+
+  - value:​ - value:​ annotation value
+  - key:​ - key:​ annotation key
+
 ### `setMetadata(_:​)`
+
+Sets a metadata object.
 
 ``` swift
 public func setMetadata(_ newElements:​ Metadata)
 ```
 
+Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+
+#### Parameters
+
+  - newElements:​ - newElements:​ metadata object
+
 ### `setMetadata(_:​forKey:​)`
+
+Sets a metadata value.
 
 ``` swift
 public func setMetadata(_ value:​ AnyEncodable, forKey key:​ String)
 ```
+
+Overwrites previous value.
+
+Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+
+#### Parameters
+
+  - value:​ - value:​ metadata value
+  - key:​ - key:​ metadata key
 
 ### `appendMetadata(_:​forKey:​)`
 

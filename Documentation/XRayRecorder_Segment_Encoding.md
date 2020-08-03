@@ -1,5 +1,7 @@
 # XRayRecorder.Segment.Encoding
 
+A type representing the ability to encode a `XRayRecorder.Segment` to a String with its JSON representation.
+
 ``` swift
 public struct Encoding
 ```
@@ -16,7 +18,7 @@ public init(encode:​ @escaping (XRayRecorder.Segment) throws -> String)
 
 ### `encode`
 
-How to encode a segment to JSON string.
+How to encode a segment  to JSON string.
 
 ``` swift
 let encode:​ (XRayRecorder.Segment) throws -> String

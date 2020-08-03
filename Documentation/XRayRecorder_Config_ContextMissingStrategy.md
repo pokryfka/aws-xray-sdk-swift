@@ -1,5 +1,7 @@
 # XRayRecorder.Config.ContextMissingStrategy
 
+Context missing strategy.
+
 ``` swift
 public enum ContextMissingStrategy
 ```

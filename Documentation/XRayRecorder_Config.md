@@ -1,18 +1,16 @@
 # XRayRecorder.Config
 
+`XRayRecorder` configuration.
+
 ``` swift
-struct Config
+public struct Config
 ```
 
 ## Initializers
 
-### `init(enabled:​contextMissingStrategy:​logLevel:​serviceVersion:​env:​)`
-
-``` swift
-internal init(enabled:​ Bool? = nil, contextMissingStrategy:​ ContextMissingStrategy? = nil, logLevel:​ Logger.Level? = nil, serviceVersion:​ String? = nil, env:​ (String) -> String?)
-```
-
 ### `init(enabled:​contextMissingStrategy:​logLevel:​serviceVersion:​)`
+
+Creates new `XRayRecorder` configuration.
 
 ``` swift
 public init(enabled:​ Bool? = nil, contextMissingStrategy:​ ContextMissingStrategy? = nil, logLevel:​ Logger.Level? = nil, serviceVersion:​ String? = nil)
@@ -26,29 +24,3 @@ public init(enabled:​ Bool? = nil, contextMissingStrategy:​ ContextMissingSt
       - `LOG_ERROR` - Log an error and continue.
   - logLevel:​ - logLevel:​ [swift-log](https:​//github.com/apple/swift-log) logging level, `info` by default; if not specified the value of the `XRAY_RECORDER_LOG_LEVEL` environment variable is used.
   - serviceVersion:​ - serviceVersion:​ A string that identifies the version of your application that served the request, `aws-xray-sdk-swift` by default.
-
-## Properties
-
-### `enabled`
-
-``` swift
-let enabled:​ Bool
-```
-
-### `contextMissingStrategy`
-
-``` swift
-let contextMissingStrategy:​ ContextMissingStrategy
-```
-
-### `logLevel`
-
-``` swift
-let logLevel:​ Logger.Level
-```
-
-### `serviceVersion`
-
-``` swift
-let serviceVersion:​ String
-```

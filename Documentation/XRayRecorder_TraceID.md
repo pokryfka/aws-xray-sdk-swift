@@ -28,7 +28,7 @@ For example, `1-58406520-a006649127e371903a2de979`. This includes:​
 
 ### `init()`
 
-Creates new Trace ID.
+Creates new `TraceID`.
 
 ``` swift
 public init()
