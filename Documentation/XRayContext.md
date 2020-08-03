@@ -1,7 +1,5 @@
-**TYPEALIAS**
+# XRayContext
 
-# `XRayContext`
-
-```swift
+``` swift
 public typealias XRayContext = XRayRecorder.TraceContext
 ```
