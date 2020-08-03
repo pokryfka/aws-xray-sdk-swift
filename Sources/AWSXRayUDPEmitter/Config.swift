@@ -14,6 +14,7 @@
 import Logging
 
 extension XRayUDPEmitter {
+    /// `XRayUDPEmitter` configuration.
     public struct Config {
         internal let daemonEndpoint: String
         internal let logLevel: Logger.Level
@@ -23,6 +24,8 @@ extension XRayUDPEmitter {
             self.logLevel = logLevel ?? env("XRAY_EMITTER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
         }
 
+        /// Creates new `XRayUDPEmitter` configuration.
+        ///
         /// - Parameters:
         ///   - daemonEndpoint: the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default;
         ///   if not specified the value of the `AWS_XRAY_DAEMON_ADDRESS` environment variable is used.

@@ -13,6 +13,10 @@
 
 import NIO
 
+/// A `SwiftNIO` `XRayEmitter`.
 public protocol XRayNIOEmitter: XRayEmitter {
+    /// Sends pending `XRayRecorder.Segment`s in `SwiftNIO` future.
+    ///
+    /// - Parameter eventLoop: `EventLoop` used to "do the flushing".
     func flush(on eventLoop: EventLoop?) -> EventLoopFuture<Void>
 }

@@ -9,7 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "AWSXRaySDKExample", targets: ["AWSXRaySDKExample"]),
-        .executable(name: "AWSXRaySDKExampleSDK", targets: ["AWSXRaySDKExampleSDK"]),
+        .executable(name: "AWSXRaySDKExampleAWS", targets: ["AWSXRaySDKExampleAWS"]),
         .executable(name: "AWSXRaySDKExampleLambda", targets: ["AWSXRaySDKExampleLambda"]),
     ],
     dependencies: [
@@ -27,7 +27,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "AWSXRaySDKExampleSDK",
+            name: "AWSXRaySDKExampleAWS",
             dependencies: [
                 .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
