@@ -19,11 +19,21 @@ public struct XRayLogEmitter: XRayEmitter {
     private let logger: Logger
     private let encoding: XRayRecorder.Segment.Encoding
 
+    /// Creates an instance of `XRayLogEmitter`.
+    ///
+    /// - Parameters:
+    ///   - logger: logger instance.
+    ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
     public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
         self.logger = logger
         self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
+    /// Creates an instance of `XRayLogEmitter`.
+    ///
+    /// - Parameters:
+    ///   - label: logger label used to create a logger instance.
+    ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
     public init(label: String? = nil, encoding: XRayRecorder.Segment.Encoding? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
         logger = Logger(label: label)
