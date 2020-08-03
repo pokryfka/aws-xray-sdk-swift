@@ -22,6 +22,8 @@ extension XRayRecorder {
         case missingContext
     }
 
+    /// XRay Trace ID used to group `XRayRecorder.Segment`s.
+    ///
     /// # Trace ID Format
     /// A `trace_id` consists of three numbers separated by hyphens.
     /// For example, `1-58406520-a006649127e371903a2de979`. This includes:
@@ -100,11 +102,11 @@ extension XRayRecorder.TraceID {
     }
 }
 
-// TODO: make SampleDecision RawRepresentable internal type?
+// TODO: make SampleDecision internal in v0.6.0, change RawRepresentable?
 
 extension XRayRecorder {
     /// Sampling decision.
-    public enum SampleDecision: String, Encodable {
+    internal enum SampleDecision: String, Encodable {
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
         case unknown = ""
@@ -112,16 +114,8 @@ extension XRayRecorder {
 
         // "?" is undocummented, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
 
-        /// True is the `sampled` flag is set, false otherwise.
-        var isSampled: Bool? {
-            switch self {
-            case .sampled:
-                return true
-            case .notSampled:
-                return false
-            case .unknown, .requested:
-                return nil
-            }
+        init(_ boolValue: Bool) {
+            self = boolValue ? .sampled : .notSampled
         }
     }
 }
@@ -163,16 +157,31 @@ extension XRayRecorder {
         /// parent segment ID
         public var parentId: Segment.ID?
         /// sampling decision
-        public var sampled: XRayRecorder.SampleDecision
+        internal var sampled: SampleDecision
+
+        /// True is the `sampled` flag is set, false otherwise.
+        var isSampled: Bool {
+            sampled == .sampled
+        }
 
         /// Creates new Trace Context.
         /// - parameter traceId: root trace ID
         /// - parameter parentId: parent segment ID
         /// - parameter sampled: sampling decision
-        public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision = .sampled) {
+        internal init(traceId: XRayRecorder.TraceID, parentId: XRayRecorder.Segment.ID?, sampled: SampleDecision) {
             self.traceId = traceId
             self.parentId = parentId
             self.sampled = sampled
+        }
+
+        /// Creates new Trace Context.
+        /// - parameter traceId: root trace ID
+        /// - parameter parentId: parent segment ID
+        /// - parameter sampled: sampling decision
+        public init(traceId: TraceID = .init(), parentId: Segment.ID? = nil, sampled: Bool = true) {
+            self.traceId = traceId
+            self.parentId = parentId
+            self.sampled = .init(sampled)
         }
     }
 }
@@ -241,9 +250,3 @@ extension XRayRecorder.TraceContext {
 }
 
 extension XRayRecorder.TraceContext: Equatable {}
-
-internal extension XRayRecorder.TraceContext {
-    var isSampled: Bool {
-        sampled.isSampled == true
-    }
-}

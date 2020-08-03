@@ -27,7 +27,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testCreatingWithDisabledRecorder() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), config: .init(enabled: false))
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -44,7 +44,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testCreatingWithNotSampledContext() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), config: .init(enabled: true))
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -77,7 +77,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testAddingExceptions() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -90,7 +90,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testRecordingHTTPRequest() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -103,7 +103,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testRecordingHTTPResponse() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -116,7 +116,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testAddingAnnotations() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)
@@ -131,7 +131,7 @@ final class NoOpSegmentTests: XCTestCase {
 
     func testAddingMetadata() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .notSampled)
+        let context = TraceContext(traceId: .init(), sampled: false)
 
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
         XCTAssertFalse(segment.isSampled)

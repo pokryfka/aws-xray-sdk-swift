@@ -121,7 +121,7 @@ public class XRayRecorder {
             case .runtimeError:
                 preconditionFailure("Missing Context")
             case .logError:
-                let context = TraceContext(sampled: .unknown)
+                let context = TraceContext(sampled: false)
                 logger.error("Missing Context")
                 var baggage = baggage
                 baggage.xRayContext = context
