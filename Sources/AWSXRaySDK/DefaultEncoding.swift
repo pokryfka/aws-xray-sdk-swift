@@ -19,7 +19,7 @@ internal extension XRayRecorder.Segment.Encoding {
         case failedToCreateString
     }
 
-    internal static let `default`: XRayRecorder.Segment.Encoding = {
+    static let `default`: XRayRecorder.Segment.Encoding = {
         let jsonEncoder = PSJSONEncoder()
         return XRayRecorder.Segment.Encoding { segment in
             let bytes = try jsonEncoder.encode(segment)
