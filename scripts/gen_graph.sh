@@ -15,5 +15,7 @@
 INPUTS=Sources
 OUTPUT=Documentation
 
-swift doc generate --module-name=aws-xray-sdk-swift --output=${OUTPUT} ${INPUTS}
-swift doc coverage ${INPUTS}
+swift doc diagram ${INPUTS} > ${OUTPUT}/graph.dot
+dot -T svg ${OUTPUT}/graph.dot > ${OUTPUT}/graph.svg
+# requires imagemagick
+convert ${OUTPUT}/graph.svg ${OUTPUT}/graph.pdf
