@@ -13,3 +13,4 @@
 ##===----------------------------------------------------------------------===##
 
 swift doc generate --module-name=aws-xray-sdk-swift --output=Documentation Sources
+swift doc coverage Sources
