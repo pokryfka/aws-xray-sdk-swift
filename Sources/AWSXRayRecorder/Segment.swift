@@ -651,7 +651,7 @@ extension XRayRecorder.Segment: Encodable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(_id, forKey: .id)
             try container.encode(_name, forKey: .name)
-            try container.encode(_context.traceId, forKey: .traceId)
+            try container.encode(_context.traceId.rawValue, forKey: .traceId)
             try container.encode(_state.startTime, forKey: .startTime)
             // encode either endTime or inProgress
             if let endTime = _state.endTime {

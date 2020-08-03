@@ -15,7 +15,7 @@ import Baggage
 import Dispatch
 import Logging
 
-/// XRay tracer.
+/// X-Ray tracer.
 ///
 /// `XRayRecorder` allows to create new `XRayRecorder.Segment`s and sends them using provided `XRayEmitter`.
 ///
@@ -121,7 +121,7 @@ public class XRayRecorder {
             case .runtimeError:
                 preconditionFailure("Missing Context")
             case .logError:
-                let context = TraceContext(sampled: .unknown)
+                let context = TraceContext(sampled: false)
                 logger.error("Missing Context")
                 var baggage = baggage
                 baggage.xRayContext = context

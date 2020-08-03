@@ -64,7 +64,7 @@ final class RecorderTests: XCTestCase {
         _ = segment.beginSubsegment(name: UUID().uuidString) // not finished
 
         recorder.segment(name: UUID().uuidString, context: .init()) { _ in } // 2
-        recorder.beginSegment(name: UUID().uuidString, context: .init(sampled: .sampled)).end() // 3
+        recorder.beginSegment(name: UUID().uuidString, context: .init(sampled: true)).end() // 3
 
         recorder.wait()
         XCTAssertEqual(2, segment.subsegmentsInProgress().count)
@@ -80,7 +80,7 @@ final class RecorderTests: XCTestCase {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
 
-        let contextSampled = TraceContext(sampled: .sampled)
+        let contextSampled = TraceContext(sampled: true)
         recorder.segment(name: UUID().uuidString, context: contextSampled) { _ in }
         recorder.segment(name: UUID().uuidString, context: contextSampled) { _ in }
         recorder.wait()
@@ -88,7 +88,7 @@ final class RecorderTests: XCTestCase {
 
         emitter.reset()
 
-        let contextNotSampled = TraceContext(sampled: .notSampled)
+        let contextNotSampled = TraceContext(sampled: false)
         recorder.segment(name: UUID().uuidString, context: contextNotSampled) { _ in }
         recorder.segment(name: UUID().uuidString, context: contextNotSampled) { _ in }
         recorder.wait()
@@ -96,7 +96,7 @@ final class RecorderTests: XCTestCase {
 
         emitter.reset()
 
-        let contextUnkownSampling = TraceContext(sampled: .unknown)
+        let contextUnkownSampling = TraceContext(traceId: .init(), parentId: nil, sampled: .unknown)
         recorder.segment(name: UUID().uuidString, context: contextUnkownSampling) { _ in }
         recorder.segment(name: UUID().uuidString, context: contextUnkownSampling) { _ in }
         recorder.wait()
@@ -104,7 +104,7 @@ final class RecorderTests: XCTestCase {
 
         emitter.reset()
 
-        let contextRequestedSampling = TraceContext(sampled: .requested)
+        let contextRequestedSampling = TraceContext(traceId: .init(), parentId: nil, sampled: .requested)
         recorder.segment(name: UUID().uuidString, context: contextRequestedSampling) { _ in }
         recorder.segment(name: UUID().uuidString, context: contextRequestedSampling) { _ in }
         recorder.wait()

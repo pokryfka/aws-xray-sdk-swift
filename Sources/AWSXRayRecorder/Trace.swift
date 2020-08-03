@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+/// X-Ray Trace Context.
 public typealias XRayContext = XRayRecorder.TraceContext
 
 extension XRayRecorder {
@@ -22,6 +23,8 @@ extension XRayRecorder {
         case missingContext
     }
 
+    /// X-Ray Trace ID used to group `XRayRecorder.Segment`s.
+    ///
     /// # Trace ID Format
     /// A `trace_id` consists of three numbers separated by hyphens.
     /// For example, `1-58406520-a006649127e371903a2de979`. This includes:
@@ -32,102 +35,60 @@ extension XRayRecorder {
     ///
     /// # References
     /// - [Sending trace data to AWS X-Ray - Generating trace IDs](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-traceids)
-    public struct TraceID: CustomStringConvertible {
-        /// The version number, that is, 1.
-        let version: UInt = 1
-        /// The time of the original request, in Unix epoch time, in **8 hexadecimal digits**.
-        /// For example, 10:00AM December 1st, 2016 PST in epoch time is `1480615200` seconds, or `58406520` in hexadecimal digits.
-        let date: String
-        /// A 96-bit identifier for the trace, globally unique, in **24 hexadecimal digits**.
-        let identifier: String
-
-        public var description: String {
-            "\(version)-\(date)-\(identifier)"
+    public struct TraceID: RawRepresentable, Equatable {
+        public var rawValue: String
+        public init?(rawValue: String) {
+            let values = rawValue.split(separator: "-")
+            guard
+                values.count == 3,
+                values[0] == "1",
+                values[1].count == 8,
+                values[2].count == 24,
+                Float("0x\(values[1])") != nil,
+                Float("0x\(values[2])") != nil
+            else {
+                return nil
+            }
+            let date = String(values[1])
+            let identifier = String(values[2])
+            self.rawValue = "1-\(date)-\(identifier)"
         }
     }
 }
 
-extension XRayRecorder.TraceID: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(version)
-        hasher.combine(date)
-        hasher.combine(identifier)
-    }
-}
-
-extension XRayRecorder.TraceID: Encodable {
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(String(describing: self))
-    }
-}
-
-// TODO: change TraceID to RawRepresentable?
-
 extension XRayRecorder.TraceID {
+    internal init(secondsSinceEpoch: Double, identifier: String = String.random96()) {
+        let value = UInt32(min(Double(UInt32.max), secondsSinceEpoch))
+        let dateValue = String(value, radix: 16, uppercase: false)
+        let datePadding = String(repeating: "0", count: max(0, 8 - dateValue.count))
+        let date = "\(datePadding)\(dateValue)"
+        rawValue = "1-\(date)-\(identifier)"
+    }
+
     /// Creates new `TraceID`.
     public init() {
         self.init(secondsSinceEpoch: Timestamp().secondsSinceEpoch)
     }
-
-    internal init(secondsSinceEpoch: Double) {
-        let value = UInt32(min(Double(UInt32.max), secondsSinceEpoch))
-        let dateValue = String(value, radix: 16, uppercase: false)
-        let datePadding = String(repeating: "0", count: max(0, 8 - dateValue.count))
-        date = "\(datePadding)\(dateValue)"
-        identifier = String.random96()
-    }
-
-    /// Parses and validates string with `TraceID`.
-    ///
-    /// - Parameter string: string with `TraceID`.
-    /// - Throws: may throw `XRayRecorder.TraceError` if the value is invalid.
-    init(string: String) throws {
-        let values = string.split(separator: "-")
-        guard
-            values.count == 3,
-            values[0] == "1",
-            values[1].count == 8,
-            values[2].count == 24,
-            Float("0x\(values[1])") != nil,
-            Float("0x\(values[2])") != nil
-        else {
-            throw XRayRecorder.TraceError.invalidTraceID(string)
-        }
-
-        date = String(values[1])
-        identifier = String(values[2])
-    }
 }
 
-// TODO: make SampleDecision RawRepresentable internal type?
+// TODO: make SampleDecision internal in v0.6.0, change to RawRepresentable?
 
 extension XRayRecorder {
-    /// Sampling decision.
-    public enum SampleDecision: String, Encodable {
+    internal enum SampleDecision: String {
+        // "?" value not document, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
         case unknown = ""
         case requested = "Sampled=?"
 
-        // "?" is undocummented, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
-
-        /// True is the `sampled` flag is set, false otherwise.
-        var isSampled: Bool? {
-            switch self {
-            case .sampled:
-                return true
-            case .notSampled:
-                return false
-            case .unknown, .requested:
-                return nil
-            }
+        init(_ boolValue: Bool) {
+            self = boolValue ? .sampled : .notSampled
         }
     }
 }
 
 extension XRayRecorder {
-    /// XRay Trace Context propagated in a tracing header.
+    /// X-Ray Trace Context propagated in a tracing header.
     ///
     /// # Tracing header
     /// All requests are traced, up to a configurable minimum.
@@ -158,21 +119,38 @@ extension XRayRecorder {
     ///  # References
     /// - [AWS X-Ray concepts - Tracing header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
     public struct TraceContext {
-        /// root trace ID
+        /// Root trace ID.
         public let traceId: TraceID
-        /// parent segment ID
+        /// Parent segment ID.
         public var parentId: Segment.ID?
-        /// sampling decision
-        public var sampled: XRayRecorder.SampleDecision
+        /// Sampling decision.
+        internal var sampled: SampleDecision
+
+        /// `sampled` flag.
+        public var isSampled: Bool {
+            sampled == .sampled
+        }
 
         /// Creates new Trace Context.
+        ///
         /// - parameter traceId: root trace ID
         /// - parameter parentId: parent segment ID
         /// - parameter sampled: sampling decision
-        public init(traceId: XRayRecorder.TraceID = .init(), parentId: XRayRecorder.Segment.ID? = nil, sampled: XRayRecorder.SampleDecision = .sampled) {
+        internal init(traceId: XRayRecorder.TraceID, parentId: XRayRecorder.Segment.ID?, sampled: SampleDecision) {
             self.traceId = traceId
             self.parentId = parentId
             self.sampled = sampled
+        }
+
+        /// Creates new Trace Context.
+        ///
+        /// - parameter traceId: root trace ID
+        /// - parameter parentId: parent segment ID
+        /// - parameter sampled: sampling decision
+        public init(traceId: TraceID = .init(), parentId: Segment.ID? = nil, sampled: Bool = true) {
+            self.traceId = traceId
+            self.parentId = parentId
+            self.sampled = .init(sampled)
         }
     }
 }
@@ -191,7 +169,11 @@ extension XRayRecorder.TraceContext {
             throw XRayRecorder.TraceError.invalidTracingHeader(tracingHeader)
         }
 
-        traceId = try XRayRecorder.TraceID(string: String(values[0].dropFirst("Root=".count)))
+        let traceIdValue = String(values[0].dropFirst("Root=".count))
+        guard let traceId = XRayRecorder.TraceID(rawValue: traceIdValue) else {
+            throw XRayRecorder.TraceError.invalidTraceID(traceIdValue)
+        }
+        self.traceId = traceId
 
         guard values.count > 1 else {
             parentId = nil
@@ -226,7 +208,7 @@ extension XRayRecorder.TraceContext {
     /// Tracing header value.
     public var tracingHeader: String {
         let segments: [String?] = [
-            "Root=\(traceId)",
+            "Root=\(traceId.rawValue)",
             {
                 guard let parentId = parentId else { return nil }
                 return "Parent=\(parentId.rawValue)"
@@ -241,9 +223,3 @@ extension XRayRecorder.TraceContext {
 }
 
 extension XRayRecorder.TraceContext: Equatable {}
-
-internal extension XRayRecorder.TraceContext {
-    var isSampled: Bool {
-        sampled.isSampled == true
-    }
-}

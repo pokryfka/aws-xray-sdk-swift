@@ -20,17 +20,17 @@ import Glibc // timespec
 #endif
 
 internal struct Timestamp: RawRepresentable {
-    let rawValue: UInt64
+    let rawValue: DispatchWallTime
 
     /// The number of seconds since the Unix epoch.
-    var secondsSinceEpoch: Double { Double(Int64(bitPattern: rawValue)) / -1_000_000_000 }
+    var secondsSinceEpoch: Double { Double(Int64(bitPattern: rawValue.rawValue)) / -1_000_000_000 }
 
-    init?(rawValue: UInt64) {
+    init?(rawValue: DispatchWallTime) {
         self.rawValue = rawValue
     }
 
     init() {
-        rawValue = DispatchWallTime.now().rawValue
+        rawValue = DispatchWallTime.now()
     }
 
     init?(secondsSinceEpoch: Double) {
@@ -38,7 +38,7 @@ internal struct Timestamp: RawRepresentable {
         let nanosecondsSinceEpoch = UInt64(secondsSinceEpoch * 1_000_000_000)
         let seconds = UInt64(nanosecondsSinceEpoch / 1_000_000_000)
         let nanoseconds = nanosecondsSinceEpoch - (seconds * 1_000_000_000)
-        rawValue = DispatchWallTime(timespec: timespec(tv_sec: Int(seconds), tv_nsec: Int(nanoseconds))).rawValue
+        rawValue = DispatchWallTime(timespec: timespec(tv_sec: Int(seconds), tv_nsec: Int(nanoseconds)))
     }
 }
 
@@ -50,8 +50,7 @@ extension Timestamp: Equatable {
 
 extension Timestamp: Comparable {
     static func < (lhs: Timestamp, rhs: Timestamp) -> Bool {
-        // TODO: change implementation to compare integers
-        lhs.secondsSinceEpoch < rhs.secondsSinceEpoch
+        lhs.rawValue < rhs.rawValue
     }
 }
 

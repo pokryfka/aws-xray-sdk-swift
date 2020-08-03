@@ -24,7 +24,7 @@ private typealias HTTP = XRayRecorder.Segment.HTTP
 final class HTTPTests: XCTestCase {
     func testCreatingAWSRequest() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = "POST"
@@ -40,7 +40,7 @@ final class HTTPTests: XCTestCase {
 
     func testCreatingRemoteRequest() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = "GET"
@@ -56,7 +56,7 @@ final class HTTPTests: XCTestCase {
 
     func testCreatingResponse() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 200
@@ -87,7 +87,7 @@ import NIOHTTP1
 final class HTTPNIOTests: XCTestCase {
     func testCreatingAWSRequestWithHTTPMethod() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = HTTPMethod.POST
@@ -103,7 +103,7 @@ final class HTTPNIOTests: XCTestCase {
 
     func testCreatingRemoteRequestWithHTTPRequestHead() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let url = "https://www.example.com/health"
@@ -123,7 +123,7 @@ final class HTTPNIOTests: XCTestCase {
 
     func testCreatingResponse() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let responseHead = HTTPResponseHead(version: .init(major: 1, minor: 1), status: .ok)

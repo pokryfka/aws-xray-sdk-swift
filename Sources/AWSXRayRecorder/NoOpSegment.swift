@@ -39,7 +39,7 @@ extension XRayRecorder {
 
         init(id: ID, name: String, baggage: BaggageContext, logger: Logger? = nil) {
             // the context is not of much importance as the segment will not be emitted
-            // however pass the baggage which may contain more than just the XRay trace
+            // however pass the baggage which may contain more than just the X-Ray trace
             let context = baggage.xRayContext ?? XRayRecorder.TraceContext()
             super.init(id: id, name: name, context: context, baggage: baggage, logger: logger)
         }
