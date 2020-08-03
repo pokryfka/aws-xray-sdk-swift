@@ -1,15 +1,15 @@
-# file options
+#--swiftversion 5.2
 
---swiftversion 5.2
---exclude .build
+# file options
+--exclude .build,.swiftpm
 # 3rd party
 --exclude Sources/AWSXRayRecorder/Utils/Locks.swift
 
 # format options
-
-# --self insert
+#--self insert
 --patternlet inline
 --stripunusedargs unnamed-only
 --ifdef no-indent
 
 # rules
+--disable braces # works differently on swiftformat-0.44.17 and 0.45.1
