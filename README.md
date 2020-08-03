@@ -196,6 +196,7 @@ Consider creating [Git pre-commit hook](https://github.com/nicklockwood/SwiftFor
 
 ```
 echo 'swiftformat --lint .' > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 ```
 
 ## Examples
