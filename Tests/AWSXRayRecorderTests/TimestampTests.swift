@@ -11,13 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Dispatch
 import XCTest
 
 @testable import AWSXRayRecorder
 
 final class TimestampTests: XCTestCase {
     func testTimestampFromRawValue() {
-        let timestamp = Timestamp(rawValue: 1)
+        let timestamp = Timestamp(rawValue: DispatchWallTime.now())
         XCTAssertNotNil(timestamp)
         let timestamp2 = timestamp
         XCTAssertEqual(timestamp, timestamp2)
