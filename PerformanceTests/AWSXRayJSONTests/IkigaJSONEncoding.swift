@@ -12,10 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
-@_exported import IkigaJSON
+import IkigaJSON
 
 internal enum Ikiga {
-    internal static let segmentEncoding: XRayRecorder.Segment.Encoding = {
+    static let segmentEncoding: XRayRecorder.Segment.Encoding = {
         let jsonEncoder = IkigaJSONEncoder()
         return XRayRecorder.Segment.Encoding { segment in
             let data = try jsonEncoder.encode(segment) // uses Foundation.Data

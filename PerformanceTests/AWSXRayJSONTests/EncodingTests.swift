@@ -30,6 +30,8 @@ final class EncodingTests: XCTestCase {
         segment.setAnnotation("key", forKey: "value")
         segment.setMetadata(["key": 42])
         segment.addException(message: "Root Segment Exception")
+        segment.setHTTPRequest(method: .POST, url: "http://www.example.com/api/user")
+        segment.setHTTPResponse(status: .ok)
         for i in 1 ... 10 {
             segment.subsegment(name: "Subsegment \(i)") { segment in
                 segment.setAnnotation("key", forKey: "value")
