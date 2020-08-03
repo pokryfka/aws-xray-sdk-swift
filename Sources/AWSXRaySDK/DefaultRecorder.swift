@@ -15,7 +15,11 @@
 import AWSXRayUDPEmitter
 
 extension XRayRecorder {
-    /// Creates XRay recorder with UDP Emitter.
+    /// Creates an instance of `XRayRecorder` with `XRayUDPEmitter`.
+    ///
+    /// - Parameters:
+    ///   - eventLoopGroupProvider: specifies how the `EventLoopGroup` used by `XRayUDPEmitter` will be created and establishes lifecycle ownership.
+    ///   - config: configuration, **overrides** enviromental variables.
     public convenience init(eventLoopGroupProvider: XRayUDPEmitter.EventLoopGroupProvider = .createNew,
                             config: Config = Config())
     {

@@ -15,9 +15,13 @@ import AWSXRayRecorder
 import Logging
 import NIO
 
+/// Send `XRayRecorder.Segment`s to the X-Ray daemon, which will buffer them and upload to the X-Ray API in batches.
+/// The X-Ray SDK sends segment documents to the daemon to avoid making calls to AWS directly.
+///
+/// The IP address and port of the X-Ray daemon is configured using `AWS_XRAY_DAEMON_ADDRESS` environment variable, `127.0.0.1:2000` by default.
+///
 /// # References
 /// - [Sending segment documents to the X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-daemon)
-/// - [Using AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
 public class XRayUDPEmitter: XRayNIOEmitter {
     /// Specifies how `EventLoopGroup` will be created and establishes lifecycle ownership.
     public enum EventLoopGroupProvider {
@@ -37,8 +41,7 @@ public class XRayUDPEmitter: XRayNIOEmitter {
     private var _inFlight = [UInt64: EventLoopFuture<Void>]()
 
     internal init(encoding: XRayRecorder.Segment.Encoding,
-                  eventLoopGroupProvider: EventLoopGroupProvider,
-                  address: SocketAddress,
+                  eventLoopGroupProvider: EventLoopGroupProvider, address: SocketAddress,
                   logger: Logger)
     {
         self.logger = logger
@@ -51,6 +54,13 @@ public class XRayUDPEmitter: XRayNIOEmitter {
         }
     }
 
+    /// Creates an instance of `XRayUDPEmitter`.
+    ///
+    /// - Parameters:
+    ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
+    ///   - eventLoopGroupProvider: Specifies how `EventLoopGroup` will be created and establishes lifecycle ownership.
+    ///   - config: configuration, **overrides** enviromental variables.
+    /// - Throws: may throw if the UDP Daemon endpoint cannot be parsed.
     public convenience init(encoding: XRayRecorder.Segment.Encoding,
                             eventLoopGroupProvider: EventLoopGroupProvider = .createNew,
                             config: Config = Config()) throws
@@ -73,6 +83,7 @@ public class XRayUDPEmitter: XRayNIOEmitter {
     public func send(_ segment: XRayRecorder.Segment) {
         // TODO: check size, consider sending subsegments separately
         // or grouping a few segments in one datagram (if possible)
+        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/25
         let futureId = UInt64.random(in: UInt64.min ... UInt64.max)
         do {
             let string = "\(Self.segmentHeader)\(try encoding.encode(segment))"
