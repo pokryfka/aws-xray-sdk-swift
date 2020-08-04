@@ -70,6 +70,17 @@ recorder.segment(name: "Segment 2", context: context) { segment in
 }
 ```
 
+#### Errors and exceptions
+
+You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
+
+```swift
+segment.addError(ExampleError.test)
+segment.addException(message: "Test Exception")
+```
+
+Note that `Error`s rethrown in the closures are recorded.
+
 #### HTTP request data
 
 You can record details about an HTTP request that your application served or made to a downstream HTTP API, see [HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http):
@@ -91,15 +102,6 @@ and [metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segment
 
 ```swift
 segment.setMetadata(["debug": ["test": "Metadata string"]])
-```
-
-#### Errors and exceptions
-
-You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
-
-```swift
-segment.addError(ExampleError.test)
-segment.addException(message: "Test Exception")
 ```
 
 ### Emitting
