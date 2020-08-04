@@ -37,6 +37,19 @@ final class SegmentTests: XCTestCase {
         }
     }
 
+    func testTruncatingName() {
+        let maxNameLength: Int = 200
+
+        let veryLongName = String(repeating: "x", count: maxNameLength)
+        let segment = Segment(id: .init(), name: veryLongName, context: .init())
+        XCTAssertEqual(maxNameLength, segment.name.count)
+
+        let tooLongName = String(repeating: "x", count: maxNameLength + 1)
+        let segmentWithTruncatedName = Segment(id: .init(), name: tooLongName, context: .init())
+        XCTAssertEqual(maxNameLength, segmentWithTruncatedName.name.count)
+        XCTAssertTrue(tooLongName.starts(with: segmentWithTruncatedName.name))
+    }
+
     // MARK: Subsegments
 
     func testCreatingSubsegments() {

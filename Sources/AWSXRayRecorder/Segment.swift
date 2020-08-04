@@ -118,7 +118,6 @@ extension XRayRecorder {
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
         internal var id: ID { lock.withReaderLock { _id } }
 
-        // TODO: validate name, see https://github.com/pokryfka/aws-xray-sdk-swift/issues/56
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
@@ -249,7 +248,7 @@ extension XRayRecorder {
             callback: StateChangeCallback? = nil
         ) {
             _id = id
-            _name = name
+            _name = String(Self.validName(name))
             _context = context
             _state = .inProgress(started: startTime)
             _baggage = (try? baggage.withParent(id)) ?? baggage
@@ -651,6 +650,13 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
 // MARK: - Validation
 
 internal extension XRayRecorder.Segment {
+    // The logical name of the service that handled the request, up to **200 characters**.
+    // Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
+    static func validName(_ name: String) -> Substring {
+        let prefixIndex = name.index(name.startIndex, offsetBy: 200)
+        return name[name.startIndex ..< prefixIndex]
+    }
+
     // Keys must be alphanumeric in order to work with filters. Underscore is allowed.
     // Other symbols and whitespace are not allowed.
     static func validAnnotationKey(_ key: String) -> String {
