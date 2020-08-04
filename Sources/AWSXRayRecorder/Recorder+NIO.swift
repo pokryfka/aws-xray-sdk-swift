@@ -35,3 +35,25 @@ extension XRayRecorder {
         }
     }
 }
+
+extension XRayRecorder {
+    /// Creates new segment.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - context: the trace context
+    ///   - metadata: segment metadata
+    ///   - body: segment body
+    @inlinable
+    public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
+                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    {
+        let segment = beginSegment(name: name, context: context, metadata: metadata)
+        return body().always { result in
+            if case Result<T, Error>.failure(let error) = result {
+                segment.addError(error)
+            }
+            segment.end()
+        }
+    }
+}

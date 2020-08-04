@@ -40,7 +40,7 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
         let traceContext: XRayRecorder.TraceContext = (try? .init(tracingHeader: context.traceID)) ?? .init()
         return recorder.segment(name: "ExampleLambdaHandler", context: traceContext, metadata: metadata) {
             self.doWork(on: context.eventLoop)
-        }.flatMap {
+        }.flatMap { // TODO: flash also, in fact especially when thare are errors, see testPropagatingError
             self.recorder.flush(on: context.eventLoop)
         }
     }

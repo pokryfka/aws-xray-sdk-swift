@@ -89,3 +89,43 @@ final class SegmentExceptionTests: XCTestCase {
         }
     }
 }
+
+import NIO
+
+final class SegmentExceptionNIOTests: XCTestCase {
+    func testPropagatingError() {
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
+        }
+
+        enum ExampleError: Error {
+            case test
+        }
+
+        func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+            eventLoop.submit { throw ExampleError.test }.map { _ in }
+        }
+
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        let eventLoop = eventLoopGroup.next()
+
+        try! recorder.segment(name: "ExampleLambdaHandler", context: .init()) {
+            doWork(on: eventLoop)
+        }
+        .recover { error in
+            XCTAssertTrue(error is ExampleError)
+        }
+        .flatMap {
+            recorder.flush(on: eventLoop)
+        }
+        .always { _ in
+            XCTAssertEqual(1, emitter.segments.count)
+            let segment = emitter.segments.first!
+            XCTAssertEqual(1, segment._test_exceptions.count)
+        }
+        .wait()
+    }
+}

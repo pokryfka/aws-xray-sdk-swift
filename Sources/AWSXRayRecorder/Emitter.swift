@@ -30,7 +30,7 @@ public protocol XRayEmitter {
 /// Implements `XRayEmitter` which does not do anything.
 public struct XRayNoOpEmitter: XRayEmitter {
     public func send(_: XRayRecorder.Segment) {}
-    public func flush(_: @escaping (Error?) -> Void) {}
+    public func flush(_ callback: @escaping (Error?) -> Void) { callback(nil) }
 
     public init() {}
 }
