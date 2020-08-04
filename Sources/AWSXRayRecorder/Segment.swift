@@ -118,7 +118,6 @@ extension XRayRecorder {
         /// A 64-bit identifier for the segment, unique among segments in the same trace, in **16 hexadecimal digits**.
         internal var id: ID { lock.withReaderLock { _id } }
 
-        // TODO: validate name, see https://github.com/pokryfka/aws-xray-sdk-swift/issues/56
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
@@ -249,7 +248,7 @@ extension XRayRecorder {
             callback: StateChangeCallback? = nil
         ) {
             _id = id
-            _name = name
+            _name = String(Self.validName(name))
             _context = context
             _state = .inProgress(started: startTime)
             _baggage = (try? baggage.withParent(id)) ?? baggage
@@ -475,10 +474,8 @@ extension XRayRecorder {
 
         // MARK: Annotations
 
-        // TODO: Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
-        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/54
-
         internal func setAnnotation(_ value: AnnotationValue, forKey key: String) {
+            let key = Self.validAnnotationKey(key)
             lock.withWriterLockVoid {
                 _annotations[key] = value
             }
@@ -538,9 +535,6 @@ extension XRayRecorder {
 
         // MARK: Metadata
 
-        // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
-        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/55
-
         /// Sets metadata object.
         ///
         /// Replaces all previously set metadata.
@@ -550,6 +544,9 @@ extension XRayRecorder {
         /// - Parameters:
         ///   - metadata: metadata object
         public func setMetadata(_ metadata: Metadata) {
+            // not sure if its worth the effort
+            let metadata = Dictionary(uniqueKeysWithValues:
+                metadata.map { key, value in (Self.validMetadataKey(key), value) })
             lock.withWriterLockVoid {
                 _metadata = metadata
             }
@@ -565,6 +562,7 @@ extension XRayRecorder {
         ///   - value: metadata value
         ///   - key: metadata key
         public func setMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 _metadata[key] = value
             }
@@ -580,6 +578,7 @@ extension XRayRecorder {
         ///   - value: metadata value
         ///   - key: metadata key
         public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 if var array = _metadata[key]?.value as? [Any] {
                     array.append(value.value)
@@ -644,6 +643,31 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
             return "ended @ \(ended.secondsSinceEpoch)"
         case .emitted(started: _, ended: _, let emitted):
             return "emitted @ \(emitted.secondsSinceEpoch)"
+        }
+    }
+}
+
+// MARK: - Validation
+
+internal extension XRayRecorder.Segment {
+    // The logical name of the service that handled the request, up to **200 characters**.
+    // Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
+    static func validName(_ name: String) -> Substring {
+        name.prefix(200)
+    }
+
+    // Keys must be alphanumeric in order to work with filters. Underscore is allowed.
+    // Other symbols and whitespace are not allowed.
+    static func validAnnotationKey(_ key: String) -> String {
+        key.filter { ("0" ... "9").contains($0) || ("a" ... "z").contains($0) || ("A" ... "Z").contains($0) || $0 == "_" }
+    }
+
+    // Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+    static func validMetadataKey(_ key: String) -> String {
+        if key.hasPrefix("AWS.") == false {
+            return key
+        } else {
+            return "_" + key
         }
     }
 }

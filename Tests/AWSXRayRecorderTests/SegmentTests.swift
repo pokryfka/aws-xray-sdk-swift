@@ -37,6 +37,19 @@ final class SegmentTests: XCTestCase {
         }
     }
 
+    func testTruncatingName() {
+        let maxNameLength: Int = 200
+
+        let veryLongName = String(repeating: "x", count: maxNameLength)
+        let segment = Segment(id: .init(), name: veryLongName, context: .init())
+        XCTAssertEqual(maxNameLength, segment.name.count)
+
+        let tooLongName = String(repeating: "x", count: maxNameLength + 1)
+        let segmentWithTruncatedName = Segment(id: .init(), name: tooLongName, context: .init())
+        XCTAssertEqual(maxNameLength, segmentWithTruncatedName.name.count)
+        XCTAssertTrue(tooLongName.starts(with: segmentWithTruncatedName.name))
+    }
+
     // MARK: Subsegments
 
     func testCreatingSubsegments() {
@@ -119,29 +132,48 @@ final class SegmentTests: XCTestCase {
 
     // MARK: Annotations
 
+    func testAnnotationKeys() {
+        let validCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
+        XCTAssertFalse(" ".containsOnly(charactersIn: validCharacters))
+        XCTAssertFalse("@".containsOnly(charactersIn: validCharacters))
+        XCTAssertTrue("_key".containsOnly(charactersIn: validCharacters))
+
+        let invalidKey = "\(UUID().uuidString)_!_\(UUID().uuidString)"
+        XCTAssertFalse(invalidKey.containsOnly(charactersIn: validCharacters))
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
+        XCTAssertEqual(0, segment._test_annotations.count)
+
+        segment.setAnnotation("\(UUID().uuidString)", forKey: invalidKey)
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_annotations.count)
+        XCTAssertNil(segment._test_annotations[invalidKey])
+        let validKey = String(segment._test_annotations.keys.first!)
+        XCTAssertTrue(validKey.containsOnly(charactersIn: validCharacters))
+    }
+
     func testSettingAnnotations() {
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
         XCTAssertEqual(0, segment._test_annotations.count)
 
-        let stringKey = UUID().uuidString
+        let stringKey = Segment.validAnnotationKey(UUID().uuidString)
         let stringValue = UUID().uuidString
         segment.setAnnotation(stringValue, forKey: stringKey)
         XCTAssertEqual(1, segment._test_annotations.count)
         XCTAssertEqual(Segment.AnnotationValue.string(stringValue), segment._test_annotations[stringKey])
 
-        let integerKey = UUID().uuidString
+        let integerKey = Segment.validAnnotationKey(UUID().uuidString)
         let integerValue = Int.random(in: Int.min ... Int.max)
         segment.setAnnotation(integerValue, forKey: integerKey)
         XCTAssertEqual(2, segment._test_annotations.count)
         XCTAssertEqual(Segment.AnnotationValue.integer(integerValue), segment._test_annotations[integerKey])
 
-        let doubleKey = UUID().uuidString
+        let doubleKey = Segment.validAnnotationKey(UUID().uuidString)
         let doubleValue = Double.random(in: -1000 ... 1000)
         segment.setAnnotation(doubleValue, forKey: doubleKey)
         XCTAssertEqual(3, segment._test_annotations.count)
         XCTAssertEqual(Segment.AnnotationValue.double(doubleValue), segment._test_annotations[doubleKey])
 
-        let boolKey = UUID().uuidString
+        let boolKey = Segment.validAnnotationKey(UUID().uuidString)
         let boolValue = false
         segment.setAnnotation(boolValue, forKey: boolKey)
         XCTAssertEqual(4, segment._test_annotations.count)
@@ -149,6 +181,35 @@ final class SegmentTests: XCTestCase {
     }
 
     // MARK: Metadata
+
+    func testMetadataKeys() {
+        let invalidKey = "AWS.\(UUID().uuidString)"
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.setMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+
+        // reset metadata
+        segment.setMetadata([:])
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.setMetadata([invalidKey: "\(UUID().uuidString)"])
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+
+        // reset metadata
+        segment.setMetadata([:])
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.appendMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        segment.appendMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+    }
 
     func testSettingMetadata() {
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())

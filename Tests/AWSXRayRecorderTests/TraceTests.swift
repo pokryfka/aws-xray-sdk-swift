@@ -22,23 +22,6 @@ private typealias TraceError = XRayRecorder.TraceError
 private typealias SampleDecision = XRayRecorder.SampleDecision
 private typealias SegmentError = XRayRecorder.SegmentError
 
-extension TraceID {
-    fileprivate static let length: Int = 1 + 8 + 24 + 2
-    fileprivate static let dateLength: Int = 8
-    fileprivate static let dateInvalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
-    fileprivate static let identifierLength: Int = 24
-    fileprivate static let identifierInvalidCharacters = CharacterSet(charactersIn: "abcdef0123456789").inverted
-
-    func test() {
-//        XCTAssertEqual(date.count, Self.dateLength)
-//        XCTAssertNil(date.rangeOfCharacter(from: Self.dateInvalidCharacters))
-//        XCTAssertEqual(identifier.count, Self.identifierLength)
-//        XCTAssertNil(identifier.rangeOfCharacter(from: Self.identifierInvalidCharacters))
-//        XCTAssertEqual(String(describing: self).count, Self.length)
-//        XCTAssertNoThrow(try TraceID(string: String(describing: self)))
-    }
-}
-
 final class TraceTests: XCTestCase {
     // MARK: TraceID
 
@@ -47,15 +30,15 @@ final class TraceTests: XCTestCase {
         var values = Set<TraceID.RawValue>()
         for _ in 0 ..< numTests {
             let traceId = TraceID()
-            traceId.test()
             values.insert(traceId.rawValue)
         }
         XCTAssertEqual(values.count, numTests)
     }
 
     func testTraceOldId() {
-        let traceId = TraceID(secondsSinceEpoch: 1)
-        traceId.test()
+        let identifier = String.random96()
+        XCTAssertEqual(TraceID(secondsSinceEpoch: 1, identifier: identifier),
+                       TraceID(secondsSinceEpoch: 1, identifier: identifier))
     }
 
     func testTraceOverflowId() {
