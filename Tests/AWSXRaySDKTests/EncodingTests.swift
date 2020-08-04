@@ -37,7 +37,7 @@ final class EncodingTests: XCTestCase {
         return segment
     }()
 
-    private func measureEncoding(_ segment: Segment, encoding: SegmentEncoding, count: UInt = 1000) {
+    private func measureEncoding(_ segment: Segment, encoding: SegmentEncoding, count: UInt = 10) {
         measure {
             for _ in 0 ..< count {
                 _ = try! encoding.encode(segment)
