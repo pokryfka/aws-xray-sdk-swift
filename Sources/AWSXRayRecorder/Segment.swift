@@ -475,10 +475,8 @@ extension XRayRecorder {
 
         // MARK: Annotations
 
-        // TODO: Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
-        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/54
-
         internal func setAnnotation(_ value: AnnotationValue, forKey key: String) {
+            let key = Self.validAnnotationKey(key)
             lock.withWriterLockVoid {
                 _annotations[key] = value
             }
@@ -653,6 +651,12 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
 // MARK: - Validation
 
 internal extension XRayRecorder.Segment {
+    // Keys must be alphanumeric in order to work with filters. Underscore is allowed.
+    // Other symbols and whitespace are not allowed.
+    static func validAnnotationKey(_ key: String) -> String {
+        key.filter { ("0" ... "9").contains($0) || ("a" ... "z").contains($0) || ("A" ... "Z").contains($0) || $0 == "_" }
+    }
+
     // Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
     static func validMetadataKey(_ key: String) -> String {
         if key.hasPrefix("AWS.") == false {

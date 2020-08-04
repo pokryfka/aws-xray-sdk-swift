@@ -119,6 +119,25 @@ final class SegmentTests: XCTestCase {
 
     // MARK: Annotations
 
+    func testAnnotationKeys() {
+        let validCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
+        XCTAssertFalse(" ".containsOnly(charactersIn: validCharacters))
+        XCTAssertFalse("@".containsOnly(charactersIn: validCharacters))
+        XCTAssertTrue("_key".containsOnly(charactersIn: validCharacters))
+
+        let invalidKey = "\(UUID().uuidString)_!_\(UUID().uuidString)"
+        XCTAssertFalse(invalidKey.containsOnly(charactersIn: validCharacters))
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
+        XCTAssertEqual(0, segment._test_annotations.count)
+
+        segment.setAnnotation("\(UUID().uuidString)", forKey: invalidKey)
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_annotations.count)
+        XCTAssertNil(segment._test_annotations[invalidKey])
+        let validKey = String(segment._test_annotations.keys.first!)
+        XCTAssertTrue(validKey.containsOnly(charactersIn: validCharacters))
+    }
+
     func testSettingAnnotations() {
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
         XCTAssertEqual(0, segment._test_annotations.count)
