@@ -71,10 +71,11 @@ extension XRayRecorder.TraceID {
     }
 }
 
-// TODO: make SampleDecision internal in v0.6.0, change to RawRepresentable?
+// TODO: make SampleDecision internal in v0.6.0, see https://github.com/pokryfka/aws-xray-sdk-swift/issues/59
 
 extension XRayRecorder {
-    internal enum SampleDecision: String {
+    /// Sampling decision.
+    public enum SampleDecision: String {
         // "?" value not document, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
