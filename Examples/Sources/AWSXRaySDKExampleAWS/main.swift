@@ -39,7 +39,8 @@ defer {
 
 let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))
 
-// TODO: WIP https://github.com/pokryfka/aws-xray-sdk-swift/issues/19
+// TODO: https://github.com/pokryfka/aws-xray-sdk-swift/issues/19
+// see https://github.com/slashmo/gsoc-swift-tracing/issues/48
 
 // let awsClient = AWSClient(
 //    //    middlewares: [XRayMiddleware(recorder: recorder, name: "S3")],

@@ -12,14 +12,30 @@
 //===----------------------------------------------------------------------===//
 
 import Logging
+import NIO
 import XCTest
 
 import AWSXRaySDK
 
 final class SDKTests: XCTestCase {
-    // TODO: fix shutdown of the UDP emitter
-//    func testDefaultInit() {
-//        let recorder = XRayRecorder()
-//        recorder.wait() // TODO: shutdown?
-//    }
+    func testInitWithSharedGroup() {
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
+        }
+
+        _ = XRayRecorder(eventLoopGroupProvider: .shared(eventLoopGroup))
+    }
+
+    // TODO: Extend recorder API to let shutdown it gracefully #21
+    #if false
+    func testInitWithNewGroup() {
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
+        }
+
+        _ = XRayRecorder(eventLoopGroupProvider: .createNew)
+    }
+    #endif
 }

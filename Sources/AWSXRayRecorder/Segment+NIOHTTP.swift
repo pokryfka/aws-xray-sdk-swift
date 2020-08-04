@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOHTTP1
+@_exported import NIOHTTP1
 
 extension XRayRecorder.Segment {
     /// Records details about an HTTP request that your application served (in a segment) or

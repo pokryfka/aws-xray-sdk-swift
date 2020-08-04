@@ -25,6 +25,7 @@ extension XRayRecorder {
     }
 
     /// A segment records tracing information about a request that your application serves.
+    ///
     /// At a minimum, a segment records the name, ID, start time, trace ID, and end time of the request.
     ///
     /// # References
@@ -123,6 +124,7 @@ extension XRayRecorder {
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
         public var name: String { lock.withReaderLock { _name } }
 
+        #if false // part of _context
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
         /// # Trace ID Format
@@ -139,7 +141,9 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         private var traceId: TraceID { lock.withReaderLock { _context.traceId } }
+        #endif
 
+        #if false // part of _state
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
@@ -155,6 +159,7 @@ extension XRayRecorder {
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
         internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
+        #endif
 
         // MARK: Required Subsegment Fields
 
@@ -163,6 +168,7 @@ extension XRayRecorder {
 
         // MARK: Optional Segment Fields
 
+        #if false // part of _context
         /// A subsegment ID you specify if the request originated from an instrumented application.
         /// The X-Ray SDK adds the parent subsegment ID to the tracing header for downstream HTTP calls.
         /// In the case of nested subsguments, a subsegment can have a segment or a subsegment as its parent.
@@ -171,6 +177,7 @@ extension XRayRecorder {
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
+        #endif
 
         /// An object with information about your application.
         private let _service: Service?
@@ -194,17 +201,25 @@ extension XRayRecorder {
         private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
         private var _fault: Bool?
+        internal func _test_error(error: inout Bool?, throttle: inout Bool?, fault: inout Bool?) {
+            lock.withReaderLock {
+                error = _error
+                throttle = _throttle
+                fault = _fault
+            }
+        }
+
         /// the exception(s) that caused the error.
         private var _cause: Cause = Cause()
-        internal var exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
+        internal var _test_exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
-        internal var annotations: Annotations { lock.withReaderLock { _annotations } }
+        internal var _test_annotations: Annotations { lock.withReaderLock { _annotations } }
 
         /// metadata object with any additional data that you want to store in the segment.
         private var _metadata: Metadata
-        internal var metadata: Metadata { lock.withReaderLock { _metadata } }
+        internal var _test_metadata: Metadata { lock.withReaderLock { _metadata } }
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
@@ -248,6 +263,26 @@ extension XRayRecorder {
             _metadata = metadata ?? Metadata()
             self.logger = logger
             _callback = callback
+        }
+
+        convenience init(
+            id: ID,
+            name: String,
+            context: TraceContext,
+            startTime: Timestamp = Timestamp(),
+            subsegment: Bool = false,
+            service: Service? = nil, user: String? = nil,
+            origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
+            annotations: Annotations? = nil, metadata: Metadata? = nil,
+            logger: Logger? = nil,
+            callback: StateChangeCallback? = nil
+        ) {
+            var baggage = BaggageContext()
+            baggage.xRayContext = .init(traceId: context.traceId, parentId: id, sampled: context.sampled)
+            self.init(id: id, name: name, context: context, baggage: baggage,
+                      startTime: startTime, subsegment: subsegment, service: service, user: user,
+                      origin: origin, http: http, aws: aws, annotations: annotations, metadata: metadata,
+                      logger: logger, callback: callback)
         }
 
         deinit {
@@ -506,23 +541,19 @@ extension XRayRecorder {
         // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
         // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/55
 
-        /// Sets a metadata object.
+        /// Sets metadata object.
+        ///
+        /// Replaces all previously set metadata.
         ///
         /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
         ///
         /// - Parameters:
-        ///   - newElements: metadata object
-        public func setMetadata(_ newElements: Metadata) {
+        ///   - metadata: metadata object
+        public func setMetadata(_ metadata: Metadata) {
             lock.withWriterLockVoid {
-                // TODO: should we overwrite all metadata? document
-//                _metadata = metadata
-                for (k, v) in newElements {
-                    _metadata.updateValue(v, forKey: k)
-                }
+                _metadata = metadata
             }
         }
-
-        // TODO: allow to set nil value removing the previous one?
 
         /// Sets a metadata value.
         ///
@@ -539,8 +570,15 @@ extension XRayRecorder {
             }
         }
 
-        // TODO: document
-
+        /// Appends a metadata value.
+        ///
+        /// Stores the value in a collection, appending to the end of the collection if it already exists.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - value: metadata value
+        ///   - key: metadata key
         public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
             lock.withWriterLockVoid {
                 if var array = _metadata[key]?.value as? [Any] {

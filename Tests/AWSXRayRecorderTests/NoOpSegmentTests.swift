@@ -85,7 +85,7 @@ final class NoOpSegmentTests: XCTestCase {
 
         segment.addException(message: UUID().uuidString, type: UUID().uuidString)
         segment.addError(TestError.test)
-        XCTAssertEqual(0, segment.exceptions.count)
+        XCTAssertEqual(0, segment._test_exceptions.count)
     }
 
     func testRecordingHTTPRequest() {
@@ -126,7 +126,7 @@ final class NoOpSegmentTests: XCTestCase {
         segment.setAnnotation(Bool.random(), forKey: UUID().uuidString)
         segment.setAnnotation(Int.random(in: Int.min ... Int.max), forKey: UUID().uuidString)
         segment.setAnnotation(Double.random(in: -1000 ... 1000), forKey: UUID().uuidString)
-        XCTAssertEqual(0, segment.annotations.count)
+        XCTAssertEqual(0, segment._test_annotations.count)
     }
 
     func testAddingMetadata() {
@@ -140,7 +140,7 @@ final class NoOpSegmentTests: XCTestCase {
         segment.setMetadata(["test": "\(UUID().uuidString)"])
         segment.setMetadata("\(UUID().uuidString)", forKey: UUID().uuidString)
         segment.appendMetadata("\(UUID().uuidString)", forKey: UUID().uuidString)
-        XCTAssertEqual(0, segment.metadata.count)
+        XCTAssertEqual(0, segment._test_metadata.count)
     }
 
     func testLoggingErrors() {

@@ -15,9 +15,19 @@ import Logging
 import XCTest
 
 import AWSXRayRecorder
-import AWSXRayTesting
+@testable import AWSXRayTesting
 
 final class LogEmitterTests: XCTestCase {
+    func testDetaultLogLevel() {
+        let emitter = XRayLogEmitter()
+        XCTAssertEqual(Logger.Level.info, emitter.logger.logLevel)
+    }
+
+    func testErrorsOnlyLogLevel() {
+        let emitter = XRayLogEmitter(onlyErrors: true)
+        XCTAssertEqual(Logger.Level.error, emitter.logger.logLevel)
+    }
+
     func testEmmiting() {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })

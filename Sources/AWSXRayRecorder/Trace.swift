@@ -137,7 +137,7 @@ extension XRayRecorder {
         /// - parameter traceId: root trace ID
         /// - parameter parentId: parent segment ID
         /// - parameter sampled: sampling decision
-        internal init(traceId: XRayRecorder.TraceID, parentId: XRayRecorder.Segment.ID?, sampled: SampleDecision) {
+        internal init(traceId: TraceID, parentId: Segment.ID?, sampled: SampleDecision) {
             self.traceId = traceId
             self.parentId = parentId
             self.sampled = sampled
