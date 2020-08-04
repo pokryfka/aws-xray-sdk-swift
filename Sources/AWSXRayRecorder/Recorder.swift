@@ -14,6 +14,7 @@
 import Baggage
 import Dispatch
 import Logging
+import NIOConcurrencyHelpers
 
 /// X-Ray tracer.
 ///
@@ -25,6 +26,8 @@ import Logging
 public class XRayRecorder {
     private let config: Config
     private let logger: Logger
+
+    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -59,6 +62,10 @@ public class XRayRecorder {
     internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
     {
+        guard isShutdown.load() == false else {
+            logger.warning("Emitter has been shut down")
+            return NoOpSegment(id: .init(), name: name, baggage: baggage)
+        }
         guard config.enabled, context.isSampled else {
             return NoOpSegment(id: .init(), name: name, baggage: baggage)
         }
@@ -145,6 +152,18 @@ public class XRayRecorder {
         waitEmitting()
         // wait for the emitter to send them
         emitter.flush(callback ?? { _ in })
+    }
+
+    /// Flushes the emitter.
+    /// May be blocking.
+    ///
+    /// `XRayRecorder.Segment`s after `shutdown` are **NOT** recorded.
+    ///
+    /// - Parameter callback: callback with error if the operation failed.
+    public func shutdown(_ callback: ((Error?) -> Void)? = nil) {
+        isShutdown.store(true)
+        wait(callback)
+        emitter.shutdown(callback ?? { _ in })
     }
 
     private func emit(segment id: Segment.ID) {

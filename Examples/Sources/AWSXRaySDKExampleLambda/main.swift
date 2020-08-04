@@ -26,11 +26,16 @@ private var metadata: XRayRecorder.Segment.Metadata? = {
     nil
 }()
 
-private struct ExampleLambdaHandler: EventLoopLambdaHandler {
+private class ExampleLambdaHandler: EventLoopLambdaHandler {
     typealias In = Cloudwatch.ScheduledEvent
     typealias Out = Void
 
+    // TODO: existing Lambda API does not allow us to pass EventLoopGroup used by Lambda Handler
     private let recorder = XRayRecorder()
+
+    deinit {
+        recorder.shutdown()
+    }
 
     private func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         eventLoop.submit { usleep(100_000) }.map { _ in }

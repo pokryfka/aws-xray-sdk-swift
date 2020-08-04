@@ -21,6 +21,9 @@ enum ExampleError: Error {
 
 let recorder = XRayRecorder()
 // let recorder = XRayRecorder(emitter: XRayLogEmitter())
+defer {
+    recorder.shutdown()
+}
 
 let context = XRayContext()
 
@@ -59,5 +62,3 @@ recorder.segment(name: "Segment 2", context: context) { segment in
         }
     }
 }
-
-recorder.wait()

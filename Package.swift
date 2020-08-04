@@ -65,6 +65,7 @@ let package = Package(
             name: "AWSXRayTesting",
             dependencies: [
                 .target(name: "AWSXRayRecorder"),
+                .product(name: "NIO", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
             ]
         ),

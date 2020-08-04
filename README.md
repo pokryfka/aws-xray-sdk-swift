@@ -110,10 +110,10 @@ Subsegments have to be created before the parent segment ended.
 
 Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
-Make sure all segments are sent before program exits:
+Make sure to flush the recorder before program exits:
 
 ```swift
-recorder.wait()
+recorder.shutdown()
 ```
 
 or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:
