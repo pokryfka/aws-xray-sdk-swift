@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 @propertyWrapper
-struct Synchronized<Value> {
+internal struct Synchronized<Value> {
     private var _value: Value
     private let lock: ReadWriteLock
 

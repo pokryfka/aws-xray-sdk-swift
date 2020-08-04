@@ -15,6 +15,7 @@ import Logging
 
 class TestLogHandler: LogHandler {
     var infoMessages = [String]()
+    var warningMessages = [String]()
     var errorMessages = [String]()
 
     func log(level: Logger.Level,
@@ -30,6 +31,8 @@ class TestLogHandler: LogHandler {
         switch level {
         case .error:
             errorMessages.append("\(message)")
+        case .warning:
+            warningMessages.append("\(message)")
         case .info:
             infoMessages.append("\(message)")
         default:

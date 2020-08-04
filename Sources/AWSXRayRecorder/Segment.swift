@@ -16,11 +16,6 @@ import Baggage
 import Logging
 import NIOHTTP1
 
-// TODO: document
-// TODO: validate the name, truncate to 200 chars, replace invalid chars
-
-private typealias SegmentError = XRayRecorder.SegmentError
-
 extension XRayRecorder {
     enum SegmentError: Error {
         case inProgress
@@ -30,6 +25,7 @@ extension XRayRecorder {
     }
 
     /// A segment records tracing information about a request that your application serves.
+    ///
     /// At a minimum, a segment records the name, ID, start time, trace ID, and end time of the request.
     ///
     /// # References
@@ -44,6 +40,7 @@ extension XRayRecorder {
                 self.rawValue = rawValue
             }
 
+            /// Creates new `ID`.
             public init() { rawValue = String.random64() }
         }
 
@@ -109,8 +106,11 @@ extension XRayRecorder {
         private var state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
+
+        /// Context baggage containing `XRayContext`.
         public var baggage: BaggageContext { lock.withReaderLock { _baggage } }
 
+        /// Indicates if the segment is recording information.
         public var isSampled: Bool { true }
 
         // MARK: Required Segment Fields
@@ -123,6 +123,7 @@ extension XRayRecorder {
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
         public var name: String { lock.withReaderLock { _name } }
 
+        #if false // part of _context
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
         ///
         /// # Trace ID Format
@@ -139,7 +140,9 @@ extension XRayRecorder {
         /// # Subsegment
         /// Required only if sending a subsegment separately.
         private var traceId: TraceID { lock.withReaderLock { _context.traceId } }
+        #endif
 
+        #if false // part of _state
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
         /// For example, 1480615200.010 or 1.480615200010E9.
         /// Use as many decimal places as you need. Microsecond resolution is recommended when available.
@@ -155,6 +158,7 @@ extension XRayRecorder {
         /// When the response is sent, send the complete segment to overwrite the in-progress segment.
         /// Only send one complete segment, and one or zero in-progress segments, per request.
         internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
+        #endif
 
         // MARK: Required Subsegment Fields
 
@@ -163,6 +167,7 @@ extension XRayRecorder {
 
         // MARK: Optional Segment Fields
 
+        #if false // part of _context
         /// A subsegment ID you specify if the request originated from an instrumented application.
         /// The X-Ray SDK adds the parent subsegment ID to the tracing header for downstream HTTP calls.
         /// In the case of nested subsguments, a subsegment can have a segment or a subsegment as its parent.
@@ -171,6 +176,7 @@ extension XRayRecorder {
         /// Required only if sending a subsegment separately.
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
+        #endif
 
         /// An object with information about your application.
         private let _service: Service?
@@ -194,17 +200,25 @@ extension XRayRecorder {
         private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
         private var _fault: Bool?
+        internal func _test_error(error: inout Bool?, throttle: inout Bool?, fault: inout Bool?) {
+            lock.withReaderLock {
+                error = _error
+                throttle = _throttle
+                fault = _fault
+            }
+        }
+
         /// the exception(s) that caused the error.
         private var _cause: Cause = Cause()
-        internal var exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
+        internal var _test_exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
-        internal var annotations: Annotations { lock.withReaderLock { _annotations } }
+        internal var _test_annotations: Annotations { lock.withReaderLock { _annotations } }
 
         /// metadata object with any additional data that you want to store in the segment.
         private var _metadata: Metadata
-        internal var metadata: Metadata { lock.withReaderLock { _metadata } }
+        internal var _test_metadata: Metadata { lock.withReaderLock { _metadata } }
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
@@ -215,8 +229,10 @@ extension XRayRecorder {
         private var _namespace: Namespace?
         internal var _test_namespace: Namespace? { lock.withReaderLock { _namespace } }
 
+        #if false // not used
         /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
         private let _precursorIDs: [String]? = nil
+        #endif
 
         init(
             id: ID,
@@ -232,7 +248,7 @@ extension XRayRecorder {
             callback: StateChangeCallback? = nil
         ) {
             _id = id
-            _name = name
+            _name = String(Self.validName(name))
             _context = context
             _state = .inProgress(started: startTime)
             _baggage = (try? baggage.withParent(id)) ?? baggage
@@ -246,6 +262,26 @@ extension XRayRecorder {
             _metadata = metadata ?? Metadata()
             self.logger = logger
             _callback = callback
+        }
+
+        convenience init(
+            id: ID,
+            name: String,
+            context: TraceContext,
+            startTime: Timestamp = Timestamp(),
+            subsegment: Bool = false,
+            service: Service? = nil, user: String? = nil,
+            origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
+            annotations: Annotations? = nil, metadata: Metadata? = nil,
+            logger: Logger? = nil,
+            callback: StateChangeCallback? = nil
+        ) {
+            var baggage = BaggageContext()
+            baggage.xRayContext = .init(traceId: context.traceId, parentId: id, sampled: context.sampled)
+            self.init(id: id, name: name, context: context, baggage: baggage,
+                      startTime: startTime, subsegment: subsegment, service: service, user: user,
+                      origin: origin, http: http, aws: aws, annotations: annotations, metadata: metadata,
+                      logger: logger, callback: callback)
         }
 
         deinit {
@@ -310,6 +346,11 @@ extension XRayRecorder {
 
         // MARK: Subsegments
 
+        /// Creates new subsegment.
+        ///
+        /// - Parameters:
+        ///   - name: segment name
+        ///   - metadata: segment metadata
         public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
             lock.withWriterLock {
                 // TODO: document/test/discuss where/how it should be updated and propagated
@@ -358,10 +399,18 @@ extension XRayRecorder {
             }
         }
 
+        /// Records an excaption.
+        ///
+        /// - Parameters:
+        ///   - message: exception message
+        ///   - type: excetion type
         public func addException(message: String, type: String? = nil) {
             addException(Exception(message: message, type: type))
         }
 
+        /// Records and error.
+        ///
+        /// - Parameter error: error
         public func addError(_ error: Error) {
             addException(Exception(error))
         }
@@ -425,49 +474,111 @@ extension XRayRecorder {
 
         // MARK: Annotations
 
-        // TODO: Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
-
         internal func setAnnotation(_ value: AnnotationValue, forKey key: String) {
+            let key = Self.validAnnotationKey(key)
             lock.withWriterLockVoid {
                 _annotations[key] = value
             }
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: String, forKey key: String) {
             setAnnotation(.string(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Bool, forKey key: String) {
             setAnnotation(.bool(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Int, forKey key: String) {
             setAnnotation(.integer(value), forKey: key)
         }
 
+        /// Sets an annotation.
+        ///
+        /// Keys must be alphanumeric in order to work with filters. Underscore is allowed. Other symbols and whitespace are not allowed.
+        ///
+        /// X-Ray indexes up to 50 annotations per trace.
+        ///
+        /// - Parameters:
+        ///   - value: annotation value
+        ///   - key: annotation key
         public func setAnnotation(_ value: Double, forKey key: String) {
             setAnnotation(.double(value), forKey: key)
         }
 
         // MARK: Metadata
 
-        // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
-
-        public func setMetadata(_ newElements: Metadata) {
+        /// Sets metadata object.
+        ///
+        /// Replaces all previously set metadata.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - metadata: metadata object
+        public func setMetadata(_ metadata: Metadata) {
+            // not sure if its worth the effort
+            let metadata = Dictionary(uniqueKeysWithValues:
+                metadata.map { key, value in (Self.validMetadataKey(key), value) })
             lock.withWriterLockVoid {
-                for (k, v) in newElements {
-                    _metadata.updateValue(v, forKey: k)
-                }
+                _metadata = metadata
             }
         }
 
+        /// Sets a metadata value.
+        ///
+        /// Overwrites previous value.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - value: metadata value
+        ///   - key: metadata key
         public func setMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 _metadata[key] = value
             }
         }
 
+        /// Appends a metadata value.
+        ///
+        /// Stores the value in a collection, appending to the end of the collection if it already exists.
+        ///
+        /// Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+        ///
+        /// - Parameters:
+        ///   - value: metadata value
+        ///   - key: metadata key
         public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 if var array = _metadata[key]?.value as? [Any] {
                     array.append(value.value)
@@ -536,6 +647,31 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
     }
 }
 
+// MARK: - Validation
+
+internal extension XRayRecorder.Segment {
+    // The logical name of the service that handled the request, up to **200 characters**.
+    // Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
+    static func validName(_ name: String) -> Substring {
+        name.prefix(200)
+    }
+
+    // Keys must be alphanumeric in order to work with filters. Underscore is allowed.
+    // Other symbols and whitespace are not allowed.
+    static func validAnnotationKey(_ key: String) -> String {
+        key.filter { ("0" ... "9").contains($0) || ("a" ... "z").contains($0) || ("A" ... "Z").contains($0) || $0 == "_" }
+    }
+
+    // Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+    static func validMetadataKey(_ key: String) -> String {
+        if key.hasPrefix("AWS.") == false {
+            return key
+        } else {
+            return "_" + key
+        }
+    }
+}
+
 // MARK: - Encodable
 
 private extension KeyedEncodingContainerProtocol {
@@ -577,7 +713,7 @@ extension XRayRecorder.Segment: Encodable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(_id, forKey: .id)
             try container.encode(_name, forKey: .name)
-            try container.encode(_context.traceId, forKey: .traceId)
+            try container.encode(_context.traceId.rawValue, forKey: .traceId)
             try container.encode(_state.startTime, forKey: .startTime)
             // encode either endTime or inProgress
             if let endTime = _state.endTime {
@@ -602,13 +738,18 @@ extension XRayRecorder.Segment: Encodable {
             }
             try container.encodeIfNotEmpty(_annotations, forKey: ._annotations)
             // do not throw if encoding of AnyCodable failed
-            // TODO: make it configurable, maybe safer not to throw in production
-            try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            do {
+                try container.encodeIfNotEmpty(_metadata, forKey: ._metadata)
+            } catch {
+                logger?.error("Failed to encode metadata: \(error)")
+            }
             try container.encodeIfNotEmpty(_subsegments, forKey: ._subsegments)
             // subsegments only
             if _context.parentId != nil {
                 try container.encodeIfPresent(_namespace, forKey: .namespace)
+                #if false // not used
                 try container.encodeIfPresent(_precursorIDs, forKey: .precursorIDs)
+                #endif
             }
         }
     }

@@ -20,5 +20,10 @@ class TestEmitter: XRayEmitter {
         segments.append(segment)
     }
 
-    func flush(_: @escaping (Error?) -> Void) {}
+    func flush(_ callback: @escaping (Error?) -> Void) { callback(nil) }
+    func shutdown(_ callback: @escaping (Error?) -> Void) { callback(nil) }
+
+    func reset() {
+        segments = [XRayRecorder.Segment]()
+    }
 }

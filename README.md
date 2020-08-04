@@ -9,7 +9,11 @@ Unofficial AWS X-Ray SDK for Swift.
 
 Functional beta.
 
-**aws-xray-sdk-swift** uses [Semantic Versioning](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
+aws-xray-sdk-swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
+
+## Documentation
+
+- [API documentation](https://github.com/pokryfka/aws-xray-sdk-swift/wiki)
 
 ## Getting started
 
@@ -66,6 +70,17 @@ recorder.segment(name: "Segment 2", context: context) { segment in
 }
 ```
 
+#### Errors and exceptions
+
+You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
+
+```swift
+segment.addError(ExampleError.test)
+segment.addException(message: "Test Exception")
+```
+
+Note that `Error`s rethrown in the closures are recorded.
+
 #### HTTP request data
 
 You can record details about an HTTP request that your application served or made to a downstream HTTP API, see [HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http):
@@ -89,15 +104,6 @@ and [metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segment
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 ```
 
-#### Errors and exceptions
-
-You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
-
-```swift
-segment.addError(ExampleError.test)
-segment.addException(message: "Test Exception")
-```
-
 ### Emitting
 
 Events are emitted as soon as they end.
@@ -106,10 +112,10 @@ Subsegments have to be created before the parent segment ended.
 
 Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
-Make sure all segments are sent before program exits:
+Make sure to flush the recorder before program exits:
 
 ```swift
-recorder.wait()
+recorder.shutdown()
 ```
 
 or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:
@@ -124,25 +130,7 @@ Result in [AWS X-Ray console](https://console.aws.amazon.com/xray/home):
 
 See [`AWSXRaySDKExample/main.swift`](./Examples/Sources/AWSXRaySDKExample/main.swift) for a complete example.
 
-## Configuration
-
-The library’s behavior can be configured using environment variables:
-
-- `AWS_XRAY_SDK_ENABLED` - set `false` to disable tracing, enabled by default.
-- `AWS_XRAY_DAEMON_ADDRESS` - the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default.
-- `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
-    - `RUNTIME_ERROR` - Indicate that a precondition was violated.
-    - `LOG_ERROR` - Log an error and continue (default).
-- `XRAY_RECORDER_LOG_LEVEL` - recorder [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
-- `XRAY_EMITTER_LOG_LEVEL` - emitter [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
-
-Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will **override** environment variables:
-
-```swift
-let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))              
-```
-
-### Custom emitter
+#### Custom emitter
 
 By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays it to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
 
@@ -169,17 +157,52 @@ The emitter has to be provided when creating an instance of `XRayRecorder`:
 let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 ```
 
+## Configuration
+
+The libraries behavior can be configured using environment variables:
+
+- `AWS_XRAY_SDK_ENABLED` - set `false` to disable tracing, enabled by default.
+- `AWS_XRAY_DAEMON_ADDRESS` - the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default.
+- `AWS_XRAY_CONTEXT_MISSING` - configures how the SDK handles missing context:
+    - `RUNTIME_ERROR` - Indicate that a precondition was violated.
+    - `LOG_ERROR` - Log an error and continue (default).
+- `XRAY_RECORDER_LOG_LEVEL` - recorder [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+- `XRAY_EMITTER_LOG_LEVEL` - emitter [swift-log](https://github.com/apple/swift-log) logging level, `info` by default.
+
+Alternatively `XRayRecorder` can be configured using `XRayRecorder.Config` which will **override** environment variables:
+
+```swift
+let recorder = XRayRecorder(config: .init(enabled: true, logLevel: .debug))              
+```
+
 ## Testing
 
  You can run the AWS X-Ray daemon locally or in a Docker container, see [Running the X-Ray daemon locally](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html)
 
-You can use the `XRayLogEmitter` from `AWSXRayTesting` to "emit" the segments to a console:
+You can use `XRayLogEmitter` from `AWSXRayTesting` to "emit" segments to the console:
 
 ```swift
 import AWSXRaySDK
 import AWSXRayTesting
 
 let recorder = XRayRecorder(emitter: XRayLogEmitter())
+```
+
+## Contributing
+
+### Code Formatting
+
+Format code using [swiftformat](https://github.com/nicklockwood/SwiftFormat):
+
+```
+swiftformat .
+```
+
+Consider creating [Git pre-commit hook](https://github.com/nicklockwood/SwiftFormat#git-pre-commit-hook)
+
+```
+echo 'swiftformat --lint .' > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 ```
 
 ## Examples

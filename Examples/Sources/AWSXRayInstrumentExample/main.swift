@@ -21,6 +21,11 @@ import TracingInstrumentation
 
 // create and boostrap the instrument
 let instrument = XRayRecorder(config: .init(logLevel: .debug)) // XRayUDPEmitter
+defer {
+    // TODO: use instrument API when available, see https://github.com/slashmo/gsoc-swift-tracing/issues/85
+    instrument.shutdown()
+}
+
 InstrumentationSystem.bootstrap(instrument)
 
 // TODO: ?
@@ -56,7 +61,3 @@ let url = "https://d41u83stcl.execute-api.us-east-1.amazonaws.com/Prod/hello/"
 _ = try http.execute(request: try! .init(url: url), baggage: span.baggage).wait()
 
 span2.end()
-
-// TODO: https://github.com/slashmo/gsoc-swift-tracing/issues/85
-// (tracer as? XRayRecorder)?.wait()
-instrument.wait()

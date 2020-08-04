@@ -77,6 +77,15 @@ final class SegmentLoggingTests: XCTestCase {
             numErrors += 1
         }
 
+        // nor end after emitted
+        XCTAssertThrowsError(try segment.end(Timestamp())) { error in
+            guard case SegmentError.alreadyEmitted = error else {
+                XCTFail()
+                return
+            }
+            numErrors += 1
+        }
+
         XCTAssertEqual(numErrors, logHandler.errorMessages.count)
     }
 

@@ -14,13 +14,14 @@
 @testable import AWSXRayRecorder
 
 class TestEmitter: XRayEmitter {
-    @Synchronized var segments = [XRayRecorder.Segment]()
+    var segments = [XRayRecorder.Segment]()
 
     func send(_ segment: XRayRecorder.Segment) {
         segments.append(segment)
     }
 
-    func flush(_: @escaping (Error?) -> Void) {}
+    func flush(_ callback: @escaping (Error?) -> Void) { callback(nil) }
+    func shutdown(_ callback: @escaping (Error?) -> Void) { callback(nil) }
 
     func reset() {
         segments = [XRayRecorder.Segment]()

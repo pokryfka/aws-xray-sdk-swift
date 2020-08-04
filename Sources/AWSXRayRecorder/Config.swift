@@ -13,8 +13,10 @@
 
 import Logging
 
-public extension XRayRecorder {
-    struct Config {
+extension XRayRecorder {
+    /// `XRayRecorder` configuration.
+    public struct Config {
+        /// Context missing strategy.
         public enum ContextMissingStrategy: String {
             /// Indicate that a precondition was violated.
             case runtimeError = "RUNTIME_ERROR"
@@ -38,10 +40,11 @@ public extension XRayRecorder {
             self.contextMissingStrategy = contextMissingStrategy ??
                 env("AWS_XRAY_CONTEXT_MISSING").flatMap(ContextMissingStrategy.init) ?? .logError
             self.logLevel = logLevel ?? env("XRAY_RECORDER_LOG_LEVEL").flatMap(Logger.Level.init) ?? .info
-            // TODO: get package version
             self.serviceVersion = serviceVersion ?? "aws-xray-sdk-swift"
         }
 
+        /// Creates new `XRayRecorder` configuration.
+        ///
         /// - Parameters:
         ///   - enabled: set `false` to disable tracing, enabled by default unless `AWS_XRAY_SDK_ENABLED` environment variable is set to false.
         ///   - daemonEndpoint: the IP address and port of the X-Ray daemon listener, `127.0.0.1:2000` by default;

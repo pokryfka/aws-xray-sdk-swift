@@ -27,12 +27,10 @@
 import NIO
 import NIOConcurrencyHelpers
 
-// TODO: use RWLock
+// Based on the NIO UDP Client implementation in swift-statsd-client, see https://github.com/apple/swift-statsd-client)
 
-/// Based on the NIO UDP Client implementation in swift-statsd-client with removed dependency on Metrics.
-/// # References
-/// - [swift-statsd-client](https://github.com/apple/swift-statsd-client)
-final class UDPClient {
+/// UDP Client.
+internal final class UDPClient {
     /// A `EventLoopGroupProvider` defines how the underlying `EventLoopGroup` used to create the `EventLoop` is provided.
     ///
     /// When `shared`, the `EventLoopGroup` is provided externally and its lifecycle will be managed by the caller.

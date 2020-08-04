@@ -35,6 +35,7 @@ extension XRayRecorder.Segment {
     /// # References
     /// - [AWS X-Ray segment documents - AWS resource data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-aws)
     internal struct AWS: Encodable {
+        #if false // not used at the moment, see https://github.com/pokryfka/aws-xray-sdk-swift/issues/26
         /// If your application sends segments to a different AWS account, record the ID of the account running your application.
         var accountId: String?
 
@@ -85,5 +86,6 @@ extension XRayRecorder.Segment {
         var queueURL: String?
         /// For operations on a DynamoDB table, the name of the table.
         var tableName: String?
+        #endif
     }
 }

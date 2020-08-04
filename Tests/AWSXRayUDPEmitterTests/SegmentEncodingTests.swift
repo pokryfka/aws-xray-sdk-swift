@@ -64,7 +64,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSegmentInProgress() {
         let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
         let name = "test"
-        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
+        let traceId = XRayRecorder.TraceID(rawValue: "1-5f09554c-c57fda56a353c8cdcc318570")!
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
         let result = #"{"id":"ce7cc02792adb89e","in_progress":true,"name":"test","start_time":1,"trace_id":"1-5f09554c-c57fda56a353c8cdcc318570"}"#
@@ -74,7 +74,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSegmentEnded() {
         let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
         let name = "test"
-        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
+        let traceId = XRayRecorder.TraceID(rawValue: "1-5f09554c-c57fda56a353c8cdcc318570")!
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let endTime = Timestamp(secondsSinceEpoch: 2)!
         let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
@@ -86,7 +86,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSubsegmentInProgress() {
         let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
         let name = "test"
-        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
+        let traceId = XRayRecorder.TraceID(rawValue: "1-5f09554c-c57fda56a353c8cdcc318570")!
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let parentId = Segment.ID(rawValue: "ce7cc02792adb89f")!
         let segment = Segment(id: id, name: name,
@@ -121,7 +121,7 @@ final class SegmentEncodingTests: XCTestCase {
     func testEncodingSegmentWithExceptions() {
         let id = Segment.ID(rawValue: "ce7cc02792adb89e")!
         let name = "test"
-        let traceId = try! XRayRecorder.TraceID(string: "1-5f09554c-c57fda56a353c8cdcc318570")
+        let traceId = XRayRecorder.TraceID(rawValue: "1-5f09554c-c57fda56a353c8cdcc318570")!
         let startTime = Timestamp(secondsSinceEpoch: 1)!
         let segment = Segment(id: id, name: name, context: .init(traceId: traceId), baggage: .init(), startTime: startTime)
 

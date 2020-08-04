@@ -22,9 +22,9 @@ private typealias Namespace = XRayRecorder.Segment.Namespace
 private typealias HTTP = XRayRecorder.Segment.HTTP
 
 final class HTTPTests: XCTestCase {
-    func testCreatingAWSRequest() {
+    func testRecordingAWSRequest() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = "POST"
@@ -38,9 +38,9 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(Namespace.aws, segment._test_namespace)
     }
 
-    func testCreatingRemoteRequest() {
+    func testRecordingRemoteRequest() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = "GET"
@@ -54,9 +54,9 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(Namespace.remote, segment._test_namespace)
     }
 
-    func testCreatingResponse() {
+    func testRecordingResponse() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 200
@@ -65,6 +65,69 @@ final class HTTPTests: XCTestCase {
         segment.setHTTPResponse(status: status, contentLength: contentLength)
         let response = HTTP.Response(status: status, contentLength: contentLength)
         XCTAssertEqual(response, segment._test_http.response)
+    }
+
+    func testRecordingClientError() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: true)
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+
+        let status: UInt = 404
+        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+
+        segment.setHTTPResponse(status: status, contentLength: contentLength)
+        let response = HTTP.Response(status: status, contentLength: contentLength)
+        XCTAssertEqual(response, segment._test_http.response)
+
+        var error: Bool?
+        var throttle: Bool?
+        var fault: Bool?
+        segment._test_error(error: &error, throttle: &throttle, fault: &fault)
+        XCTAssertEqual(true, error)
+        XCTAssertNil(throttle)
+        XCTAssertNil(fault)
+    }
+
+    func testRecordingThrottleError() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: true)
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+
+        let status: UInt = 429
+        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+
+        segment.setHTTPResponse(status: status, contentLength: contentLength)
+        let response = HTTP.Response(status: status, contentLength: contentLength)
+        XCTAssertEqual(response, segment._test_http.response)
+
+        var error: Bool?
+        var throttle: Bool?
+        var fault: Bool?
+        segment._test_error(error: &error, throttle: &throttle, fault: &fault)
+        XCTAssertEqual(true, error)
+        XCTAssertEqual(true, throttle)
+        XCTAssertNil(fault)
+    }
+
+    func testRecordingServerError() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: true)
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+
+        let status: UInt = 500
+        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+
+        segment.setHTTPResponse(status: status, contentLength: contentLength)
+        let response = HTTP.Response(status: status, contentLength: contentLength)
+        XCTAssertEqual(response, segment._test_http.response)
+
+        var error: Bool?
+        var throttle: Bool?
+        var fault: Bool?
+        segment._test_error(error: &error, throttle: &throttle, fault: &fault)
+        XCTAssertNil(error)
+        XCTAssertNil(throttle)
+        XCTAssertEqual(true, fault)
     }
 
     func testLoggingErrors() {
@@ -85,9 +148,9 @@ final class HTTPTests: XCTestCase {
 import NIOHTTP1
 
 final class HTTPNIOTests: XCTestCase {
-    func testCreatingAWSRequestWithHTTPMethod() {
+    func testRecordingAWSRequestWithHTTPMethod() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let method = HTTPMethod.POST
@@ -101,9 +164,9 @@ final class HTTPNIOTests: XCTestCase {
         XCTAssertEqual(Namespace.aws, segment._test_namespace)
     }
 
-    func testCreatingRemoteRequestWithHTTPRequestHead() {
+    func testRecordingRemoteRequestWithHTTPRequestHead() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let url = "https://www.example.com/health"
@@ -121,14 +184,24 @@ final class HTTPNIOTests: XCTestCase {
         XCTAssertEqual(Namespace.remote, segment._test_namespace)
     }
 
-    func testCreatingResponse() {
+    func testRecordingResponseWithHTTPResponseHead() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        let context = TraceContext(traceId: .init(), sampled: .sampled)
+        let context = TraceContext(traceId: .init(), sampled: true)
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let responseHead = HTTPResponseHead(version: .init(major: 1, minor: 1), status: .ok)
 
         segment.setHTTPResponse(responseHead)
+        let response = HTTP.Response(status: HTTPResponseStatus.ok.code)
+        XCTAssertEqual(response, segment._test_http.response)
+    }
+
+    func testRecordingResponseWithHTTPResponseStatus() {
+        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let context = TraceContext(traceId: .init(), sampled: true)
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
+
+        segment.setHTTPResponse(status: .ok)
         let response = HTTP.Response(status: HTTPResponseStatus.ok.code)
         XCTAssertEqual(response, segment._test_http.response)
     }

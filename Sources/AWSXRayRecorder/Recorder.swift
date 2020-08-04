@@ -14,15 +14,20 @@
 import Baggage
 import Dispatch
 import Logging
+import NIOConcurrencyHelpers
 
-// TODO: document
-
+/// X-Ray tracer.
+///
+/// `XRayRecorder` allows to create new `XRayRecorder.Segment`s and sends them using provided `XRayEmitter`.
+///
 /// # References
 /// - [AWS X-Ray concepts](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-segments)
 /// - [Sending trace data to AWS X-Ray](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html)
 public class XRayRecorder {
     private let config: Config
     private let logger: Logger
+
+    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
     private let segmentsLock = ReadWriteLock()
     private var _segments = [Segment.ID: Segment]()
@@ -31,7 +36,7 @@ public class XRayRecorder {
     private let emitQueue = DispatchQueue(label: "net.pokryfka.xray.recorder.emit.\(String.random32())")
     private let emitGroup = DispatchGroup()
 
-    internal init(emitter: XRayEmitter, config: Config = Config(), logger: Logger) {
+    internal init(emitter: XRayEmitter, logger: Logger, config: Config = Config()) {
         self.config = config
         var logger = logger
         logger.logLevel = config.logLevel
@@ -39,19 +44,28 @@ public class XRayRecorder {
         self.emitter = emitter
     }
 
+    /// Creates an instance of `XRayRecorder`.
+    ///
+    /// - Parameters:
+    ///   - emitter: emitter used to send `XRayRecorder.Segment`s.
+    ///   - config: configuration, **overrides** enviromental variables.
     public convenience init(emitter: XRayEmitter, config: Config = Config()) {
         let logger = Logger(label: "xray.recorder.\(String.random32())")
         if !config.enabled {
             // disable the emitter, even if provided, if recording is disabled
-            self.init(emitter: XRayNoOpEmitter(), config: config, logger: logger)
+            self.init(emitter: XRayNoOpEmitter(), logger: logger, config: config)
         } else {
-            self.init(emitter: emitter, config: config, logger: logger)
+            self.init(emitter: emitter, logger: logger, config: config)
         }
     }
 
     internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
     {
+        guard isShutdown.load() == false else {
+            logger.warning("Emitter has been shut down")
+            return NoOpSegment(id: .init(), name: name, baggage: baggage)
+        }
         guard config.enabled, context.isSampled else {
             return NoOpSegment(id: .init(), name: name, baggage: baggage)
         }
@@ -82,6 +96,7 @@ public class XRayRecorder {
     }
 
     /// Creates new segment.
+    ///
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
@@ -94,8 +109,12 @@ public class XRayRecorder {
     }
 
     /// Creates new segment.
-    /// Extracts the thre context from the baggage.
-    /// Creates new if the baggage does not contain a valid XRay Trace Context.
+    ///
+    /// Extracts the trace context from the baggage.
+    /// Creates new one if the baggage does not contain a valid `XRayContext`.
+    ///
+    /// Depending on the context missing strategy configuration will log an error or fail if the context is missing.
+    ///
     /// - Parameters:
     ///   - name: segment name
     ///   - baggage: baggage with the trace context
@@ -109,7 +128,7 @@ public class XRayRecorder {
             case .runtimeError:
                 preconditionFailure("Missing Context")
             case .logError:
-                let context = TraceContext(sampled: .unknown)
+                let context = TraceContext(sampled: false)
                 logger.error("Missing Context")
                 var baggage = baggage
                 baggage.xRayContext = context
@@ -125,10 +144,26 @@ public class XRayRecorder {
         emitGroup.wait()
     }
 
+    /// Flushes the emitter.
+    /// May be blocking.
+    ///
+    /// - Parameter callback: callback with error if the operation failed.
     public func wait(_ callback: ((Error?) -> Void)? = nil) {
         waitEmitting()
         // wait for the emitter to send them
         emitter.flush(callback ?? { _ in })
+    }
+
+    /// Flushes the emitter.
+    /// May be blocking.
+    ///
+    /// `XRayRecorder.Segment`s after `shutdown` are **NOT** recorded.
+    ///
+    /// - Parameter callback: callback with error if the operation failed.
+    public func shutdown(_ callback: ((Error?) -> Void)? = nil) {
+        isShutdown.store(true)
+        wait(callback)
+        emitter.shutdown(callback ?? { _ in })
     }
 
     private func emit(segment id: Segment.ID) {

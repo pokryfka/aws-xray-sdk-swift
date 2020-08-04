@@ -18,12 +18,6 @@ private typealias Segment = XRayRecorder.Segment
 private typealias SegmentEncoding = XRayRecorder.Segment.Encoding
 
 final class EncodingTests: XCTestCase {
-    override func setUp() {
-        #if DEBUG
-        preconditionFailure("Use Release configuration")
-        #endif
-    }
-
     private let segment: Segment = {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), config: .init(logLevel: .error))
         let segment = recorder.beginSegment(name: "Root Segment", context: .init())
@@ -43,7 +37,7 @@ final class EncodingTests: XCTestCase {
         return segment
     }()
 
-    private func measureEncoding(_ segment: Segment, encoding: SegmentEncoding, count: UInt = 1000) {
+    private func measureEncoding(_ segment: Segment, encoding: SegmentEncoding, count: UInt = 10) {
         measure {
             for _ in 0 ..< count {
                 _ = try! encoding.encode(segment)
@@ -51,15 +45,7 @@ final class EncodingTests: XCTestCase {
         }
     }
 
-    func testEncodingUsingFoundationJSON() {
-        measureEncoding(segment, encoding: FoundationJSON.segmentEncoding)
-    }
-
-    func testEncodingUsingIkigaJSON() {
-        measureEncoding(segment, encoding: Ikiga.segmentEncoding)
-    }
-
-    func testEncodingUsingPureSwiftJSON() {
-        measureEncoding(segment, encoding: PureSwift.segmentEncoding)
+    func testEncodingUsingDefault() {
+        measureEncoding(segment, encoding: XRayRecorder.Segment.Encoding.default)
     }
 }

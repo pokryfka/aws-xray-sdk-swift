@@ -44,6 +44,7 @@ import Darwin
 import Glibc
 #endif
 
+#if false // use ReadWriteLock instead
 /// A threading lock based on `libpthread` instead of `libdispatch`.
 ///
 /// This object provides a lock on top of a single `pthread_mutex_t`. This kind
@@ -107,6 +108,7 @@ extension Lock {
         try self.withLock(body)
     }
 }
+#endif
 
 /// A threading lock based on `libpthread` instead of `libdispatch`.
 ///

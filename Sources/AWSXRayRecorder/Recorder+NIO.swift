@@ -13,9 +13,10 @@
 
 import NIO
 
-// TODO: document
-
 extension XRayRecorder {
+    /// Flushes the emitter in `SwiftNIO` future.
+    ///
+    /// - Parameter eventLoop: `EventLoop` used to "do the flushing".
     public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         waitEmitting()
         // wait for the emitter to send them
@@ -36,26 +37,18 @@ extension XRayRecorder {
 }
 
 extension XRayRecorder {
+    /// Creates new segment.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - context: the trace context
+    ///   - metadata: segment metadata
+    ///   - body: segment body
     @inlinable
     public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
         let segment = beginSegment(name: name, context: context, metadata: metadata)
-        return body().always { result in
-            if case Result<T, Error>.failure(let error) = result {
-                segment.addError(error)
-            }
-            segment.end()
-        }
-    }
-}
-
-extension XRayRecorder.Segment {
-    @inlinable
-    public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
-    {
-        let segment = beginSubsegment(name: name, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)

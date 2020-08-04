@@ -30,13 +30,13 @@ extension BaggageContext {
 
     static func withoutParentSampled() -> BaggageContext {
         var context = BaggageContext()
-        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: .sampled)
+        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: true)
         return context
     }
 
     static func withoutParentNotSampled() -> BaggageContext {
         var context = BaggageContext()
-        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: .notSampled)
+        context.xRayContext = XRayContext(traceId: .init(), parentId: nil, sampled: false)
         return context
     }
 }

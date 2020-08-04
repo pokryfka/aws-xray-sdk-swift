@@ -11,15 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AWSXRayRecorder
-import IkigaJSON
+import Foundation
 
-internal enum Ikiga {
-    static let segmentEncoding: XRayRecorder.Segment.Encoding = {
-        let jsonEncoder = IkigaJSONEncoder()
-        return XRayRecorder.Segment.Encoding { segment in
-            let data = try jsonEncoder.encode(segment) // uses Foundation.Data
-            return String(decoding: data, as: UTF8.self)
-        }
-    }()
+extension String {
+    func containsOnly(charactersIn valid: CharacterSet) -> Bool {
+        valid.isSuperset(of: CharacterSet(charactersIn: self))
+    }
 }
