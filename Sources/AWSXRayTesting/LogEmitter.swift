@@ -16,7 +16,7 @@ import Logging
 
 /// "Emits" segments by logging them using provided logger instance.
 public struct XRayLogEmitter: XRayEmitter {
-    private let logger: Logger
+    internal let logger: Logger
     private let encoding: XRayRecorder.Segment.Encoding
 
     /// Creates an instance of `XRayLogEmitter`.
@@ -33,10 +33,13 @@ public struct XRayLogEmitter: XRayEmitter {
     ///
     /// - Parameters:
     ///   - label: logger label used to create a logger instance.
+    ///   - onlyErrors: if `true`, only errors are logged.
     ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
-    public init(label: String? = nil, encoding: XRayRecorder.Segment.Encoding? = nil) {
+    public init(label: String? = nil, onlyErrors: Bool = false, encoding: XRayRecorder.Segment.Encoding? = nil) {
         let label = label ?? "xray.log_emitter.\(String.random32())"
-        logger = Logger(label: label)
+        var logger = Logger(label: label)
+        logger.logLevel = onlyErrors ? .error : .info
+        self.logger = logger
         self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
