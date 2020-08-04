@@ -76,6 +76,24 @@ final class RecorderTests: XCTestCase {
         XCTAssertEqual(1, emitter.segments.count)
     }
 
+    func testRecordingAfterShutdown() {
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+        XCTAssertEqual(0, emitter.segments.count)
+
+        recorder.segment(name: UUID().uuidString, context: .init()) { _ in }
+        recorder.wait()
+        XCTAssertEqual(1, emitter.segments.count)
+
+        recorder.shutdown()
+        XCTAssertEqual(1, emitter.segments.count)
+
+        recorder.segment(name: UUID().uuidString, context: .init()) { _ in }
+        recorder.wait()
+        // still 1
+        XCTAssertEqual(1, emitter.segments.count)
+    }
+
     func testTracingHeaderSamplingDecision() {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)

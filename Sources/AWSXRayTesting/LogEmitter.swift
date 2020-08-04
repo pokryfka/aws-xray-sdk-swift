@@ -13,9 +13,11 @@
 
 import AWSXRayRecorder
 import Logging
+import NIOConcurrencyHelpers
 
 /// "Emits" segments by logging them using provided logger instance.
 public struct XRayLogEmitter: XRayEmitter {
+    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
     internal let logger: Logger
     private let encoding: XRayRecorder.Segment.Encoding
 
@@ -44,6 +46,10 @@ public struct XRayLogEmitter: XRayEmitter {
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
+        guard isShutdown.load() == false else {
+            logger.warning("Emitter has been shut down")
+            return
+        }
         do {
             let document: String = try encoding.encode(segment)
             logger.info("\n\(document)")
@@ -52,5 +58,10 @@ public struct XRayLogEmitter: XRayEmitter {
         }
     }
 
-    public func flush(_: @escaping (Error?) -> Void) {}
+    public func flush(_ callback: @escaping (Error?) -> Void) { callback(nil) }
+
+    public func shutdown(_ callback: @escaping (Error?) -> Void) {
+        isShutdown.store(true)
+        callback(nil)
+    }
 }

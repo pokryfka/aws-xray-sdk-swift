@@ -13,6 +13,8 @@
 
 import Foundation
 
+// TODO: use FoundationJSON encoding
+
 extension JSONEncoder {
     func encode<T: Encodable>(_ value: T) throws -> String {
         String(decoding: try encode(value), as: UTF8.self)

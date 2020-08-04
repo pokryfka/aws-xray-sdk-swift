@@ -24,18 +24,12 @@ final class SDKTests: XCTestCase {
             XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
         }
 
-        _ = XRayRecorder(eventLoopGroupProvider: .shared(eventLoopGroup))
+        let recorder = XRayRecorder(eventLoopGroupProvider: .shared(eventLoopGroup))
+        recorder.shutdown()
     }
 
-    // TODO: Extend recorder API to let shutdown it gracefully #21
-    #if false
     func testInitWithNewGroup() {
-        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        defer {
-            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
-        }
-
-        _ = XRayRecorder(eventLoopGroupProvider: .createNew)
+        let recorder = XRayRecorder(eventLoopGroupProvider: .createNew)
+        recorder.shutdown()
     }
-    #endif
 }

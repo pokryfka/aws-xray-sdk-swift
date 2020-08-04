@@ -70,6 +70,17 @@ recorder.segment(name: "Segment 2", context: context) { segment in
 }
 ```
 
+#### Errors and exceptions
+
+You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
+
+```swift
+segment.addError(ExampleError.test)
+segment.addException(message: "Test Exception")
+```
+
+Note that `Error`s rethrown in the closures are recorded.
+
 #### HTTP request data
 
 You can record details about an HTTP request that your application served or made to a downstream HTTP API, see [HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http):
@@ -93,15 +104,6 @@ and [metadata](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segment
 segment.setMetadata(["debug": ["test": "Metadata string"]])
 ```
 
-#### Errors and exceptions
-
-You can record [errors and exceptions](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-errors):
-
-```swift
-segment.addError(ExampleError.test)
-segment.addException(message: "Test Exception")
-```
-
 ### Emitting
 
 Events are emitted as soon as they end.
@@ -110,10 +112,10 @@ Subsegments have to be created before the parent segment ended.
 
 Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
-Make sure all segments are sent before program exits:
+Make sure to flush the recorder before program exits:
 
 ```swift
-recorder.wait()
+recorder.shutdown()
 ```
 
 or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:

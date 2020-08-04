@@ -72,14 +72,6 @@ public class XRayUDPEmitter: XRayNIOEmitter {
                   address: address, logger: logger)
     }
 
-    deinit {
-        udpClient.shutdown { error in
-            if let error = error {
-                self.logger.error("Failed to shutdown: \(error)")
-            }
-        }
-    }
-
     public func send(_ segment: XRayRecorder.Segment) {
         // TODO: check size, consider sending subsegments separately
         // or grouping a few segments in one datagram (if possible)
@@ -129,5 +121,14 @@ public class XRayUDPEmitter: XRayNIOEmitter {
         let eventLoop = eventLoop ?? udpClient.eventLoop
         return EventLoopFuture.andAllComplete(futures, on: eventLoop)
             .always { _ in self.logger.info("Done") }
+    }
+
+    public func shutdown(_ callback: @escaping (Error?) -> Void) {
+        udpClient.shutdown { error in
+            if let error = error {
+                self.logger.error("Failed to shutdown: \(error)")
+            }
+            callback(error)
+        }
     }
 }
