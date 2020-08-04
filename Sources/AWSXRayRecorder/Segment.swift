@@ -538,9 +538,6 @@ extension XRayRecorder {
 
         // MARK: Metadata
 
-        // TODO: Field keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
-        // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/55
-
         /// Sets metadata object.
         ///
         /// Replaces all previously set metadata.
@@ -550,6 +547,9 @@ extension XRayRecorder {
         /// - Parameters:
         ///   - metadata: metadata object
         public func setMetadata(_ metadata: Metadata) {
+            // not sure if its worth the effort
+            let metadata = Dictionary(uniqueKeysWithValues:
+                metadata.map { key, value in (Self.validMetadataKey(key), value) })
             lock.withWriterLockVoid {
                 _metadata = metadata
             }
@@ -565,6 +565,7 @@ extension XRayRecorder {
         ///   - value: metadata value
         ///   - key: metadata key
         public func setMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 _metadata[key] = value
             }
@@ -580,6 +581,7 @@ extension XRayRecorder {
         ///   - value: metadata value
         ///   - key: metadata key
         public func appendMetadata(_ value: AnyEncodable, forKey key: String) {
+            let key = Self.validMetadataKey(key)
             lock.withWriterLockVoid {
                 if var array = _metadata[key]?.value as? [Any] {
                     array.append(value.value)
@@ -644,6 +646,19 @@ extension XRayRecorder.Segment.State: CustomStringConvertible {
             return "ended @ \(ended.secondsSinceEpoch)"
         case .emitted(started: _, ended: _, let emitted):
             return "emitted @ \(emitted.secondsSinceEpoch)"
+        }
+    }
+}
+
+// MARK: - Validation
+
+internal extension XRayRecorder.Segment {
+    // Keys starting with `AWS.` are reserved for use by AWS-provided SDKs and clients.
+    static func validMetadataKey(_ key: String) -> String {
+        if key.hasPrefix("AWS.") == false {
+            return key
+        } else {
+            return "_" + key
         }
     }
 }

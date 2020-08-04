@@ -150,6 +150,35 @@ final class SegmentTests: XCTestCase {
 
     // MARK: Metadata
 
+    func testMetadataKeys() {
+        let invalidKey = "AWS.\(UUID().uuidString)"
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.setMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+
+        // reset metadata
+        segment.setMetadata([:])
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.setMetadata([invalidKey: "\(UUID().uuidString)"])
+        // the value should be recorded but with corrected key
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+
+        // reset metadata
+        segment.setMetadata([:])
+        XCTAssertEqual(0, segment._test_metadata.count)
+
+        segment.appendMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        segment.appendMetadata("\(UUID().uuidString)", forKey: invalidKey)
+        XCTAssertEqual(1, segment._test_metadata.count)
+        XCTAssertNil(segment._test_metadata[invalidKey])
+    }
+
     func testSettingMetadata() {
         let segment = Segment(id: .init(), name: UUID().uuidString, context: .init())
         XCTAssertEqual(0, segment._test_metadata.count)
