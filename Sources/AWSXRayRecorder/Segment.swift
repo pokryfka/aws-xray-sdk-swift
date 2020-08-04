@@ -653,8 +653,7 @@ internal extension XRayRecorder.Segment {
     // The logical name of the service that handled the request, up to **200 characters**.
     // Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
     static func validName(_ name: String) -> Substring {
-        let prefixIndex = name.index(name.startIndex, offsetBy: 200)
-        return name[name.startIndex ..< prefixIndex]
+        name.prefix(200)
     }
 
     // Keys must be alphanumeric in order to work with filters. Underscore is allowed.
