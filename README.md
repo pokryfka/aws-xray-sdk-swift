@@ -1,4 +1,4 @@
-# aws-xray-sdk-swift
+# AWS X-Ray SDK for Swift
 
 ![CI](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift)
@@ -9,7 +9,7 @@ Unofficial AWS X-Ray SDK for Swift.
 
 Functional beta.
 
-aws-xray-sdk-swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
+AWS X-Ray SDK for Swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
 
 ## Documentation
 
@@ -240,3 +240,7 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
 ```
 
 See [`AWSXRaySDKExampleLambda/main.swift`](./Examples/Sources/AWSXRaySDKExampleLambda/main.swift) for a complete example.
+
+## License
+
+The AWS X-Ray SDK for Swift is licensed under the Apache 2.0 License. See LICENSE.txt for more information.
