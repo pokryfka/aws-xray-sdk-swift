@@ -140,6 +140,7 @@ A custom emitter has to implement `XRayEmitter` protocol:
 public protocol XRayEmitter {
     func send(_ segment: XRayRecorder.Segment)
     func flush(_ callback: @escaping (Error?) -> Void)
+    func shutdown(_ callback: @escaping (Error?) -> Void)
 }
 ```
 
