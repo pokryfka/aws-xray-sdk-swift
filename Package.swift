@@ -4,9 +4,6 @@ import PackageDescription
 
 let package = Package(
     name: "aws-xray-sdk-swift",
-    platforms: [
-        .macOS(.v10_14),
-    ],
     products: [
         // the main library including the recorder, the UDP emitter and a JSON encoder; no dependency on Foundation
         .library(name: "AWSXRaySDK", targets: ["AWSXRaySDK"]),
