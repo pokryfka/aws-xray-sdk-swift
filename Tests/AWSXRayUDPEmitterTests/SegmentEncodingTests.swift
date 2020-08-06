@@ -19,7 +19,7 @@ import XCTest
 private typealias Segment = XRayRecorder.Segment
 private typealias SegmentError = XRayRecorder.SegmentError
 
-// TODO: use snapshot testing?
+private let testEncoder = JSONEncoder()
 
 private enum EnumError: Error {
     case test
@@ -31,15 +31,15 @@ private struct StructError: Error {
 
 final class SegmentEncodingTests: XCTestCase {
     private func encode(_ segment: Segment) throws -> String {
-        try JSONEncoder.testEncoder.encode(segment) as String
+        try FoundationJSON.segmentEncoding.encode(segment)
     }
 
     private func encode(_ annotations: Segment.Annotations) throws -> String {
-        try JSONEncoder.testEncoder.encode(annotations) as String
+        try testEncoder.encode(annotations) as String
     }
 
     private func encode(_ metadata: Segment.Metadata) throws -> String {
-        try JSONEncoder.testEncoder.encode(metadata) as String
+        try testEncoder.encode(metadata) as String
     }
 
     // MARK: Segment
