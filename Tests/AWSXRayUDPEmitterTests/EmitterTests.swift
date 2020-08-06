@@ -26,7 +26,7 @@ final class EmitterTests: XCTestCase {
             XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
         }
 
-        let emitter = try! XRayUDPEmitter(encoding: FoundationJSON.segmentEncoding, eventLoopGroupProvider: .shared(eventLoopGroup))
+        let emitter = try! XRayUDPEmitter(encoding: TestJSON.segmentEncoding, eventLoopGroupProvider: .shared(eventLoopGroup))
 
         let exp = expectation(description: "hasShutdown")
         emitter.shutdown { error in
@@ -37,7 +37,7 @@ final class EmitterTests: XCTestCase {
     }
 
     func testLifecycleWithNewGroup() {
-        let emitter = try! XRayUDPEmitter(encoding: FoundationJSON.segmentEncoding, eventLoopGroupProvider: .createNew)
+        let emitter = try! XRayUDPEmitter(encoding: TestJSON.segmentEncoding, eventLoopGroupProvider: .createNew)
 
         let exp = expectation(description: "hasShutdown")
         emitter.shutdown { error in

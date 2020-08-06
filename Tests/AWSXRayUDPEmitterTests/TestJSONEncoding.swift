@@ -16,18 +16,12 @@ import AWSXRayRecorder
 import struct Foundation.Data
 import class Foundation.JSONEncoder
 
-internal extension JSONEncoder {
-    func encode<T: Encodable>(_ value: T) throws -> String {
-        String(decoding: try encode(value), as: UTF8.self)
-    }
-}
-
-internal enum FoundationJSON {
+internal enum TestJSON {
     static let segmentEncoding: XRayRecorder.Segment.Encoding = {
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = .prettyPrinted
         return XRayRecorder.Segment.Encoding { segment in
-            try jsonEncoder.encode(segment) as String
+            String(decoding: try jsonEncoder.encode(segment), as: UTF8.self)
         }
     }()
 }
