@@ -83,6 +83,7 @@ public class XRayRecorder {
         let segmentId = Segment.ID()
         let service = Segment.Service(version: config.serviceVersion)
         let subsegment = context.parentId != nil
+        // TODO: check if parent is pending
         let newSegment = Segment(
             id: segmentId, name: name,
             context: context, baggage: baggage,

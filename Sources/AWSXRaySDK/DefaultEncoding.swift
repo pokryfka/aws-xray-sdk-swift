@@ -14,6 +14,9 @@
 import AWSXRayRecorder
 import PureSwiftJSON
 
+// TODO: tmp
+import Foundation
+
 extension XRayRecorder.Segment.Encoding {
     enum EncodingError: Error {
         case failedToCreateString

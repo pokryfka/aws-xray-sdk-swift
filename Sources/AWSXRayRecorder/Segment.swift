@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AnyCodable
 import Baggage
 import Logging
 import NIOHTTP1
@@ -437,7 +436,8 @@ extension XRayRecorder {
                 return
             }
             lock.withWriterLockVoid {
-                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+                // TODO: restore
+//                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
                 _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
             }
         }

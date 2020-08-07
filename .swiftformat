@@ -4,6 +4,7 @@
 --exclude .build,.swiftpm
 # 3rd party
 --exclude Sources/AWSXRayRecorder/Utils/Locks.swift
+--exclude Sources/AWSXRayRecorder/AnyCodable
 
 # format options
 #--self insert
