@@ -11,17 +11,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AWSXRayRecorder
+import AWSXRayUDPEmitter
+import NIO
 
 import struct Foundation.Data
 import class Foundation.JSONEncoder
 
-internal enum TestJSON {
-    static let segmentEncoding: XRayRecorder.Segment.Encoding = {
+private extension JSONEncoder {
+    func encode<T: Encodable>(_ value: T) throws -> String {
+        String(decoding: try encode(value), as: UTF8.self)
+    }
+}
+
+extension XRayUDPEmitter.SegmentEncoding {
+    static let test: XRayUDPEmitter.SegmentEncoding = {
         let jsonEncoder = JSONEncoder()
-        jsonEncoder.outputFormatting = .prettyPrinted
-        return XRayRecorder.Segment.Encoding { segment in
-            String(decoding: try jsonEncoder.encode(segment), as: UTF8.self)
+        return XRayUDPEmitter.SegmentEncoding { segment in
+            ByteBuffer(string: try jsonEncoder.encode(segment) as String)
         }
     }()
 }

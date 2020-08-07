@@ -24,7 +24,7 @@ extension XRayRecorder {
                             config: Config = Config())
     {
         do {
-            let emitter = try XRayUDPEmitter(encoding: XRayRecorder.Segment.Encoding.default,
+            let emitter = try XRayUDPEmitter(encoding: XRayUDPEmitter.SegmentEncoding.default,
                                              eventLoopGroupProvider: eventLoopGroupProvider)
             self.init(emitter: emitter, config: config)
         } catch {
