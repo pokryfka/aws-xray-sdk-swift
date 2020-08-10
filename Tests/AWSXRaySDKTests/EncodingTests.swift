@@ -12,10 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
+import AWSXRayUDPEmitter
 import XCTest
 
 private typealias Segment = XRayRecorder.Segment
-private typealias SegmentEncoding = XRayRecorder.Segment.Encoding
+private typealias SegmentEncoding = XRayUDPEmitter.SegmentEncoding
 
 final class EncodingTests: XCTestCase {
     private let segment: Segment = {
@@ -46,6 +47,6 @@ final class EncodingTests: XCTestCase {
     }
 
     func testEncodingUsingDefault() {
-        measureEncoding(segment, encoding: XRayRecorder.Segment.Encoding.default)
+        measureEncoding(segment, encoding: .default)
     }
 }

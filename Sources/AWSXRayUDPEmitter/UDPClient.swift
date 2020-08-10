@@ -27,8 +27,6 @@
 import NIO
 import NIOConcurrencyHelpers
 
-// Based on the NIO UDP Client implementation in swift-statsd-client, see https://github.com/apple/swift-statsd-client)
-
 /// UDP Client.
 internal final class UDPClient {
     /// A `EventLoopGroupProvider` defines how the underlying `EventLoopGroup` used to create the `EventLoop` is provided.
@@ -85,14 +83,14 @@ internal final class UDPClient {
         }
     }
 
-    func emit<T: StringProtocol>(_ value: T) -> EventLoopFuture<Void> {
+    func emit(_ value: ByteBuffer) -> EventLoopFuture<Void> {
         lock.lock()
         switch state {
         case .disconnected:
             let promise = eventLoopGroup.next().makePromise(of: Void.self)
             state = .connecting(promise.futureResult)
             lock.unlock()
-            connect(Encoder<T>(T.self, address: address)).flatMap { channel -> EventLoopFuture<Void> in
+            connect(UDPWriter(address: address)).flatMap { channel -> EventLoopFuture<Void> in
                 self.lock.withLock {
                     guard case .connecting = self.state else {
                         preconditionFailure("invalid state \(self.state)")
@@ -122,27 +120,25 @@ internal final class UDPClient {
 
     private func connect(_ handler: ChannelHandler) -> EventLoopFuture<Channel> {
         let bootstrap = DatagramBootstrap(group: eventLoopGroup)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+            .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(handler) }
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
         return bootstrap.bind(host: "0.0.0.0", port: 0)
     }
 }
 
-private final class Encoder<T: StringProtocol>: ChannelOutboundHandler {
-    public typealias OutboundIn = T
+private final class UDPWriter: ChannelOutboundHandler {
+    public typealias OutboundIn = ByteBuffer
     public typealias OutboundOut = AddressedEnvelope<ByteBuffer>
 
     private let address: SocketAddress
-    init<T>(_ type: T.Type, address: SocketAddress) {
+
+    init(address: SocketAddress) {
         self.address = address
     }
 
     public func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let value: T = unwrapOutboundIn(data)
-        let string = String(value)
-        var buffer = context.channel.allocator.buffer(capacity: string.utf8.count)
-        buffer.writeString(string)
+        let buffer: ByteBuffer = unwrapOutboundIn(data)
         context.writeAndFlush(wrapOutboundOut(AddressedEnvelope(remoteAddress: address, data: buffer)), promise: promise)
     }
 }

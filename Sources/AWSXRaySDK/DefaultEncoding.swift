@@ -11,24 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AWSXRayRecorder
+import AWSXRayUDPEmitter
+import NIO
 import PureSwiftJSON
 
-extension XRayRecorder.Segment.Encoding {
-    enum EncodingError: Error {
-        case failedToCreateString
-    }
-
-    /// Default encoding for `XRayRecorder.Segment`.
-    public static let `default`: XRayRecorder.Segment.Encoding = {
+extension XRayUDPEmitter.SegmentEncoding {
+    /// Default encoding of `XRayRecorder.Segment` to JSON string.
+    public static let `default`: XRayUDPEmitter.SegmentEncoding = {
         let jsonEncoder = PSJSONEncoder()
-        return XRayRecorder.Segment.Encoding { segment in
-            let bytes = try jsonEncoder.encode(segment)
-            if let string = String(bytes: bytes, encoding: .utf8) {
-                return string
-            } else {
-                throw EncodingError.failedToCreateString
-            }
+        return XRayUDPEmitter.SegmentEncoding { segment in
+            ByteBuffer(bytes: try jsonEncoder.encode(segment))
         }
     }()
 }
