@@ -5,6 +5,7 @@
 # 3rd party
 --exclude Sources/AWSXRayRecorder/Utils/Locks.swift
 --exclude Sources/AWSXRayRecorder/AnyCodable
+--exclude Tests/AWSXRayRecorderTests/AnyCodable
 
 # format options
 #--self insert
