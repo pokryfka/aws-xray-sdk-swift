@@ -9,6 +9,8 @@ Unofficial AWS X-Ray SDK for Swift.
 
 Functional beta.
 
+At the moment the SDK does not support sampling rules, tracing can be either enabled or disabled (issue [57](https://github.com/pokryfka/aws-xray-sdk-swift/issues/57)).
+
 AWS X-Ray SDK for Swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
 
 ## Documentation
@@ -156,6 +158,80 @@ The emitter has to be provided when creating an instance of `XRayRecorder`:
 
 ```swift
 let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+```
+
+### Context propagation
+
+Unlike other X-Ray SDKs, AWS X-Ray SDK for Swift does not expose (thread local) current Segment. 
+
+The context, in its broader meaning that is including but not limited to trace context, should be passed explicitly in `BaggageContext`:
+
+```swift
+// the baggage should contain trace context
+var baggage: BaggageContext
+
+let segment = recorder.beginSegment(name: "Segment 1", baggage: baggage)
+
+// create subsegment by passing the parent segment baggage
+let subSegment = recorder.beginSegment(name: "Subsegment 1.1", baggage: segment.baggage)
+
+// or using segment function
+let subSegment2 = segment.beginSubsegment(name: "Subsegment 1.2")
+```
+
+You can create new [X-Ray Context](wiki/XRayRecorder_TraceContext) from tracing header:
+
+```swift
+let context = try TraceContext(tracingHeader:  "Root=1-5759e988-bd862e3fe1be46a994272793")
+```
+
+or using provided (or generated) [TraceID](wiki/XRayRecorder_TraceID), parent segment and sampling decision:
+
+```swift
+let newContext = TraceContext(traceId: .init(), parentId: nil, sampled: true)
+```
+
+You can update the X-Ray context in the baggage:
+
+```swift
+// empty baggage
+var baggage = BaggageContext()
+// create new X-Ray context
+baggage.xRayContext = XRayContext()
+```
+
+Note that the subject is currently under discussion by `swift-server` community:
+- [The Context Passing Problem](https://forums.swift.org/t/the-context-passing-problem/39162)
+- [PoC Instrumented HTTP client](https://github.com/swift-server/async-http-client/pull/289#issuecomment-668536709)
+
+### XRayInstrument (WIP)
+
+Integration with libraries in `swift-server` ecosystem is (will be) done using `AWSXRayInstrument` which implements `TracingIstrument` defined in [swift-tracing](https://github.com/slashmo/gsoc-swift-tracing) library.
+
+The API of `TracingInstrument` is not stable, PoC implementation of `XRayInstrument` is on `feature/instrument` branch.
+
+Example:
+
+```swift
+import AWSXRayInstrument
+import TracingInstrumentation
+
+// create and bootstrap the tracer
+let instrument = XRayRecorder()
+InstrumentationSystem.bootstrap(instrument)
+
+// get the tracer
+let tracer = InstrumentationSystem.tracer
+
+// extract the context from HTTP headers
+let headers = HTTPHeaders([
+     ("X-Amzn-Trace-Id", "Root=1-5759e988-bd862e3fe1be46a994272793"),
+ ])
+var baggage = BaggageContext()
+tracer.extract(headers, into: &baggage, using: HTTPHeadersExtractor())
+
+// create new span (aka segment)
+var span = tracer.startSpan(named: "Span 1", context: baggage)
 ```
 
 ## Configuration
