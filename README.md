@@ -188,7 +188,7 @@ let context = try TraceContext(tracingHeader:  "Root=1-5759e988-bd862e3fe1be46a9
 or using provided (or generated) [TraceID](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceID), parent segment and sampling decision:
 
 ```swift
-let newContext = TraceContext(traceId: .init(), parentId: nil, sampled: true)
+let newContext = XRayContext(traceId: .init(), parentId: nil, sampled: true)
 ```
 
 You can update the X-Ray context in the baggage:
