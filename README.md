@@ -114,10 +114,16 @@ Subsegments have to be created before the parent segment ended.
 
 Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
-Make sure to flush the recorder before program exits:
+Make sure to shutdown the recorder before program exits:
 
 ```swift
 recorder.shutdown()
+```
+
+flush it and wait to have all segments sent:
+
+```swift
+recorder.wait()
 ```
 
 or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:
@@ -134,7 +140,7 @@ See [`AWSXRaySDKExample/main.swift`](./Examples/Sources/AWSXRaySDKExample/main.s
 
 #### Custom emitter
 
-By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays it to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
+By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays them to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
 
 A custom emitter has to implement `XRayEmitter` protocol:
 
