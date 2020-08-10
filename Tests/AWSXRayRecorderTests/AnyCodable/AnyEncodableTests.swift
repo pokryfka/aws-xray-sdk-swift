@@ -55,32 +55,32 @@ class AnyEncodableTests: XCTestCase {
         XCTAssertEqual(encodedJSONObject, expectedJSONObject)
     }
 
-    func testEncodeNSNumber() throws {
-        let dictionary: [String: NSNumber] = [
-            "boolean": true,
-            "integer": 1,
-            "double": 3.141592653589793,
-        ]
-
-        let encoder = JSONEncoder()
-
-        let json = try encoder.encode(AnyEncodable(dictionary))
-        let encodedJSONObject = try JSONSerialization.jsonObject(with: json, options: []) as! NSDictionary
-
-        let expected = """
-        {
-            "boolean": true,
-            "integer": 1,
-            "double": 3.141592653589793,
-        }
-        """.data(using: .utf8)!
-        let expectedJSONObject = try JSONSerialization.jsonObject(with: expected, options: []) as! NSDictionary
-
-        XCTAssertEqual(encodedJSONObject, expectedJSONObject)
-        XCTAssert(encodedJSONObject["boolean"] is Bool)
-        XCTAssert(encodedJSONObject["integer"] is Int)
-        XCTAssert(encodedJSONObject["double"] is Double)
-    }
+//    func testEncodeNSNumber() throws {
+//        let dictionary: [String: NSNumber] = [
+//            "boolean": true,
+//            "integer": 1,
+//            "double": 3.141592653589793,
+//        ]
+//
+//        let encoder = JSONEncoder()
+//
+//        let json = try encoder.encode(AnyEncodable(dictionary))
+//        let encodedJSONObject = try JSONSerialization.jsonObject(with: json, options: []) as! NSDictionary
+//
+//        let expected = """
+//        {
+//            "boolean": true,
+//            "integer": 1,
+//            "double": 3.141592653589793,
+//        }
+//        """.data(using: .utf8)!
+//        let expectedJSONObject = try JSONSerialization.jsonObject(with: expected, options: []) as! NSDictionary
+//
+//        XCTAssertEqual(encodedJSONObject, expectedJSONObject)
+//        XCTAssert(encodedJSONObject["boolean"] is Bool)
+//        XCTAssert(encodedJSONObject["integer"] is Int)
+//        XCTAssert(encodedJSONObject["double"] is Double)
+//    }
 
     #if swift(>=5.0)
     func testStringInterpolationEncoding() throws {
@@ -112,16 +112,16 @@ class AnyEncodableTests: XCTestCase {
     }
     #endif
 
-    #if swift(>=5.0)
-    static var allTests = [
-        ("testJSONEncoding", testJSONEncoding),
-        ("testEncodeNSNumber", testEncodeNSNumber),
-        ("testStringInterpolationEncoding", testStringInterpolationEncoding),
-    ]
-    #else
-    static var allTests = [
-        ("testJSONEncoding", testJSONEncoding),
-        ("testEncodeNSNumber", testEncodeNSNumber),
-    ]
-    #endif
+//    #if swift(>=5.0)
+//    static var allTests = [
+//        ("testJSONEncoding", testJSONEncoding),
+//        ("testEncodeNSNumber", testEncodeNSNumber),
+//        ("testStringInterpolationEncoding", testStringInterpolationEncoding),
+//    ]
+//    #else
+//    static var allTests = [
+//        ("testJSONEncoding", testJSONEncoding),
+//        ("testEncodeNSNumber", testEncodeNSNumber),
+//    ]
+//    #endif
 }

@@ -82,8 +82,8 @@ class AnyCodableTests: XCTestCase {
         XCTAssertEqual(encodedJSONObject, expectedJSONObject)
     }
 
-    static var allTests = [
-        ("testJSONDecoding", testJSONDecoding),
-        ("testJSONEncoding", testJSONEncoding),
-    ]
+//    static var allTests = [
+//        ("testJSONDecoding", testJSONDecoding),
+//        ("testJSONEncoding", testJSONEncoding),
+//    ]
 }

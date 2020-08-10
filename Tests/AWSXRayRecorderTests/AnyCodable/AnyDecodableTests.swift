@@ -44,7 +44,7 @@ class AnyDecodableTests: XCTestCase {
         XCTAssertEqual(dictionary["nested"]?.value as! [String: String], ["a": "alpha", "b": "bravo", "c": "charlie"])
     }
 
-    static var allTests = [
-        ("testJSONDecoding", testJSONDecoding),
-    ]
+//    static var allTests = [
+//        ("testJSONDecoding", testJSONDecoding),
+//    ]
 }
