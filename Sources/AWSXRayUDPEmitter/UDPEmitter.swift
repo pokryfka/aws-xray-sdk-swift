@@ -42,7 +42,7 @@ public class XRayUDPEmitter: XRayNIOEmitter {
         case createNew
     }
 
-    private static let segmentHeader = "{\"format\": \"json\", \"version\": 1}\n"
+    private static let segmentHeader: StaticString = "{\"format\": \"json\", \"version\": 1}\n"
 
     private let logger: Logger
     private let encoding: SegmentEncoding
@@ -88,10 +88,12 @@ public class XRayUDPEmitter: XRayNIOEmitter {
         // see https://github.com/pokryfka/aws-xray-sdk-swift/issues/25
         let futureId = UInt64.random(in: UInt64.min ... UInt64.max)
         do {
-            let string = "\(Self.segmentHeader)\(try encoding.encode(segment))"
-            logger.info("Sending \(string.utf8.count) bytes", metadata: ["id": "\(futureId)"])
-            logger.debug("\(string)", metadata: ["id": "\(futureId)"])
-            let future = udpClient.emit(string)
+            var buffer = ByteBuffer(staticString: Self.segmentHeader)
+            var segmentBuffer = try encoding.encode(segment)
+            buffer.writeBuffer(&segmentBuffer)
+            logger.info("Sending \(buffer.readableBytes) bytes", metadata: ["id": "\(futureId)"])
+//            let s = buffer.readString(length: buffer.readableBytes)
+            let future = udpClient.emit(buffer)
             lock.withWriterLockVoid { _inFlight[futureId] = future }
             future.whenComplete { [weak self] result in
                 guard let self = self else { return }
