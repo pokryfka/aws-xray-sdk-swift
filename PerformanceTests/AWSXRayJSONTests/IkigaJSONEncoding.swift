@@ -21,6 +21,8 @@ extension XRayUDPEmitter.SegmentEncoding {
     static let ikigaJSON: XRayUDPEmitter.SegmentEncoding = {
         let jsonEncoder = IkigaJSONEncoder()
         return XRayUDPEmitter.SegmentEncoding { segment in
+            // TODO: IkigaJSON README mentions writing directly to ByteBuffer
+            // but it does not seem to be exposed?
             let data = try jsonEncoder.encode(segment)
             return ByteBuffer(string: String(decoding: data, as: UTF8.self))
         }

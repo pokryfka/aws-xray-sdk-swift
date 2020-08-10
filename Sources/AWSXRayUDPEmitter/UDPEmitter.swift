@@ -92,7 +92,6 @@ public class XRayUDPEmitter: XRayNIOEmitter {
             var segmentBuffer = try encoding.encode(segment)
             buffer.writeBuffer(&segmentBuffer)
             logger.info("Sending \(buffer.readableBytes) bytes", metadata: ["id": "\(futureId)"])
-//            let s = buffer.readString(length: buffer.readableBytes)
             let future = udpClient.emit(buffer)
             lock.withWriterLockVoid { _inFlight[futureId] = future }
             future.whenComplete { [weak self] result in
