@@ -12,10 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 import AWSXRayRecorder
+import AWSXRayUDPEmitter
 import XCTest
 
 private typealias Segment = XRayRecorder.Segment
-private typealias SegmentEncoding = XRayRecorder.Segment.Encoding
+private typealias SegmentEncoding = XRayUDPEmitter.SegmentEncoding
 
 final class EncodingTests: XCTestCase {
     override func setUp() {
@@ -52,14 +53,14 @@ final class EncodingTests: XCTestCase {
     }
 
     func testEncodingUsingFoundationJSON() {
-        measureEncoding(segment, encoding: FoundationJSON.segmentEncoding)
+        measureEncoding(segment, encoding: .foundationJSON)
     }
 
     func testEncodingUsingIkigaJSON() {
-        measureEncoding(segment, encoding: Ikiga.segmentEncoding)
+        measureEncoding(segment, encoding: .ikigaJSON)
     }
 
     func testEncodingUsingPureSwiftJSON() {
-        measureEncoding(segment, encoding: PureSwift.segmentEncoding)
+        measureEncoding(segment, encoding: .pureJSON)
     }
 }

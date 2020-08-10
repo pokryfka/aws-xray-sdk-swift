@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AnyCodable
 import XCTest
 
 @testable import AWSXRayRecorder

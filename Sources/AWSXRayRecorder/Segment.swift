@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AnyCodable
 import Baggage
 import Logging
 import NIOHTTP1
@@ -121,7 +120,7 @@ extension XRayRecorder {
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
-        public var name: String { lock.withReaderLock { _name } }
+        internal var name: String { lock.withReaderLock { _name } }
 
         #if false // part of _context
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
@@ -141,6 +140,7 @@ extension XRayRecorder {
         /// Required only if sending a subsegment separately.
         private var traceId: TraceID { lock.withReaderLock { _context.traceId } }
         #endif
+        internal var _test_traceId: TraceID { lock.withReaderLock { _context.traceId } }
 
         #if false // part of _state
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
@@ -159,6 +159,8 @@ extension XRayRecorder {
         /// Only send one complete segment, and one or zero in-progress segments, per request.
         internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
         #endif
+        internal var _test_startTime: Timestamp { lock.withReaderLock { _state.startTime } }
+        internal var _test_inProgress: Bool? { lock.withReaderLock { _state.inProgress ? true : nil } }
 
         // MARK: Required Subsegment Fields
 
