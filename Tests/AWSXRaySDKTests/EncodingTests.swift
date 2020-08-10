@@ -16,7 +16,6 @@ import AWSXRayUDPEmitter
 import XCTest
 
 private typealias Segment = XRayRecorder.Segment
-private typealias SegmentEncoding = XRayRecorder.Segment.Encoding
 
 final class EncodingTests: XCTestCase {
     private let segment: Segment = {

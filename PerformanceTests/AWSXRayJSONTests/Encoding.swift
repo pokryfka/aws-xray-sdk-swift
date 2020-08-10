@@ -11,9 +11,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-internal extension String {
-    /// - returns: A 32-bit identifier in 8 hexadecimal digits.
-    static func random32() -> String {
-        String(UInt32.random(in: UInt32.min ... UInt32.max) | 1 << 31, radix: 16, uppercase: false)
+// TODO: remove
+extension XRayRecorder.Segment {
+    /// A type representing the ability to encode a `XRayRecorder.Segment` to a String with its JSON representation.
+    public struct Encoding {
+        /// How to encode a segment  to JSON string.
+        public let encode: (XRayRecorder.Segment) throws -> String
+
+        public init(encode: @escaping (XRayRecorder.Segment) throws -> String) {
+            self.encode = encode
+        }
     }
 }
