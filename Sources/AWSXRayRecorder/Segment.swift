@@ -436,8 +436,7 @@ extension XRayRecorder {
                 return
             }
             lock.withWriterLockVoid {
-                // TODO: restore
-//                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
+                _namespace = url.contains(".amazonaws.com/") ? .aws : .remote
                 _http.request = HTTP.Request(method: method, url: url, userAgent: userAgent, clientIP: clientIP)
             }
         }
