@@ -182,7 +182,7 @@ let subSegment2 = segment.beginSubsegment(name: "Subsegment 1.2")
 You can create new [X-Ray Context](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceContext) from tracing header:
 
 ```swift
-let context = try TraceContext(tracingHeader:  "Root=1-5759e988-bd862e3fe1be46a994272793")
+let context = try XRayContext(tracingHeader:  "Root=1-5759e988-bd862e3fe1be46a994272793")
 ```
 
 or using provided (or generated) [TraceID](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceID), parent segment and sampling decision:
