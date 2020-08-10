@@ -11,15 +11,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-import AWSXRayRecorder
+import AWSXRayUDPEmitter
 import IkigaJSON
+import NIO
 
-internal enum Ikiga {
-    static let segmentEncoding: XRayRecorder.Segment.Encoding = {
+import struct Foundation.Data
+
+extension XRayUDPEmitter.SegmentEncoding {
+    static let ikigaJSON: XRayUDPEmitter.SegmentEncoding = {
         let jsonEncoder = IkigaJSONEncoder()
-        return XRayRecorder.Segment.Encoding { segment in
-            let data = try jsonEncoder.encode(segment) // uses Foundation.Data
-            return String(decoding: data, as: UTF8.self)
+        return XRayUDPEmitter.SegmentEncoding { segment in
+            let data = try jsonEncoder.encode(segment)
+            return ByteBuffer(string: String(decoding: data, as: UTF8.self))
         }
     }()
 }
