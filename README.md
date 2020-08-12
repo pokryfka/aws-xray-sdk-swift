@@ -81,7 +81,7 @@ segment.addError(ExampleError.test)
 segment.addException(message: "Test Exception")
 ```
 
-Note that `Error`s rethrown in the closures are recorded.
+Note that `Error`s thrown in the closures are recorded.
 
 #### HTTP request data
 
@@ -120,7 +120,7 @@ Make sure to shutdown the recorder before program exits:
 recorder.shutdown()
 ```
 
-flush it and wait to have all segments sent:
+You can flush it before `shutdown`:
 
 ```swift
 recorder.wait()
@@ -168,7 +168,7 @@ let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
 
 ### Context propagation
 
-Unlike other X-Ray SDKs, AWS X-Ray SDK for Swift does not expose (thread local) current Segment. 
+Unlike in other X-Ray SDKs, `XRayRecorder` in AWS X-Ray SDK for Swift does not expose (thread local) current `Segment`. 
 
 The context, in its broader meaning that is including but not limited to trace context, should be passed explicitly in `BaggageContext`:
 
@@ -214,7 +214,7 @@ Note that the subject is currently under discussion by `swift-server` community:
 
 Integration with libraries in `swift-server` ecosystem is (will be) done using `AWSXRayInstrument` which implements `TracingIstrument` defined in [swift-tracing](https://github.com/slashmo/gsoc-swift-tracing) library.
 
-The API of `TracingInstrument` is not stable, PoC implementation of `XRayInstrument` is on `feature/instrument` branch.
+As the API of `TracingInstrument` is not stable, PoC implementation of `XRayInstrument` is on `feature/instrument` branch.
 
 Example:
 
@@ -322,6 +322,8 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
 ```
 
 See [`AWSXRaySDKExampleLambda/main.swift`](./Examples/Sources/AWSXRaySDKExampleLambda/main.swift) for a complete example.
+
+Note that it will not be needed to create a recorder nor flush it when Swift AWS Lambda Runtime is instrumented, see [PoC](https://github.com/pokryfka/swift-aws-lambda-runtime/tree/feature/tracing).
 
 ## License
 
