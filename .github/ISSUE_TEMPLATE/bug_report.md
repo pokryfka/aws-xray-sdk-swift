@@ -23,7 +23,7 @@ A clear and concise description of what you expected to happen.
 **Context (please complete the following information):**
  - Swift version: output of `swift --version`
  - OS: output of `uname -a`
- - Package Version: output of `git describe` [e.g. v0.5.0]
+ - Package version: output of `git describe` [e.g. v1.0.0]
 
 **Additional context**
 Add any other context about the problem here.
