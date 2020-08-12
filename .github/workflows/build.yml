@@ -21,7 +21,7 @@ jobs:
     - name: Swift version
       run: swift --version
     - name: Build
-      run: swift build -c release
+      run: swift build
 
   build-examples:
     strategy:
@@ -36,9 +36,9 @@ jobs:
     - name: Swift version
       run: swift --version
     - name: Build Examples
-      run: swift build -c release
+      run: swift build
       working-directory: ./Examples
     - name: Print shared libraries
       if: ${{ matrix.platform == 'ubuntu-latest' }}
-      run: ldd .build/release/AWSXRaySDKExample
+      run: ldd .build/debug/AWSXRaySDKExample
       working-directory: ./Examples
