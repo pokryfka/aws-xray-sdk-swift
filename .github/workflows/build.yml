@@ -23,21 +23,11 @@ jobs:
     - name: Build
       run: swift build -c release
 
-  examples-macos:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: OS name
-      run: uname -a
-    - name: Swift version
-      run: swift --version
-    - name: Build Examples
-      run: swift build -c release
-      working-directory: ./Examples
-
-  examples-linux:
-    runs-on: ubuntu-latest
+  build-examples:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
 
     steps:
     - uses: actions/checkout@v2
@@ -49,6 +39,6 @@ jobs:
       run: swift build -c release
       working-directory: ./Examples
     - name: Print shared libraries
+      if: ${{ matrix.platform == 'ubuntu-latest' }}
       run: ldd .build/release/AWSXRaySDKExample
       working-directory: ./Examples
-  
