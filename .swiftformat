@@ -14,4 +14,3 @@
 --ifdef no-indent
 
 # rules
---disable braces # works differently on swiftformat-0.44.17 and 0.45.1
