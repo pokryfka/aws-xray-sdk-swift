@@ -33,6 +33,7 @@ jobs:
       working-directory: ./PerformanceTests
 
   test-linux:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         images:
