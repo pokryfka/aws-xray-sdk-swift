@@ -24,7 +24,7 @@ AWS X-Ray SDK for Swift follows [SemVer](https://semver.org). Until version 1.0.
 Add the package dependency to your package [Swift Package Manager](https://swift.org/package-manager/) manifest file `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", upToNextMinor(from: "0.6.0"))
+.package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", upToNextMinor(from: "0.7.0"))
 ```
 
 and `AWSXRaySDK` library to your target (here `AWSXRaySDKExample`):
