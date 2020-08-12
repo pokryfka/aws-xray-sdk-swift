@@ -37,9 +37,7 @@ jobs:
     strategy:
       matrix:
         images:
-        # - swift:5.2
         - swift:5.2-amazonlinux2
-        - swift:nightly-5.3-bionic
     container:
       image: ${{ matrix.images }}
 
