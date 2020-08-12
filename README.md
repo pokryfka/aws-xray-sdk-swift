@@ -1,6 +1,6 @@
 # AWS X-Ray SDK for Swift
 
-![CI](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/CI/badge.svg)
+![Build](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift)
 
 Unofficial AWS X-Ray SDK for Swift.
