@@ -38,3 +38,7 @@ jobs:
     - name: Build Examples
       run: swift build -c release
       working-directory: ./Examples
+    - name: Print shared libraries
+      run: ldd .build/release/AWSXRaySDKExample
+      working-directory: ./Examples
+  
