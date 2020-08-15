@@ -19,43 +19,50 @@ import Darwin // timespec
 import Glibc // timespec
 #endif
 
-internal struct Timestamp: RawRepresentable {
-    let rawValue: DispatchWallTime
+extension XRayRecorder {
+    public struct Timestamp {
+        /// It's already the past.
+        public static func now() -> Timestamp {
+            Timestamp()
+        }
 
-    /// The number of seconds since the Unix epoch.
-    var secondsSinceEpoch: Double { Double(Int64(bitPattern: rawValue.rawValue)) / -1_000_000_000 }
+        private let rawValue: DispatchWallTime
 
-    init?(rawValue: DispatchWallTime) {
-        self.rawValue = rawValue
-    }
+        /// The number of seconds since the Unix epoch.
+        internal var secondsSinceEpoch: Double { Double(Int64(bitPattern: rawValue.rawValue)) / -1_000_000_000 }
 
-    init() {
-        rawValue = DispatchWallTime.now()
-    }
+        internal init?(rawValue: DispatchWallTime) {
+            self.rawValue = rawValue
+        }
 
-    init?(secondsSinceEpoch: Double) {
-        guard secondsSinceEpoch > 0 else { return nil }
-        let nanosecondsSinceEpoch = UInt64(secondsSinceEpoch * 1_000_000_000)
-        let seconds = UInt64(nanosecondsSinceEpoch / 1_000_000_000)
-        let nanoseconds = nanosecondsSinceEpoch - (seconds * 1_000_000_000)
-        rawValue = DispatchWallTime(timespec: timespec(tv_sec: Int(seconds), tv_nsec: Int(nanoseconds)))
+        internal init() {
+            rawValue = DispatchWallTime.now()
+        }
+
+        internal init?(secondsSinceEpoch: Double) {
+            guard secondsSinceEpoch > 0 else { return nil }
+            let nanosecondsSinceEpoch = UInt64(secondsSinceEpoch * 1_000_000_000)
+            let seconds = UInt64(nanosecondsSinceEpoch / 1_000_000_000)
+            let nanoseconds = nanosecondsSinceEpoch - (seconds * 1_000_000_000)
+            rawValue = DispatchWallTime(timespec: timespec(tv_sec: Int(seconds), tv_nsec: Int(nanoseconds)))
+        }
     }
 }
 
-extension Timestamp: Equatable {
-    static func == (lhs: Timestamp, rhs: Timestamp) -> Bool {
+extension XRayRecorder.Timestamp: Equatable {
+    public static func == (lhs: XRayRecorder.Timestamp, rhs: XRayRecorder.Timestamp) -> Bool {
         lhs.rawValue == rhs.rawValue
     }
 }
 
-extension Timestamp: Comparable {
-    static func < (lhs: Timestamp, rhs: Timestamp) -> Bool {
+extension XRayRecorder.Timestamp: Comparable {
+    public static func < (lhs: XRayRecorder.Timestamp, rhs: XRayRecorder.Timestamp) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
 }
 
-extension Timestamp: Encodable {
-    func encode(to encoder: Encoder) throws {
+extension XRayRecorder.Timestamp: Encodable {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(secondsSinceEpoch)
     }

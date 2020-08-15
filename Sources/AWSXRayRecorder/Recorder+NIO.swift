@@ -45,13 +45,15 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
+    public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
-        let segment = beginSegment(name: name, context: context, metadata: metadata)
+        let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)
@@ -67,13 +69,15 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - baggage: baggage with the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil,
+    public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
-        let segment = beginSegment(name: name, baggage: baggage, metadata: metadata)
+        let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)

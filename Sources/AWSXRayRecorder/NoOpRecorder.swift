@@ -25,13 +25,17 @@ public class XRayNoOpRecorder: XRayRecorder {
                    config: .init(enabled: false))
     }
 
-    override public func beginSegment(name: String, context: TraceContext, metadata: Segment.Metadata? = nil) -> Segment {
+    override public func beginSegment(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                                      metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+    {
         var baggage = BaggageContext()
         baggage.xRayContext = context
         return NoOpSegment(id: .init(), name: name, baggage: baggage)
     }
 
-    override public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> Segment {
+    override public func beginSegment(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                                      metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+    {
         NoOpSegment(id: .init(), name: name, baggage: baggage)
     }
 

@@ -25,7 +25,7 @@ extension XRayRecorder {
             name: String,
             context: TraceContext,
             baggage: BaggageContext,
-            startTime: Timestamp = Timestamp(),
+            startTime: XRayRecorder.Timestamp = Timestamp(),
             subsegment: Bool = false,
             service: Service? = nil, user: String? = nil,
             origin: Origin? = nil, http: HTTP? = nil, aws: AWS? = nil,
@@ -36,18 +36,20 @@ extension XRayRecorder {
             fatalError()
         }
 
-        init(id: ID, name: String, baggage: BaggageContext, logger: Logger? = nil) {
+        init(id: ID, name: String, baggage: BaggageContext, startTime: Timestamp = .now(), logger: Logger? = nil) {
             // the context is not of much importance as the segment will not be emitted
             // however pass the baggage which may contain more than just the X-Ray trace
             let context = baggage.xRayContext ?? XRayRecorder.TraceContext()
-            super.init(id: id, name: name, context: context, baggage: baggage, logger: logger)
+            super.init(id: id, name: name, context: context, baggage: baggage, startTime: startTime, logger: logger)
         }
 
         override func end() {}
-        override func end(_: Timestamp) throws { assertionFailure() }
+        override func end(_: XRayRecorder.Timestamp) throws { assertionFailure() }
         override func emit() throws { assertionFailure() }
 
-        override func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> Segment {
+        override func beginSubsegment(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                                      metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+        {
             NoOpSegment(id: ID(), name: name, baggage: baggage)
         }
 
