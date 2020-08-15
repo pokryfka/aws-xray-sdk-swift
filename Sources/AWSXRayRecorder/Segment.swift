@@ -355,17 +355,19 @@ extension XRayRecorder {
         ///
         /// - Parameters:
         ///   - name: segment name
+        ///   - startTime: start time, defaults to now
         ///   - metadata: segment metadata
-        public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
+        public func beginSubsegment(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                                    metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+        {
             lock.withWriterLock {
-                // TODO: document/test/discuss where/how it should be updated and propagated
-                // for now the context contain the segment parentId
-                // while the baggage contains the segment id to be propagated as parent
+                // TODO: can subsegment start before the parent?
                 var context = _context
                 context.parentId = _id
                 let newSegment = XRayRecorder.Segment(
                     id: ID(), name: name,
                     context: context, baggage: _baggage,
+                    startTime: startTime,
                     subsegment: true,
                     metadata: metadata,
                     callback: self._callback

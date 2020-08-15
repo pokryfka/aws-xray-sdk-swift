@@ -21,14 +21,16 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: (Segment) throws -> T)
+    public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
+                           body: (XRayRecorder.Segment) throws -> T)
         rethrows -> T
     {
-            let segment = beginSegment(name: name, context: context, metadata: metadata)
+            let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
             defer {
                 segment.end()
             }
@@ -52,14 +54,16 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - baggage: baggage with the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: (Segment) throws -> T)
+    public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
+                           body: (XRayRecorder.Segment) throws -> T)
         rethrows -> T
     {
-            let segment = beginSegment(name: name, baggage: baggage, metadata: metadata)
+            let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
             defer {
                 segment.end()
             }
@@ -78,14 +82,16 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T, E>(name: String, context: TraceContext, metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (Segment) throws -> Result<T, E>)
+    public func segment<T, E>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                              metadata: XRayRecorder.Segment.Metadata? = nil,
+                              body: (XRayRecorder.Segment) throws -> Result<T, E>)
         rethrows -> Result<T, E>
     {
-            let segment = beginSegment(name: name, context: context, metadata: metadata)
+            let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
             defer {
                 segment.end()
             }
@@ -113,14 +119,16 @@ extension XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - baggage: baggage with the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T, E>(name: String, baggage: BaggageContext, metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (Segment) throws -> Result<T, E>)
+    public func segment<T, E>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                              metadata: XRayRecorder.Segment.Metadata? = nil,
+                              body: (XRayRecorder.Segment) throws -> Result<T, E>)
         rethrows -> Result<T, E>
     {
-            let segment = beginSegment(name: name, baggage: baggage, metadata: metadata)
+            let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
             defer {
                 segment.end()
             }
@@ -144,13 +152,15 @@ extension XRayRecorder.Segment {
     ///
     /// - Parameters:
     ///   - name: segment name
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: subsegment body
     @inlinable
-    public func subsegment<T>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func subsegment<T>(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                              metadata: XRayRecorder.Segment.Metadata? = nil,
                               body: (XRayRecorder.Segment) throws -> T) rethrows -> T
     {
-        let segment = beginSubsegment(name: name, metadata: metadata)
+        let segment = beginSubsegment(name: name, startTime: startTime, metadata: metadata)
         defer {
             segment.end()
         }
@@ -168,13 +178,15 @@ extension XRayRecorder.Segment {
     ///
     /// - Parameters:
     ///   - name: segment name
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: subsegment body
     @inlinable
-    public func subsegment<T, E>(name: String, metadata: XRayRecorder.Segment.Metadata? = nil,
+    public func subsegment<T, E>(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                                 metadata: XRayRecorder.Segment.Metadata? = nil,
                                  body: (XRayRecorder.Segment) throws -> Result<T, E>) rethrows -> Result<T, E>
     {
-        let segment = beginSubsegment(name: name, metadata: metadata)
+        let segment = beginSubsegment(name: name, startTime: startTime, metadata: metadata)
         defer {
             segment.end()
         }
