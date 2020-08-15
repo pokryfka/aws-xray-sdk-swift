@@ -103,6 +103,7 @@ extension XRayRecorder {
         }
 
         private var state: State { lock.withReaderLock { _state } }
+        internal var _test_state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
 
@@ -225,6 +226,7 @@ extension XRayRecorder {
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
+        internal var _test_subsegments: [Segment] { lock.withReaderLock { _subsegments } }
 
         // MARK: Optional Subsegment Fields
 
