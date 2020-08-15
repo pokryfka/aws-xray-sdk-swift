@@ -19,7 +19,7 @@ import TracingInstrumentation
 // TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
 
 extension XRayRecorder.Segment: TracingInstrumentation.Span {
-    public var operationName: String { "TODO: name" } // TODO: expose name
+    public var operationName: String { name }
 
     public var kind: SpanKind { .internal }
 
