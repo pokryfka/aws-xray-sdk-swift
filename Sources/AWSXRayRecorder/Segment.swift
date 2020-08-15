@@ -599,7 +599,7 @@ extension XRayRecorder {
 // MARK: - State
 
 private extension XRayRecorder.Segment.State {
-    var startTime: Timestamp {
+    var startTime: XRayRecorder.Timestamp {
         switch self {
         case .inProgress(let started):
             return started
@@ -610,7 +610,7 @@ private extension XRayRecorder.Segment.State {
         }
     }
 
-    var endTime: Timestamp? {
+    var endTime: XRayRecorder.Timestamp? {
         switch self {
         case .inProgress:
             return nil

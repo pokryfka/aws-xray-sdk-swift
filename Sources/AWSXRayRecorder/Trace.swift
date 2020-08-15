@@ -67,7 +67,7 @@ extension XRayRecorder.TraceID {
 
     /// Creates new `TraceID`.
     public init() {
-        self.init(secondsSinceEpoch: Timestamp().secondsSinceEpoch)
+        self.init(secondsSinceEpoch: XRayRecorder.Timestamp().secondsSinceEpoch)
     }
 }
 
