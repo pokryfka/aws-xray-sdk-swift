@@ -29,6 +29,15 @@ final class InstrumentTests: XCTestCase {
 
     private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
 
+    func testBootstrapping() {
+        let tracer = XRayNoOpRecorder()
+        InstrumentationSystem.bootstrap(tracer)
+        XCTAssertTrue(InstrumentationSystem.instrument is XRayRecorder)
+        XCTAssertTrue(InstrumentationSystem.instrument as? XRayRecorder === tracer)
+        XCTAssertTrue(InstrumentationSystem.tracingInstrument is XRayRecorder)
+        XCTAssertTrue(InstrumentationSystem.tracingInstrument as? XRayRecorder === tracer)
+    }
+
     func testExtractingContext() {
         let tracingHeader = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
         let headers = HTTPHeaders([
