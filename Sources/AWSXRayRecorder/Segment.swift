@@ -179,6 +179,7 @@ extension XRayRecorder {
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
         #endif
+        internal var _test_parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
         private let _service: Service?
