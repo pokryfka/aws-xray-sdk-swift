@@ -121,7 +121,7 @@ extension XRayRecorder {
         /// The logical name of the service that handled the request, up to **200 characters**.
         /// For example, your application's name or domain name.
         /// Names can contain Unicode letters, numbers, and whitespace, and the following symbols: _, ., :, /, %, &, #, =, +, \, -, @
-        internal var name: String { lock.withReaderLock { _name } }
+        public var name: String { lock.withReaderLock { _name } }
 
         #if false // part of _context
         /// A unique identifier that connects all segments and subsegments originating from a single client request.
