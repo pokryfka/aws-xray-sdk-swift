@@ -16,10 +16,11 @@ import XCTest
 
 @testable import AWSXRayRecorder
 
-private typealias Segment = XRayRecorder.Segment
-private typealias SegmentError = XRayRecorder.SegmentError
-
 final class SegmentLoggingTests: XCTestCase {
+    private typealias Timestamp = XRayRecorder.Timestamp
+    private typealias Segment = XRayRecorder.Segment
+    private typealias SegmentError = XRayRecorder.SegmentError
+
     func testLoggingStateChangeErrors() {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })

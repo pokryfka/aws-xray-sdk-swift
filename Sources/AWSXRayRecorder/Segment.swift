@@ -103,6 +103,7 @@ extension XRayRecorder {
         }
 
         private var state: State { lock.withReaderLock { _state } }
+        internal var _test_state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
 
@@ -179,6 +180,7 @@ extension XRayRecorder {
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
         #endif
+        internal var _test_parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
         private let _service: Service?
@@ -224,6 +226,7 @@ extension XRayRecorder {
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
+        internal var _test_subsegments: [Segment] { lock.withReaderLock { _subsegments } }
 
         // MARK: Optional Subsegment Fields
 
@@ -352,17 +355,19 @@ extension XRayRecorder {
         ///
         /// - Parameters:
         ///   - name: segment name
+        ///   - startTime: start time, defaults to now
         ///   - metadata: segment metadata
-        public func beginSubsegment(name: String, metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment {
+        public func beginSubsegment(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                                    metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+        {
             lock.withWriterLock {
-                // TODO: document/test/discuss where/how it should be updated and propagated
-                // for now the context contain the segment parentId
-                // while the baggage contains the segment id to be propagated as parent
+                // TODO: can subsegment start before the parent?
                 var context = _context
                 context.parentId = _id
                 let newSegment = XRayRecorder.Segment(
                     id: ID(), name: name,
                     context: context, baggage: _baggage,
+                    startTime: startTime,
                     subsegment: true,
                     metadata: metadata,
                     callback: self._callback
@@ -596,7 +601,7 @@ extension XRayRecorder {
 // MARK: - State
 
 private extension XRayRecorder.Segment.State {
-    var startTime: Timestamp {
+    var startTime: XRayRecorder.Timestamp {
         switch self {
         case .inProgress(let started):
             return started
@@ -607,7 +612,7 @@ private extension XRayRecorder.Segment.State {
         }
     }
 
-    var endTime: Timestamp? {
+    var endTime: XRayRecorder.Timestamp? {
         switch self {
         case .inProgress:
             return nil

@@ -17,7 +17,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
-        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.1.0")),
+        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.2.0")),
         .package(url: "https://github.com/fabianfett/pure-swift-json.git", .upToNextMinor(from: "0.4.0")),
     ],
     targets: [

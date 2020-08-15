@@ -11,19 +11,28 @@
 //
 //===----------------------------------------------------------------------===//
 
+import NIOConcurrencyHelpers
+
 @testable import AWSXRayRecorder
 
 class TestEmitter: XRayEmitter {
-    var segments = [XRayRecorder.Segment]()
+    private let lock = Lock()
+    private var _segments = [XRayRecorder.Segment]()
+
+    var segments: [XRayRecorder.Segment] { lock.withLock { _segments } }
 
     func send(_ segment: XRayRecorder.Segment) {
-        segments.append(segment)
+        lock.withLock {
+            _segments.append(segment)
+        }
     }
 
     func flush(_ callback: @escaping (Error?) -> Void) { callback(nil) }
     func shutdown(_ callback: @escaping (Error?) -> Void) { callback(nil) }
 
     func reset() {
-        segments = [XRayRecorder.Segment]()
+        lock.withLock {
+            _segments = [XRayRecorder.Segment]()
+        }
     }
 }
