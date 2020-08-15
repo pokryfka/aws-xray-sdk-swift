@@ -12,22 +12,37 @@
 //===----------------------------------------------------------------------===//
 
 import Baggage
-import Logging
 import XCTest
 
 @testable import AWSXRayRecorder
 
-final class ContextTests: XCTestCase {
-    private typealias TraceContext = XRayRecorder.TraceContext
+final class NoOpRecorderTests: XCTestCase {
+    func testCreatingSegments() {
+        let recorder = XRayNoOpRecorder()
+        XCTAssertTrue(recorder.beginSegment(name: UUID().uuidString, context: .init()) is XRayRecorder.NoOpSegment)
+        XCTAssertFalse(recorder.beginSegment(name: UUID().uuidString, context: .init()).isSampled)
+        XCTAssertTrue(recorder.beginSegment(name: UUID().uuidString, baggage: .init()) is XRayRecorder.NoOpSegment)
+        XCTAssertFalse(recorder.beginSegment(name: UUID().uuidString, baggage: .init()).isSampled)
+    }
 
-    func testMissingContext() {
-        let logHandler = TestLogHandler()
-        let logger = Logger(label: "test", factory: { _ in logHandler })
+    func testFlushing() {
+        let recorder = XRayNoOpRecorder()
+        let exp = expectation(description: "hasFlushed")
+        recorder.wait { error in
+            XCTAssertNil(error)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
+    }
 
-        let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), logger: logger)
-        let baggage = BaggageContext()
-        _ = recorder.beginSegment(name: UUID().uuidString, baggage: baggage)
-        XCTAssertEqual(1, logHandler.errorMessages.count)
+    func testShutdown() {
+        let recorder = XRayNoOpRecorder()
+        let exp = expectation(description: "hasShutdown")
+        recorder.shutdown { error in
+            XCTAssertNil(error)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
     }
 
     func testContextPropagation() {
@@ -35,7 +50,7 @@ final class ContextTests: XCTestCase {
             typealias Value = String
         }
 
-        let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+        let recorder = XRayNoOpRecorder()
         var baggage = BaggageContext()
         let context = XRayContext()
         baggage.xRayContext = context
@@ -46,7 +61,7 @@ final class ContextTests: XCTestCase {
         XCTAssertNotEqual(context.parentId, segment.id)
         XCTAssertEqual(context.traceId, segment._test_traceId)
         XCTAssertEqual(context.parentId, segment._test_parentId)
-        XCTAssertEqual(context.isSampled, segment.isSampled)
+        XCTAssertFalse(segment.isSampled)
         XCTAssertEqual(context.traceId, segment.baggage.xRayContext?.traceId)
         XCTAssertEqual(segment.id, segment.baggage.xRayContext?.parentId)
         XCTAssertEqual(context.isSampled, segment.baggage.xRayContext?.isSampled)
@@ -56,7 +71,7 @@ final class ContextTests: XCTestCase {
         XCTAssertNotEqual(segment.id, subsegment.id)
         XCTAssertEqual(context.traceId, subsegment._test_traceId)
         XCTAssertEqual(segment.id, subsegment._test_parentId)
-        XCTAssertEqual(context.isSampled, subsegment.isSampled)
+        XCTAssertFalse(subsegment.isSampled)
         XCTAssertEqual(context.traceId, subsegment.baggage.xRayContext?.traceId)
         XCTAssertEqual(subsegment.id, subsegment.baggage.xRayContext?.parentId)
         XCTAssertEqual(context.isSampled, subsegment.baggage.xRayContext?.isSampled)
@@ -66,7 +81,7 @@ final class ContextTests: XCTestCase {
         XCTAssertNotEqual(segment.id, subsegment2.id)
         XCTAssertEqual(context.traceId, subsegment2._test_traceId)
         XCTAssertEqual(segment.id, subsegment2._test_parentId)
-        XCTAssertEqual(context.isSampled, subsegment2.isSampled)
+        XCTAssertFalse(subsegment2.isSampled)
         XCTAssertEqual(context.traceId, subsegment.baggage.xRayContext?.traceId)
         XCTAssertEqual(subsegment2.id, subsegment2.baggage.xRayContext?.parentId)
         XCTAssertEqual(context.isSampled, subsegment2.baggage.xRayContext?.isSampled)

@@ -1,6 +1,6 @@
-# aws-xray-sdk-swift
+# AWS X-Ray SDK for Swift
 
-![CI](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/CI/badge.svg)
+![Build](https://github.com/pokryfka/aws-xray-sdk-swift/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift/branch/master/graph/badge.svg)](https://codecov.io/gh/pokryfka/aws-xray-sdk-swift)
 
 Unofficial AWS X-Ray SDK for Swift.
@@ -9,7 +9,9 @@ Unofficial AWS X-Ray SDK for Swift.
 
 Functional beta.
 
-aws-xray-sdk-swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
+At the moment the SDK does not support sampling rules, tracing can be either enabled or disabled (issue [57](https://github.com/pokryfka/aws-xray-sdk-swift/issues/57)).
+
+AWS X-Ray SDK for Swift follows [SemVer](https://semver.org). Until version 1.0.0 breaking changes may be introduced on minor version number changes.
 
 ## Documentation
 
@@ -22,7 +24,7 @@ aws-xray-sdk-swift follows [SemVer](https://semver.org). Until version 1.0.0 bre
 Add the package dependency to your package [Swift Package Manager](https://swift.org/package-manager/) manifest file `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", upToNextMinor(from: "0.5.0"))
+.package(url: "https://github.com/pokryfka/aws-xray-sdk-swift.git", upToNextMinor(from: "0.7.0"))
 ```
 
 and `AWSXRaySDK` library to your target (here `AWSXRaySDKExample`):
@@ -79,7 +81,7 @@ segment.addError(ExampleError.test)
 segment.addException(message: "Test Exception")
 ```
 
-Note that `Error`s rethrown in the closures are recorded.
+Note that `Error`s thrown in the closures are recorded.
 
 #### HTTP request data
 
@@ -112,10 +114,16 @@ Subsegments have to be created before the parent segment ended.
 
 Subsegments may end after their parent segment ended, in which case they will be presented as *Pending* until they end.
 
-Make sure to flush the recorder before program exits:
+Make sure to shutdown the recorder before program exits:
 
 ```swift
 recorder.shutdown()
+```
+
+You can flush it before `shutdown`:
+
+```swift
+recorder.wait()
 ```
 
 or, if using [SwiftNIO](https://github.com/apple/swift-nio), on provided `EventLoop`:
@@ -132,7 +140,7 @@ See [`AWSXRaySDKExample/main.swift`](./Examples/Sources/AWSXRaySDKExample/main.s
 
 #### Custom emitter
 
-By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays it to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
+By default events are sent as UDP to [AWS X-Ray daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html) which buffers and relays them to [AWS X-Ray API](https://docs.aws.amazon.com/xray/latest/devguide/xray-api.html).
 
 A custom emitter has to implement `XRayEmitter` protocol:
 
@@ -140,6 +148,7 @@ A custom emitter has to implement `XRayEmitter` protocol:
 public protocol XRayEmitter {
     func send(_ segment: XRayRecorder.Segment)
     func flush(_ callback: @escaping (Error?) -> Void)
+    func shutdown(_ callback: @escaping (Error?) -> Void)
 }
 ```
 
@@ -155,6 +164,80 @@ The emitter has to be provided when creating an instance of `XRayRecorder`:
 
 ```swift
 let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
+```
+
+### Context propagation
+
+Unlike in other X-Ray SDKs, `XRayRecorder` in AWS X-Ray SDK for Swift does not expose (thread local) current `Segment`. 
+
+The context, in its broader meaning that is including but not limited to trace context, should be passed explicitly in `BaggageContext`:
+
+```swift
+// the baggage should contain trace context
+var baggage: BaggageContext
+
+let segment = recorder.beginSegment(name: "Segment 1", baggage: baggage)
+
+// create subsegment by passing the parent segment baggage
+let subsegment = recorder.beginSegment(name: "Subsegment 1.1", baggage: segment.baggage)
+
+// or using segment function
+let subsegment2 = segment.beginSubsegment(name: "Subsegment 1.2")
+```
+
+You can create new [X-Ray Context](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceContext) from tracing header:
+
+```swift
+let context = try XRayContext(tracingHeader:  "Root=1-5759e988-bd862e3fe1be46a994272793")
+```
+
+or using provided (or generated) [TraceID](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceID), parent segment and sampling decision:
+
+```swift
+let newContext = XRayContext(traceId: .init(), parentId: nil, sampled: true)
+```
+
+You can update the X-Ray context in the baggage:
+
+```swift
+// empty baggage
+var baggage = BaggageContext()
+// create new X-Ray context
+baggage.xRayContext = XRayContext()
+```
+
+Note that the subject is currently under discussion by `swift-server` community:
+- [The Context Passing Problem](https://forums.swift.org/t/the-context-passing-problem/39162)
+- [PoC Instrumented HTTP client](https://github.com/swift-server/async-http-client/pull/289#issuecomment-668536709)
+
+### XRayInstrument (WIP)
+
+Integration with libraries in `swift-server` ecosystem is (will be) done using `AWSXRayInstrument` which implements `TracingIstrument` defined in [swift-tracing](https://github.com/slashmo/gsoc-swift-tracing) library.
+
+As the API of `TracingInstrument` is not stable, PoC implementation of `XRayInstrument` is on `feature/instrument` branch.
+
+Example:
+
+```swift
+import AWSXRayInstrument
+import TracingInstrumentation
+
+// create and bootstrap the tracer
+let instrument = XRayRecorder()
+InstrumentationSystem.bootstrap(instrument)
+
+// get the tracer
+let tracer = InstrumentationSystem.tracer
+
+// extract the context from HTTP headers
+let headers = HTTPHeaders([
+     ("X-Amzn-Trace-Id", "Root=1-5759e988-bd862e3fe1be46a994272793"),
+ ])
+var baggage = BaggageContext()
+tracer.extract(headers, into: &baggage, using: HTTPHeadersExtractor())
+
+// create new span (aka segment)
+var span = tracer.startSpan(named: "Span 1", context: baggage)
 ```
 
 ## Configuration
@@ -239,3 +322,9 @@ private struct ExampleLambdaHandler: EventLoopLambdaHandler {
 ```
 
 See [`AWSXRaySDKExampleLambda/main.swift`](./Examples/Sources/AWSXRaySDKExampleLambda/main.swift) for a complete example.
+
+Note that it will not be needed to create a recorder nor flush it when Swift AWS Lambda Runtime is instrumented, see [PoC](https://github.com/pokryfka/swift-aws-lambda-runtime/tree/feature/tracing).
+
+## License
+
+The AWS X-Ray SDK for Swift is licensed under the Apache 2.0 License. See LICENSE.txt for more information.

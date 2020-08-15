@@ -60,6 +60,7 @@ public class XRayRecorder {
     }
 
     internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
+                               startTime: Timestamp = .now(),
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
     {
         guard isShutdown.load() == false else {
@@ -83,9 +84,11 @@ public class XRayRecorder {
         let segmentId = Segment.ID()
         let service = Segment.Service(version: config.serviceVersion)
         let subsegment = context.parentId != nil
+        // TODO: check if parent is pending
         let newSegment = Segment(
             id: segmentId, name: name,
             context: context, baggage: baggage,
+            startTime: startTime,
             subsegment: subsegment,
             service: service,
             aws: aws, metadata: metadata,
@@ -100,12 +103,15 @@ public class XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     /// - Returns: new segment
-    public func beginSegment(name: String, context: TraceContext, metadata: Segment.Metadata? = nil) -> Segment {
+    public func beginSegment(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                             metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+    {
         var baggage = BaggageContext()
         baggage.xRayContext = context
-        return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+        return beginSegment(name: name, context: context, baggage: baggage, startTime: startTime, metadata: metadata)
     }
 
     /// Creates new segment.
@@ -118,11 +124,14 @@ public class XRayRecorder {
     /// - Parameters:
     ///   - name: segment name
     ///   - baggage: baggage with the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     /// - Returns: new segment
-    public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment {
+    public func beginSegment(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                             metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
+    {
         if let context = baggage.xRayContext {
-            return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+            return beginSegment(name: name, context: context, baggage: baggage, startTime: startTime, metadata: metadata)
         } else {
             switch config.contextMissingStrategy {
             case .runtimeError:
@@ -132,7 +141,7 @@ public class XRayRecorder {
                 logger.error("Missing Context")
                 var baggage = baggage
                 baggage.xRayContext = context
-                return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
+                return beginSegment(name: name, context: context, baggage: baggage, startTime: startTime, metadata: metadata)
             }
         }
     }

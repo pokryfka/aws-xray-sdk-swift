@@ -15,20 +15,32 @@ import AWSXRayRecorder
 import Logging
 import NIOConcurrencyHelpers
 
+import struct Foundation.Data
+import class Foundation.JSONEncoder
+
+private extension JSONEncoder {
+    func encode<T: Encodable>(_ value: T) throws -> String {
+        String(decoding: try encode(value), as: UTF8.self)
+    }
+}
+
 /// "Emits" segments by logging them using provided logger instance.
 public struct XRayLogEmitter: XRayEmitter {
     private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
     internal let logger: Logger
-    private let encoding: XRayRecorder.Segment.Encoding
+
+    private let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        return encoder
+    }()
 
     /// Creates an instance of `XRayLogEmitter`.
     ///
     /// - Parameters:
     ///   - logger: logger instance.
-    ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
-    public init(logger: Logger, encoding: XRayRecorder.Segment.Encoding? = nil) {
+    public init(logger: Logger) {
         self.logger = logger
-        self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
     /// Creates an instance of `XRayLogEmitter`.
@@ -36,13 +48,11 @@ public struct XRayLogEmitter: XRayEmitter {
     /// - Parameters:
     ///   - label: logger label used to create a logger instance.
     ///   - onlyErrors: if `true`, only errors are logged.
-    ///   - encoding: Contains encoder used to encode `XRayRecorder.Segment` to JSON string.
-    public init(label: String? = nil, onlyErrors: Bool = false, encoding: XRayRecorder.Segment.Encoding? = nil) {
-        let label = label ?? "xray.log_emitter.\(String.random32())"
+    public init(label: String? = nil, onlyErrors: Bool = false) {
+        let label = label ?? "xray.log_emitter"
         var logger = Logger(label: label)
         logger.logLevel = onlyErrors ? .error : .info
         self.logger = logger
-        self.encoding = encoding ?? FoundationJSON.segmentEncoding
     }
 
     public func send(_ segment: XRayRecorder.Segment) {
@@ -51,7 +61,7 @@ public struct XRayLogEmitter: XRayEmitter {
             return
         }
         do {
-            let document: String = try encoding.encode(segment)
+            let document: String = try encoder.encode(segment)
             logger.info("\n\(document)")
         } catch {
             logger.error("Failed to encode a segment: \(error)")

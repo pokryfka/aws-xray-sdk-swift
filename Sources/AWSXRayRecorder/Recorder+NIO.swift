@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Baggage
 import NIO
 
 extension XRayRecorder {
@@ -39,21 +40,82 @@ extension XRayRecorder {
 extension XRayRecorder {
     /// Creates new segment.
     ///
+    /// Records  `Error`.
+    ///
     /// - Parameters:
     ///   - name: segment name
     ///   - context: the trace context
+    ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, context: TraceContext, metadata: Segment.Metadata? = nil,
+    public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
                            body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
-        let segment = beginSegment(name: name, context: context, metadata: metadata)
+        let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
         return body().always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)
             }
             segment.end()
         }
+    }
+
+    /// Creates new segment.
+    ///
+    /// Records  `Error`.
+    ///
+    /// - Parameters:
+    ///   - name: segment name
+    ///   - baggage: baggage with the trace context
+    ///   - startTime: start time, defaults to now
+    ///   - metadata: segment metadata
+    ///   - body: segment body
+    @inlinable
+    public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+                           metadata: XRayRecorder.Segment.Metadata? = nil,
+                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    {
+        let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
+        return body().always { result in
+            if case Result<T, Error>.failure(let error) = result {
+                segment.addError(error)
+            }
+            segment.end()
+        }
+    }
+}
+
+extension EventLoopFuture {
+    /// Ends segment when the `EventLoopFuture` is fulfilled, records `.failure`.
+    ///
+    /// - parameters:
+    ///     - segment: the segment to end when the `EventLoopFuture` is fulfilled.
+    /// - returns: the current `EventLoopFuture`
+    public func endSegment(_ segment: XRayRecorder.Segment) -> EventLoopFuture<Value> {
+        whenComplete { result in
+            if case Result<Value, Error>.failure(let error) = result {
+                segment.addError(error)
+            }
+            segment.end()
+        }
+        return self
+    }
+}
+
+extension EventLoopFuture where Value == Void {
+    /// Flushes the recorder.
+    ///
+    /// Can be called only when `Value` is `Void`, ignores `Error`.
+    ///
+    /// - Parameters:
+    ///     - recorder: the recorder to flush
+    /// - Returns: the current `EventLoopFuture`
+    public func flush(_ recorder: XRayRecorder) -> EventLoopFuture<Void> {
+        recover { _ in }
+            .flatMap { _ in
+                recorder.flush(on: self.eventLoop)
+            }
     }
 }

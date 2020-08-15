@@ -15,11 +15,12 @@ import XCTest
 
 @testable import AWSXRayRecorder
 
-private typealias TraceContext = XRayRecorder.TraceContext
-private typealias Segment = XRayRecorder.Segment
-private typealias SegmentError = XRayRecorder.SegmentError
-
 final class RecorderTests: XCTestCase {
+    private typealias Timestamp = XRayRecorder.Timestamp
+    private typealias TraceContext = XRayRecorder.TraceContext
+    private typealias Segment = XRayRecorder.Segment
+    private typealias SegmentError = XRayRecorder.SegmentError
+
     func testRecordingOneSegment() {
         let emitter = TestEmitter()
         let recorder = XRayRecorder(emitter: emitter)
@@ -74,6 +75,21 @@ final class RecorderTests: XCTestCase {
         subsegmentInProgress.end()
         recorder.wait()
         XCTAssertEqual(1, emitter.segments.count)
+    }
+
+    func testRecordingBeforeNow() {
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        let startTime: Timestamp = .now()
+        let after = Timestamp()
+        recorder.segment(name: UUID().uuidString, context: .init(), startTime: startTime) { _ in }
+        recorder.wait()
+
+        let segment = try! XCTUnwrap(emitter.segments.first)
+        XCTAssertEqual(startTime, segment._test_startTime)
+        XCTAssertLessThanOrEqual(segment._test_startTime, after)
+        XCTAssertGreaterThanOrEqual(after, segment._test_startTime)
     }
 
     func testRecordingAfterShutdown() {

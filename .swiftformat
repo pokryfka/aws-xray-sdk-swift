@@ -4,6 +4,8 @@
 --exclude .build,.swiftpm
 # 3rd party
 --exclude Sources/AWSXRayRecorder/Utils/Locks.swift
+--exclude Sources/AWSXRayRecorder/AnyCodable
+--exclude Tests/AWSXRayRecorderTests/AnyCodable
 
 # format options
 #--self insert
@@ -12,4 +14,3 @@
 --ifdef no-indent
 
 # rules
---disable braces # works differently on swiftformat-0.44.17 and 0.45.1
