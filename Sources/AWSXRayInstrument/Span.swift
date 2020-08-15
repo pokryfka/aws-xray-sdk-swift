@@ -19,6 +19,14 @@ import TracingInstrumentation
 // TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
 
 extension XRayRecorder.Segment: TracingInstrumentation.Span {
+    private enum AnnotationKeys {
+        static let status = "status"
+    }
+
+    private enum MetadataKeys {
+        static let events = "events"
+    }
+
     public var operationName: String { name }
 
     public var kind: SpanKind { .internal }
@@ -35,7 +43,9 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
     public func setStatus(_ status: TracingInstrumentation.SpanStatus) {
         guard status.canonicalCode != .ok else { return }
         // TODO: map to HTTP?
-        addException(message: status.message ?? "\(status.canonicalCode)", type: "\(status.canonicalCode)")
+        let message: String = ["\(status.canonicalCode)", status.message].compactMap { $0 }.joined(separator: ": ")
+        setAnnotation(message, forKey: AnnotationKeys.status)
+        addException(message: message, type: "\(status.canonicalCode)")
     }
 
     public var startTimestamp: Timestamp { .now() } // not supported
@@ -43,13 +53,10 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
     public var context: BaggageContext { baggage }
 
-    /// Not supported.
-    public var events: [SpanEvent] { [SpanEvent]() }
-
     public func addEvent(_ event: TracingInstrumentation.SpanEvent) {
-        // XRay segment does not have direct Span Event equivalent
+        // X-Ray segment does not have direct Span Event equivalent
         // Arguably the closest match is a subsegment with startTime == endTime (?)
-        beginSubsegment(name: event.name, metadata: nil).end()
+        beginSubsegment(name: event.name).end()
         // TODO: set Event attributes once interface is refined
         // we can also store it as metadata as in https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/commit/89f941af2b32844652c190b79328f9f783fe60f8
         appendMetadata("\(event)", forKey: MetadataKeys.events)
@@ -59,11 +66,9 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
         addError(error)
     }
 
-    /// Getter not supported
     public var attributes: SpanAttributes {
         get { SpanAttributes() } // not supported
         set(newValue) {
-            // there will be only one value
             newValue.forEach { key, value in
                 switch value {
                 case .string(let value):
@@ -85,8 +90,8 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
     public var isRecording: Bool { isSampled }
 
-    public func addLink(_ link: TracingInstrumentation.SpanLink) {
-        appendMetadata("\(link)", forKey: MetadataKeys.links)
+    public func addLink(_: TracingInstrumentation.SpanLink) {
+        // not supported
     }
 
     public func end(at _: Timestamp) {
@@ -96,24 +101,8 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
 // MARK: -
 
-private enum MetadataKeys {
-    static let events = "events"
-    static let links = "links"
-    static func attribute(_ key: String) -> String { "attr_\(key)" }
-}
-
-// TODO: use AnyCodable to box Encodable and CustomStringConvertible values
-
 extension TracingInstrumentation.SpanEvent: CustomStringConvertible {
     public var description: String {
-        // TODO: add attributes and timestamp after their types are updated
-        "SpanEvent(name: \(name))"
-    }
-}
-
-extension TracingInstrumentation.SpanLink: CustomStringConvertible {
-    public var description: String {
-        // TODO: add attributes and timestamp after their types are updated
-        "SpanLink(name: \(context))"
+        "SpanEvent(name: \(name), timestamp: \(timestamp.description)"
     }
 }
