@@ -165,18 +165,18 @@ final class SegmentExceptionTests: XCTestCase {
 import NIO
 
 final class SegmentExceptionNIOTests: XCTestCase {
-    func testPropagatingError() {
+    func testRecordingTaskError() {
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
         }
 
-        enum ExampleError: Error {
+        enum TestError: Error {
             case test
         }
 
         func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
-            eventLoop.submit { throw ExampleError.test }.map { _ in }
+            eventLoop.submit { throw TestError.test }.map { _ in }
         }
 
         let emitter = TestEmitter()
@@ -184,20 +184,91 @@ final class SegmentExceptionNIOTests: XCTestCase {
 
         let eventLoop = eventLoopGroup.next()
 
-        try! recorder.segment(name: "ExampleLambdaHandler", context: .init()) {
+        try! recorder.segment(name: UUID().uuidString, context: .init()) {
             doWork(on: eventLoop)
         }
-        .recover { error in
-            XCTAssertTrue(error is ExampleError)
-        }
-        .flatMap {
-            recorder.flush(on: eventLoop)
-        }
+        .flush(recorder)
         .always { _ in
             XCTAssertEqual(1, emitter.segments.count)
-            let segment = emitter.segments.first!
+            let segment = try! XCTUnwrap(emitter.segments.first)
             XCTAssertEqual(1, segment._test_exceptions.count)
+            if case Segment.State.emitted = segment._test_state {
+            } else {
+                XCTFail()
+            }
         }
         .wait()
+    }
+
+    func testRecordingWithBaggageTaskError() {
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
+        }
+
+        enum TestError: Error {
+            case test
+        }
+
+        func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+            eventLoop.submit { throw TestError.test }.map { _ in }
+        }
+
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        let eventLoop = eventLoopGroup.next()
+
+        var baggage = BaggageContext()
+        baggage.xRayContext = .init()
+        try! recorder.segment(name: UUID().uuidString, baggage: baggage) {
+            doWork(on: eventLoop)
+        }
+        .flush(recorder)
+        .always { _ in
+            XCTAssertEqual(1, emitter.segments.count)
+            let segment = try! XCTUnwrap(emitter.segments.first)
+            XCTAssertEqual(1, segment._test_exceptions.count)
+            if case Segment.State.emitted = segment._test_state {
+            } else {
+                XCTFail()
+            }
+        }
+        .wait()
+    }
+
+    func testEndingSegment() {
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try eventLoopGroup.syncShutdownGracefully())
+        }
+
+        enum TestError: Error {
+            case test
+        }
+
+        func doWork(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+            eventLoop.submit { throw TestError.test }.map { _ in }
+        }
+
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        let eventLoop = eventLoopGroup.next()
+
+        let segment = recorder.beginSegment(name: UUID().uuidString, context: .init())
+        try! doWork(on: eventLoop)
+            .endSegment(segment)
+            .flush(recorder)
+            .always { _ in
+                XCTAssertEqual(1, emitter.segments.count)
+                let segment = try! XCTUnwrap(emitter.segments.first)
+                XCTAssertEqual(1, segment._test_exceptions.count)
+                if case Segment.State.emitted = segment._test_state {
+                } else {
+                    XCTFail()
+                }
+            }
+            .wait()
     }
 }

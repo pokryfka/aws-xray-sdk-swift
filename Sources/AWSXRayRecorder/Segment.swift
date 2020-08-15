@@ -103,6 +103,7 @@ extension XRayRecorder {
         }
 
         private var state: State { lock.withReaderLock { _state } }
+        internal var _test_state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
 
