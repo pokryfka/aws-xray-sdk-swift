@@ -121,7 +121,7 @@ public class XRayRecorder {
     ///   - baggage: baggage with the trace context
     ///   - metadata: segment metadata
     /// - Returns: new segment
-    public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> XRayRecorder.Segment {
+    public func beginSegment(name: String, baggage: BaggageContext, metadata: Segment.Metadata? = nil) -> Segment {
         if let context = baggage.xRayContext {
             return beginSegment(name: name, context: context, baggage: baggage, metadata: metadata)
         } else {
