@@ -225,6 +225,7 @@ extension XRayRecorder {
 
         /// **array** of subsegment objects.
         private var _subsegments: [Segment] = [Segment]()
+        internal var _test_subsegments: [Segment] { lock.withReaderLock { _subsegments } }
 
         // MARK: Optional Subsegment Fields
 

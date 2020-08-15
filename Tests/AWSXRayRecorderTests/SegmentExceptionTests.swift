@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Baggage
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -57,6 +58,78 @@ final class SegmentExceptionTests: XCTestCase {
         XCTAssertNil(exceptions[0].type)
         XCTAssertEqual("test2", exceptions[1].message) // may be a bit different
         XCTAssertNil(exceptions[1].type)
+    }
+
+    func testRecordingThrownErrors() {
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        enum TestError: Error {
+            case test
+        }
+
+        XCTAssertNil(emitter.segments.first)
+        do {
+            try recorder.segment(name: UUID().uuidString, context: .init()) { _ in
+                throw TestError.test
+            }
+        } catch {}
+        recorder.wait()
+        XCTAssertEqual(1, emitter.segments.first?._test_exceptions.count)
+
+        emitter.reset()
+        XCTAssertNil(emitter.segments.first)
+        do {
+            var baggage = BaggageContext()
+            baggage.xRayContext = .init()
+            try recorder.segment(name: UUID().uuidString, baggage: baggage) { _ in
+                throw TestError.test
+            }
+        } catch {}
+        recorder.wait()
+        XCTAssertEqual(1, emitter.segments.first?._test_exceptions.count)
+
+        emitter.reset()
+        recorder.segment(name: UUID().uuidString, context: .init()) { segment in
+            try? segment.subsegment(name: UUID().uuidString) { _ in
+                throw TestError.test
+            }
+            XCTAssertEqual(1, segment._test_subsegments.first?._test_exceptions.count)
+        }
+    }
+
+    func testRecordingFailures() {
+        let emitter = TestEmitter()
+        let recorder = XRayRecorder(emitter: emitter)
+
+        enum TestError: Error {
+            case test
+        }
+
+        XCTAssertNil(emitter.segments.first)
+        _ = recorder.segment(name: UUID().uuidString, context: .init()) { _ in
+            Result<Void, TestError>.failure(TestError.test)
+        }
+        recorder.wait()
+        XCTAssertEqual(1, emitter.segments.first?._test_exceptions.count)
+
+        emitter.reset()
+        XCTAssertNil(emitter.segments.first)
+        var baggage = BaggageContext()
+        baggage.xRayContext = .init()
+        _ = recorder.segment(name: UUID().uuidString, baggage: baggage) { _ in
+            Result<Void, TestError>.failure(TestError.test)
+        }
+        recorder.wait()
+        XCTAssertEqual(1, emitter.segments.first?._test_exceptions.count)
+
+        emitter.reset()
+        recorder.segment(name: UUID().uuidString, context: .init()) { segment in
+            _ = segment.subsegment(name: UUID().uuidString) { _ in
+                Result<Void, TestError>.failure(TestError.test)
+            }
+            XCTAssertEqual(1, segment._test_subsegments.first?._test_exceptions.count)
+        }
     }
 
     func testPropagatingErrorsToParent() {
