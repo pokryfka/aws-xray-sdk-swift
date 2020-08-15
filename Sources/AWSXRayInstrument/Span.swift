@@ -23,9 +23,8 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
     public var kind: SpanKind { .internal }
 
-    /// Getter is not supported.
     public var status: TracingInstrumentation.SpanStatus? {
-        get { nil }
+        get { nil } // not supported
         set(newValue) {
             if let status = newValue {
                 setStatus(status)
@@ -39,10 +38,8 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
         addException(message: status.message ?? "\(status.canonicalCode)", type: "\(status.canonicalCode)")
     }
 
-    /// Not supported.
-    public var startTimestamp: Timestamp { .now() }
-    /// Not supported.
-    public var endTimestamp: Timestamp? { nil }
+    public var startTimestamp: Timestamp { .now() } // not supported
+    public var endTimestamp: Timestamp? { nil } // not supported
 
     public var context: BaggageContext { baggage }
 
@@ -64,8 +61,26 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
     /// Getter not supported
     public var attributes: SpanAttributes {
-        get { SpanAttributes() }
-        set(newValue) {}
+        get { SpanAttributes() } // not supported
+        set(newValue) {
+            // there will be only one value
+            newValue.forEach { key, value in
+                switch value {
+                case .string(let value):
+                    setAnnotation(value, forKey: key)
+                case .stringConvertible(let value):
+                    setAnnotation(String(describing: value), forKey: key)
+                case .bool(let value):
+                    setAnnotation(value, forKey: key)
+                case .int(let value):
+                    setAnnotation(value, forKey: key)
+                case .double(let value):
+                    setAnnotation(value, forKey: key)
+                default:
+                    break
+                }
+            }
+        }
     }
 
     public var isRecording: Bool { isSampled }

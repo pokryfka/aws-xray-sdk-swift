@@ -38,7 +38,7 @@ final class InstrumentTests: XCTestCase {
         XCTAssertTrue(InstrumentationSystem.tracingInstrument as? XRayRecorder === tracer)
     }
 
-    func testExtractingContext() {
+    func testExtractingContextFromHTTPHeaders() {
         let tracingHeader = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
         let headers = HTTPHeaders([
             (AmazonHeaders.traceId, tracingHeader),
@@ -52,7 +52,7 @@ final class InstrumentTests: XCTestCase {
         XCTAssertEqual(tracingHeader, baggage.xRayContext?.tracingHeader)
     }
 
-    func testInjectingContext() {
+    func testInjectingContextToHTTPHeaders() {
         let tracingHeader = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
         var headers = HTTPHeaders()
         let baggage = BaggageContext.withTracingHeader(tracingHeader)

@@ -22,9 +22,10 @@ import TracingInstrumentation
 
 // TODO: test encoding BaggageContext, Events, Links ...
 
-private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
-
 final class SpanTests: XCTestCase {
+    private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
+    private typealias AnnotationValue = XRayRecorder.Segment.AnnotationValue
+
     func testCreatingSpanWithoutParentSampled() {
         let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())
 
@@ -55,5 +56,28 @@ final class SpanTests: XCTestCase {
         XCTAssertFalse(span.isRecording)
 
         span.end()
+    }
+
+    func testCreatingAttributes() {
+        let instrument: TracingInstrument = XRayRecorder(emitter: XRayNoOpEmitter())
+
+        var span: Span = instrument.startSpan(named: UUID().uuidString, context: BaggageContext.withoutParentSampled())
+        span.attributes["string"] = "abc"
+        XCTAssertNil(span.attributes["string"])
+        span.attributes["bool"] = true
+        XCTAssertNil(span.attributes["bool"])
+        span.attributes["int"] = 42
+        XCTAssertNil(span.attributes["int"])
+        span.attributes["double"] = 3.14
+        XCTAssertNil(span.attributes["double"])
+
+        XCTAssertTrue(span.attributes.isEmpty)
+
+        let segment = try! XCTUnwrap(span as? XRayRecorder.Segment)
+        XCTAssertEqual(4, segment._test_annotations.count)
+        XCTAssertEqual(AnnotationValue.string("abc"), segment._test_annotations["string"])
+        XCTAssertEqual(AnnotationValue.bool(true), segment._test_annotations["bool"])
+        XCTAssertEqual(AnnotationValue.integer(42), segment._test_annotations["int"])
+        XCTAssertEqual(AnnotationValue.double(3.14), segment._test_annotations["double"])
     }
 }
