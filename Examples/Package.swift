@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "aws-xray-sdk-swift-examples",
     platforms: [
-        .macOS(.v10_14),
+        .macOS(.v10_14), // TODO: remove when new swift-aws-lambda-runtime is released
     ],
     products: [
         .executable(name: "AWSXRaySDKExample", targets: ["AWSXRaySDKExample"]),
@@ -19,7 +19,8 @@ let package = Package(
         .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("8e483480a9994563219d6380247aa8c4897fb9cb")),
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
         .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
-        .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
+//        .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/pokryfka/async-http-client.git", .branch("feature/instrumentation")),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
     ],
     targets: [

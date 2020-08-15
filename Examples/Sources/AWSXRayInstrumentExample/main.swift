@@ -11,25 +11,31 @@
 //
 //===----------------------------------------------------------------------===//
 
+import AsyncHTTPClient
 import AWSXRayInstrument
 import AWSXRaySDK
 import Baggage // BaggageContext
+import BaggageLogging // LoggingBaggageContextCarrier
 import Instrumentation // InstrumentationSystem
+import Logging // Logger
 import NIOHTTP1 // HTTPHeaders
 import NIOInstrumentation // HTTPHeadersExtractor
 import TracingInstrumentation
 
-// create and boostrap the instrument
-let instrument = XRayRecorder(config: .init(logLevel: .debug)) // XRayUDPEmitter
-defer {
-    // TODO: use instrument API when available, see https://github.com/slashmo/gsoc-swift-tracing/issues/85
-    instrument.shutdown()
+extension BaggageContext: LoggingBaggageContextCarrier {
+    public var logger: Logger {
+        get { Logger(label: "", factory: { _ in Logging.SwiftLogNoOpLogHandler() }) }
+        set(newValue) {}
+    }
 }
 
+// create and boostrap the instrument
+let instrument = XRayRecorder(config: .init(logLevel: .debug)) // XRayUDPEmitter
+defer { instrument.shutdown() }
 InstrumentationSystem.bootstrap(instrument)
 
-// TODO: ?
-let tracer = InstrumentationSystem.instrument as! TracingInstrumentation.TracingInstrument // the instrument
+// get the tracer
+let tracer = InstrumentationSystem.tracingInstrument
 
 // create new trace
 let tracingHeader = XRayRecorder.TraceContext().tracingHeader
@@ -42,22 +48,25 @@ var baggage = BaggageContext()
 tracer.extract(headers, into: &baggage, using: HTTPHeadersExtractor())
 
 // create instrumented HTTP client
-let http = BetterHTTPClient()
+let http = HTTPClient(eventLoopGroupProvider: .createNew)
+defer { http.shutdown { _ in } }
 
 // create new span
 var span = tracer.startSpan(named: "Span 1", context: baggage)
-// span.setAttribute("Attribute 1", forKey: "key1")
+span.attributes["key"] = "value"
 span.addLink(.init(context: baggage))
 span.addEvent(.init(name: "Event"))
 span.addEvent(.init(name: "Event 2"))
 
 var span2 = tracer.startSpan(named: "Span 2", context: baggage)
-// span2.setAttribute("Attribute 2", forKey: "key2")
+span.attributes["key2"] = 2
 
 // TODO: XRay subsegment parent needs to be sent before, consider sending parent twice - when started and when ended (?)
 span.end()
 
-let url = "https://d41u83stcl.execute-api.us-east-1.amazonaws.com/Prod/hello/"
-_ = try http.execute(request: try! .init(url: url), baggage: span.baggage).wait()
+tracer.forceFlush()
+
+let url = "https://nf5g0bsxz5.execute-api.us-east-1.amazonaws.com/dev/hello"
+_ = try http.get(url: url, context: span.context).wait()
 
 span2.end()
