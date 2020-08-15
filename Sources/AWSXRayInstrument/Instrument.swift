@@ -33,9 +33,16 @@ extension XRayRecorder: TracingInstrumentation.TracingInstrument {
         injector.inject(context.tracingHeader, forKey: AmazonHeaders.traceId, into: &carrier)
     }
 
-    public func startSpan(named operationName: String, context: BaggageContext, ofKind kind: SpanKind, at timestamp: Timestamp?) -> Span {
-        // TODO: does kind map anyhow to Subsegment?
-        // setting startTime explicitly is not supported
-        beginSegment(name: operationName, baggage: context)
+    public func startSpan(named operationName: String,
+                          context: Baggage.BaggageContextCarrier,
+                          ofKind _: TracingInstrumentation.SpanKind,
+                          at _: TracingInstrumentation.Timestamp) -> Span
+    {
+        beginSegment(name: operationName, baggage: context.baggage)
+    }
+
+    public func forceFlush() {
+        // TODO: use NIO flush when using NIO
+        wait()
     }
 }

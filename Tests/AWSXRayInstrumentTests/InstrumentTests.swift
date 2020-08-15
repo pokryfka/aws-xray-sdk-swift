@@ -22,13 +22,13 @@ import TracingInstrumentation
 @testable import AWSXRayInstrument
 @testable import AWSXRayRecorder
 
-private enum AmazonHeaders {
-    static let traceId = "X-Amzn-Trace-Id"
-}
-
-private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
-
 final class InstrumentTests: XCTestCase {
+    private enum AmazonHeaders {
+        static let traceId = "X-Amzn-Trace-Id"
+    }
+
+    private typealias TracingInstrument = TracingInstrumentation.TracingInstrument
+
     func testExtractingContext() {
         let tracingHeader = "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1"
         let headers = HTTPHeaders([
@@ -66,17 +66,15 @@ final class InstrumentTests: XCTestCase {
         let context = BaggageContext.withoutParentSampled()
         XCTAssertNotNil(context.xRayContext)
 
-        var span: Span = instrument.startSpan(named: name, context: context, at: nil)
+        var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertTrue(span.isRecording)
 
         span.end()
 
-        // TODO: instrument does not define any method to flush/wait
-        (instrument as? XRayRecorder)?.wait()
-
+        instrument.forceFlush()
         XCTAssertEqual(1, emitter.segments.count)
 
         // test segment attributes which are internal (and so testable)
@@ -94,17 +92,15 @@ final class InstrumentTests: XCTestCase {
         let context = BaggageContext.withoutParentNotSampled()
         XCTAssertNotNil(context.xRayContext)
 
-        var span: Span = instrument.startSpan(named: name, context: context, at: nil)
+        var span: Span = instrument.startSpan(named: name, context: context)
 
         XCTAssertEqual(name, span.operationName)
-        XCTAssertNotEqual(context.xRayContext, span.baggage.xRayContext)
+        XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertFalse(span.isRecording)
 
         span.end()
 
-        // TODO: instrument does not define any method to flush/wait
-        (instrument as? XRayRecorder)?.wait()
-
+        instrument.forceFlush()
         // still empty
         XCTAssertEqual(0, emitter.segments.count)
     }

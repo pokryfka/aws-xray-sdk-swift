@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 @testable import AWSXRayInstrument
+
 import AWSXRayRecorder
 import Baggage
 

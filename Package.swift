@@ -21,7 +21,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
         .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.2.0")),
         .package(url: "https://github.com/fabianfett/pure-swift-json.git", .upToNextMinor(from: "0.4.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("e0cb182bf3966061da7d70de1bbf40ad211aba21")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("8e483480a9994563219d6380247aa8c4897fb9cb")),
     ],
     targets: [
         .target(
