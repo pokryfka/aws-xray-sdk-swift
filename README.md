@@ -179,10 +179,10 @@ var baggage: BaggageContext
 let segment = recorder.beginSegment(name: "Segment 1", baggage: baggage)
 
 // create subsegment by passing the parent segment baggage
-let subSegment = recorder.beginSegment(name: "Subsegment 1.1", baggage: segment.baggage)
+let subsegment = recorder.beginSegment(name: "Subsegment 1.1", baggage: segment.baggage)
 
 // or using segment function
-let subSegment2 = segment.beginSubsegment(name: "Subsegment 1.2")
+let subsegment2 = segment.beginSubsegment(name: "Subsegment 1.2")
 ```
 
 You can create new [X-Ray Context](https://github.com/pokryfka/aws-xray-sdk-swift/wiki/XRayRecorder_TraceContext) from tracing header:
