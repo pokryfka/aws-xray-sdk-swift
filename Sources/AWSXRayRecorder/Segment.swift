@@ -103,7 +103,6 @@ extension XRayRecorder {
         }
 
         private var state: State { lock.withReaderLock { _state } }
-        internal var _test_state: State { lock.withReaderLock { _state } }
 
         private let _baggage: BaggageContext
 
@@ -141,7 +140,6 @@ extension XRayRecorder {
         /// Required only if sending a subsegment separately.
         private var traceId: TraceID { lock.withReaderLock { _context.traceId } }
         #endif
-        internal var _test_traceId: TraceID { lock.withReaderLock { _context.traceId } }
 
         #if false // part of _state
         /// **number** that is the time the segment was created, in floating point seconds in epoch time.
@@ -160,8 +158,6 @@ extension XRayRecorder {
         /// Only send one complete segment, and one or zero in-progress segments, per request.
         internal var inProgress: Bool { lock.withReaderLock { _state.inProgress } }
         #endif
-        internal var _test_startTime: Timestamp { lock.withReaderLock { _state.startTime } }
-        internal var _test_inProgress: Bool? { lock.withReaderLock { _state.inProgress ? true : nil } }
 
         // MARK: Required Subsegment Fields
 
@@ -180,7 +176,6 @@ extension XRayRecorder {
         /// In the case of nested subsegments, a subsegment can have a segment or a subsegment as its parent.
         private var parentId: ID? { lock.withReaderLock { _context.parentId } }
         #endif
-        internal var _test_parentId: ID? { lock.withReaderLock { _context.parentId } }
 
         /// An object with information about your application.
         private let _service: Service?
@@ -193,7 +188,6 @@ extension XRayRecorder {
 
         /// http objects with information about the original HTTP request.
         private var _http: HTTP
-        internal var _test_http: HTTP { lock.withReaderLock { _http } }
 
         /// aws object with information about the AWS resource on which your application served the request
         private var _aws: AWS?
@@ -204,6 +198,36 @@ extension XRayRecorder {
         private var _throttle: Bool?
         /// **boolean** indicating that a server error occurred (response status code was 5XX Server Error).
         private var _fault: Bool?
+
+        /// the exception(s) that caused the error.
+        private var _cause: Cause = Cause()
+
+        /// annotations object with key-value pairs that you want X-Ray to index for search.
+        private var _annotations: Annotations
+
+        /// metadata object with any additional data that you want to store in the segment.
+        private var _metadata: Metadata
+
+        /// **array** of subsegment objects.
+        private var _subsegments: [Segment] = [Segment]()
+
+        // MARK: Optional Subsegment Fields
+
+        /// `aws` for AWS SDK calls; `remote` for other downstream calls.
+        private var _namespace: Namespace?
+
+        #if false // not used
+        /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
+        private let _precursorIDs: [String]? = nil
+        #endif
+
+        // should be used only for testing purposes
+        #if DEBUG
+        internal var _test_traceId: TraceID { lock.withReaderLock { _context.traceId } }
+        internal var _test_parentId: ID? { lock.withReaderLock { _context.parentId } }
+        internal var _test_state: State { lock.withReaderLock { _state } }
+        internal var _test_startTime: Timestamp { lock.withReaderLock { _state.startTime } }
+        internal var _test_inProgress: Bool? { lock.withReaderLock { _state.inProgress ? true : nil } }
         internal func _test_error(error: inout Bool?, throttle: inout Bool?, fault: inout Bool?) {
             lock.withReaderLock {
                 error = _error
@@ -212,31 +236,12 @@ extension XRayRecorder {
             }
         }
 
-        /// the exception(s) that caused the error.
-        private var _cause: Cause = Cause()
         internal var _test_exceptions: [Exception] { lock.withReaderLock { _cause.exceptions } }
-
-        /// annotations object with key-value pairs that you want X-Ray to index for search.
-        private var _annotations: Annotations
-        internal var _test_annotations: Annotations { lock.withReaderLock { _annotations } }
-
-        /// metadata object with any additional data that you want to store in the segment.
-        private var _metadata: Metadata
-        internal var _test_metadata: Metadata { lock.withReaderLock { _metadata } }
-
-        /// **array** of subsegment objects.
-        private var _subsegments: [Segment] = [Segment]()
-        internal var _test_subsegments: [Segment] { lock.withReaderLock { _subsegments } }
-
-        // MARK: Optional Subsegment Fields
-
-        /// `aws` for AWS SDK calls; `remote` for other downstream calls.
-        private var _namespace: Namespace?
+        internal var _test_http: HTTP { lock.withReaderLock { _http } }
         internal var _test_namespace: Namespace? { lock.withReaderLock { _namespace } }
-
-        #if false // not used
-        /// **array** of subsegment IDs that identifies subsegments with the same parent that completed prior to this subsegment.
-        private let _precursorIDs: [String]? = nil
+        internal var _test_annotations: Annotations { lock.withReaderLock { _annotations } }
+        internal var _test_metadata: Metadata { lock.withReaderLock { _metadata } }
+        internal var _test_subsegments: [Segment] { lock.withReaderLock { _subsegments } }
         #endif
 
         init(
