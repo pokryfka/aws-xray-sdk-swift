@@ -107,15 +107,16 @@ extension EventLoopFuture {
 extension EventLoopFuture where Value == Void {
     /// Flushes the recorder.
     ///
-    /// Can be called only when `Value` is `Void`, ignores `Error`.
-    ///
     /// - Parameters:
     ///     - recorder: the recorder to flush
+    ///     - recover: if false and the future is in error state the error is propagated after flushing.
     /// - Returns: the current `EventLoopFuture`
-    public func flush(_ recorder: XRayRecorder) -> EventLoopFuture<Void> {
-        recover { _ in }
-            .flatMap { _ in
+    public func flush(_ recorder: XRayRecorder, recover: Bool = true) -> EventLoopFuture<Void> {
+        map { Result<Value, Error>.success(()) }
+            .recover { Result<Value, Error>.failure($0) }
+            .flatMap { result in
                 recorder.flush(on: self.eventLoop)
+                    .flatMapResult { recover ? Result<Value, Error>.success(()) : result }
             }
     }
 }
