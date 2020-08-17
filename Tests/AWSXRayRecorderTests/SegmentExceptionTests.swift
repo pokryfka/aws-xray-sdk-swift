@@ -188,6 +188,7 @@ final class SegmentExceptionNIOTests: XCTestCase {
             doWork(on: eventLoop)
         }
         .flush(recorder)
+        .recover { XCTAssertTrue($0 is TestError) }
         .always { _ in
             XCTAssertEqual(1, emitter.segments.count)
             let segment = try! XCTUnwrap(emitter.segments.first)
@@ -259,7 +260,8 @@ final class SegmentExceptionNIOTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: .init())
         try! doWork(on: eventLoop)
             .endSegment(segment)
-            .flush(recorder)
+            .flush(recorder, recover: false)
+            .recover { XCTAssertTrue($0 is TestError) }
             .always { _ in
                 XCTAssertEqual(1, emitter.segments.count)
                 let segment = try! XCTUnwrap(emitter.segments.first)
