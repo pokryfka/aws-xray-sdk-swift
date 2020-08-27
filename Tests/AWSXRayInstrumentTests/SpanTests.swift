@@ -40,8 +40,6 @@ final class SpanTests: XCTestCase {
 
         var span: Span = createSpan(name: name, context: context)
 
-        XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(SpanKind.internal, span.kind)
         XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertTrue(span.isRecording)
 
@@ -55,8 +53,6 @@ final class SpanTests: XCTestCase {
 
         var span: Span = createSpan(name: name, context: context)
 
-        XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(SpanKind.internal, span.kind)
         XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertFalse(span.isRecording)
 
@@ -71,8 +67,6 @@ final class SpanTests: XCTestCase {
         // should report error by default and create not sampled context
         var span: Span = createSpan(name: name, context: context)
 
-        XCTAssertEqual(name, span.operationName)
-        XCTAssertEqual(SpanKind.internal, span.kind)
         XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertFalse(span.isRecording)
 
@@ -84,8 +78,7 @@ final class SpanTests: XCTestCase {
     func testSettingOkStatus() {
         var span = createSpan()
 
-        span.status = SpanStatus(canonicalCode: .ok)
-        XCTAssertNil(span.status)
+        span.setStatus(.init(canonicalCode: .ok))
 
         let segment = try! XCTUnwrap(span as? XRayRecorder.Segment)
         XCTAssertEqual(0, segment._test_annotations.count)
@@ -95,8 +88,7 @@ final class SpanTests: XCTestCase {
     func testSettingNotFoundStatus() {
         var span = createSpan()
 
-        span.status = SpanStatus(canonicalCode: .notFound, message: "test")
-        XCTAssertNil(span.status)
+        span.setStatus(.init(canonicalCode: .notFound, message: "test"))
 
         let segment = try! XCTUnwrap(span as? XRayRecorder.Segment)
         XCTAssertEqual(1, segment._test_annotations.count)

@@ -16,8 +16,6 @@ import Baggage
 import Instrumentation
 import TracingInstrumentation
 
-// TODO: compare with https://github.com/awslabs/aws-xray-sdk-with-opentelemetry/blob/master/sdk/src/main/java/com/amazonaws/xray/opentelemetry/tracing/EntitySpan.java
-
 extension XRayRecorder.Segment: TracingInstrumentation.Span {
     private enum AnnotationKeys {
         static let status = "status"
@@ -27,19 +25,6 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
         static let events = "events"
     }
 
-    public var operationName: String { name }
-
-    public var kind: SpanKind { .internal }
-
-    public var status: TracingInstrumentation.SpanStatus? {
-        get { nil } // not supported
-        set(newValue) {
-            if let status = newValue {
-                setStatus(status)
-            }
-        }
-    }
-
     public func setStatus(_ status: TracingInstrumentation.SpanStatus) {
         guard status.canonicalCode != .ok else { return }
         // TODO: map to HTTP?
@@ -47,9 +32,6 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
         setAnnotation(message, forKey: AnnotationKeys.status)
         addException(message: message, type: "\(status.canonicalCode)")
     }
-
-    public var startTimestamp: Timestamp { .now() } // not supported
-    public var endTimestamp: Timestamp? { nil } // not supported
 
     public var context: BaggageContext { baggage }
 
@@ -90,9 +72,7 @@ extension XRayRecorder.Segment: TracingInstrumentation.Span {
 
     public var isRecording: Bool { isSampled }
 
-    public func addLink(_: TracingInstrumentation.SpanLink) {
-        // not supported
-    }
+    public func addLink(_: TracingInstrumentation.SpanLink) {} // not supported
 
     public func end(at _: Timestamp) {
         end()

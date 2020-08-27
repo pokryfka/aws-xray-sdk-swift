@@ -77,7 +77,6 @@ final class InstrumentTests: XCTestCase {
 
         var span: Span = instrument.startSpan(named: name, context: context)
 
-        XCTAssertEqual(name, span.operationName)
         XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertTrue(span.isRecording)
 
@@ -103,7 +102,6 @@ final class InstrumentTests: XCTestCase {
 
         var span: Span = instrument.startSpan(named: name, context: context)
 
-        XCTAssertEqual(name, span.operationName)
         XCTAssertNotEqual(context.xRayContext, span.context.xRayContext)
         XCTAssertFalse(span.isRecording)
 
