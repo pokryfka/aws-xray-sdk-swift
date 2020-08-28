@@ -6,6 +6,7 @@
 --exclude Sources/AWSXRayRecorder/Utils/Locks.swift
 --exclude Sources/AWSXRayRecorder/AnyCodable
 --exclude Tests/AWSXRayRecorderTests/AnyCodable
+--exclude Examples/Sources/AWSXRaySDKExampleAWS/S3
 
 # format options
 #--self insert

@@ -15,12 +15,14 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "aws-xray-sdk-swift", path: ".."),
-        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMajor(from: "0.1.0")),
-        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("8e483480a9994563219d6380247aa8c4897fb9cb")),
+//        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMajor(from: "0.1.0")),
+        .package(url: "https://github.com/slashmo/gsoc-swift-tracing.git", .revision("fe80d764ad225b1dfd06dcb57d08b5e3485662f9")),
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
-        .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
 //        .package(url: "https://github.com/swift-server/async-http-client.git", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/pokryfka/async-http-client.git", .branch("feature/instrumentation")),
+//        .package(url: "https://github.com/pokryfka/async-http-client.git", .branch("feature/instrumentation")),
+//        .package(name: "aws-sdk-swift-core", path: "../../aws-sdk-swift-core"),
+        .package(url: "https://github.com/pokryfka/aws-sdk-swift-core.git", .branch("feature/tracing")),
+//        .package(url: "https://github.com/swift-aws/aws-sdk-swift.git", .upToNextMinor(from: "5.0.0-alpha.5")),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", .upToNextMajor(from: "0.2.0")),
     ],
     targets: [
@@ -36,19 +38,19 @@ let package = Package(
             dependencies: [
                 .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
                 .product(name: "AWSXRayInstrument", package: "aws-xray-sdk-swift"),
-                .product(name: "Baggage", package: "swift-baggage-context"),
+//                .product(name: "Baggage", package: "swift-baggage-context"),
                 .product(name: "NIOInstrumentation", package: "gsoc-swift-tracing"),
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
         ),
         .target(
             name: "AWSXRaySDKExampleAWS",
             dependencies: [
                 .product(name: "AWSXRaySDK", package: "aws-xray-sdk-swift"),
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
-                .product(name: "AWSS3", package: "aws-sdk-swift"),
+                .product(name: "AWSXRayInstrument", package: "aws-xray-sdk-swift"),
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "AWSSDKSwiftCore", package: "aws-sdk-swift-core"),
             ]
         ),
         .target(
