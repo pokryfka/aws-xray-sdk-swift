@@ -51,10 +51,10 @@ extension XRayRecorder {
     @inlinable
     public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
                            metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+                           body: (XRayRecorder.Segment) -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
         let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
-        return body().always { result in
+        return body(segment).always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)
             }
@@ -75,10 +75,10 @@ extension XRayRecorder {
     @inlinable
     public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
                            metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+                           body: (XRayRecorder.Segment) -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
         let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
-        return body().always { result in
+        return body(segment).always { result in
             if case Result<T, Error>.failure(let error) = result {
                 segment.addError(error)
             }
