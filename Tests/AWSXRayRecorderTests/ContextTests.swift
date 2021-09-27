@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import Logging
 import XCTest
 
@@ -25,18 +25,18 @@ final class ContextTests: XCTestCase {
         let logger = Logger(label: "test", factory: { _ in logHandler })
 
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), logger: logger)
-        let baggage = BaggageContext()
+        let baggage = Baggage.topLevel
         _ = recorder.beginSegment(name: UUID().uuidString, baggage: baggage)
         XCTAssertEqual(1, logHandler.errorMessages.count)
     }
 
     func testContextPropagation() {
-        enum TestKey: BaggageContextKey {
+        enum TestKey: BaggageKey {
             typealias Value = String
         }
 
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter())
-        var baggage = BaggageContext()
+        var baggage = Baggage.topLevel
         let context = XRayContext()
         baggage.xRayContext = context
         let testValue = UUID().uuidString

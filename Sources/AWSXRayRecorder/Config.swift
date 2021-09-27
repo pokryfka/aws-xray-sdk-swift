@@ -13,9 +13,9 @@
 
 import Logging
 
-extension XRayRecorder {
+public extension XRayRecorder {
     /// `XRayRecorder` configuration.
-    public struct Config {
+    struct Config {
         /// Context missing strategy.
         public enum ContextMissingStrategy: String {
             /// Indicate that a precondition was violated.

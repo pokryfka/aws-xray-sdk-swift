@@ -60,7 +60,7 @@ final class HTTPTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 200
-        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+        let contentLength = UInt.random(in: 0 ... UInt.max)
 
         segment.setHTTPResponse(status: status, contentLength: contentLength)
         let response = HTTP.Response(status: status, contentLength: contentLength)
@@ -73,7 +73,7 @@ final class HTTPTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 404
-        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+        let contentLength = UInt.random(in: 0 ... UInt.max)
 
         segment.setHTTPResponse(status: status, contentLength: contentLength)
         let response = HTTP.Response(status: status, contentLength: contentLength)
@@ -94,7 +94,7 @@ final class HTTPTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 429
-        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+        let contentLength = UInt.random(in: 0 ... UInt.max)
 
         segment.setHTTPResponse(status: status, contentLength: contentLength)
         let response = HTTP.Response(status: status, contentLength: contentLength)
@@ -115,7 +115,7 @@ final class HTTPTests: XCTestCase {
         let segment = recorder.beginSegment(name: UUID().uuidString, context: context)
 
         let status: UInt = 500
-        let contentLength: UInt = UInt.random(in: 0 ... UInt.max)
+        let contentLength = UInt.random(in: 0 ... UInt.max)
 
         segment.setHTTPResponse(status: status, contentLength: contentLength)
         let response = HTTP.Response(status: status, contentLength: contentLength)
@@ -134,7 +134,7 @@ final class HTTPTests: XCTestCase {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })
 
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(), logger: logger)
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .topLevel, logger: logger)
         XCTAssertTrue(segment.isSampled)
 
         let invalidHTTPMethod = "abc"

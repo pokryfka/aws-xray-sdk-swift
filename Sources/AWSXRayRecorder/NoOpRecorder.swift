@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import Logging
 
 // TODO: just like with NoOpSegment we could reduce allocations by having a base class
@@ -28,12 +28,13 @@ public class XRayNoOpRecorder: XRayRecorder {
     override public func beginSegment(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
                                       metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
     {
-        var baggage = BaggageContext()
+        // TODO: TODO or topLevel?
+        var baggage = Baggage.TODO("NoOp")
         baggage.xRayContext = context
         return NoOpSegment(id: .init(), name: name, baggage: baggage)
     }
 
-    override public func beginSegment(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+    override public func beginSegment(name: String, baggage: Baggage, startTime: XRayRecorder.Timestamp = .now(),
                                       metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
     {
         NoOpSegment(id: .init(), name: name, baggage: baggage)

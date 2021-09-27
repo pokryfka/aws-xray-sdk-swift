@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import NIO
 
-extension XRayRecorder {
+public extension XRayRecorder {
     /// Flushes the emitter in `SwiftNIO` future.
     ///
     /// - Parameter eventLoop: `EventLoop` used to "do the flushing".
-    public func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func flush(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         waitEmitting()
         // wait for the emitter to send them
         if let nioEmitter = emitter as? XRayNIOEmitter {
@@ -37,7 +37,7 @@ extension XRayRecorder {
     }
 }
 
-extension XRayRecorder {
+public extension XRayRecorder {
     /// Creates new segment.
     ///
     /// Records  `Error`.
@@ -49,9 +49,9 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
-                           metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                    metadata: XRayRecorder.Segment.Metadata? = nil,
+                    body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
         let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
         return body().always { result in
@@ -73,9 +73,9 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
-                           metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
+    func segment<T>(name: String, baggage: Baggage, startTime: XRayRecorder.Timestamp = .now(),
+                    metadata: XRayRecorder.Segment.Metadata? = nil,
+                    body: () -> EventLoopFuture<T>) -> EventLoopFuture<T>
     {
         let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
         return body().always { result in
@@ -87,13 +87,13 @@ extension XRayRecorder {
     }
 }
 
-extension EventLoopFuture {
+public extension EventLoopFuture {
     /// Ends segment when the `EventLoopFuture` is fulfilled, records `.failure`.
     ///
     /// - parameters:
     ///     - segment: the segment to end when the `EventLoopFuture` is fulfilled.
     /// - returns: the current `EventLoopFuture`
-    public func endSegment(_ segment: XRayRecorder.Segment) -> EventLoopFuture<Value> {
+    func endSegment(_ segment: XRayRecorder.Segment) -> EventLoopFuture<Value> {
         whenComplete { result in
             if case Result<Value, Error>.failure(let error) = result {
                 segment.addError(error)
@@ -104,14 +104,14 @@ extension EventLoopFuture {
     }
 }
 
-extension EventLoopFuture where Value == Void {
+public extension EventLoopFuture where Value == Void {
     /// Flushes the recorder.
     ///
     /// - Parameters:
     ///     - recorder: the recorder to flush
     ///     - recover: if false and the future is in error state the error is propagated after flushing.
     /// - Returns: the current `EventLoopFuture`
-    public func flush(_ recorder: XRayRecorder, recover: Bool = true) -> EventLoopFuture<Void> {
+    func flush(_ recorder: XRayRecorder, recover: Bool = true) -> EventLoopFuture<Void> {
         map { Result<Value, Error>.success(()) }
             .recover { Result<Value, Error>.failure($0) }
             .flatMap { result in

@@ -31,7 +31,7 @@ final class SegmentLoggingTests: XCTestCase {
 
         var numErrors: Int = 0
 
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(),
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .topLevel,
                               startTime: startTime,
                               logger: logger)
 
@@ -94,7 +94,7 @@ final class SegmentLoggingTests: XCTestCase {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })
 
-        var segment: Segment? = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init(),
+        var segment: Segment? = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .topLevel,
                                         logger: logger)
         XCTAssertTrue(segment!.isSampled)
         segment = nil

@@ -19,8 +19,8 @@ import Darwin // timespec
 import Glibc // timespec
 #endif
 
-extension XRayRecorder {
-    public struct Timestamp {
+public extension XRayRecorder {
+    struct Timestamp {
         /// It's already the past.
         public static func now() -> Timestamp {
             Timestamp()

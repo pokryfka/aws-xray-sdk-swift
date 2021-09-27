@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
 import Dispatch
+import InstrumentationBaggage
 import Logging
 import NIOConcurrencyHelpers
 
@@ -59,7 +59,7 @@ public class XRayRecorder {
         }
     }
 
-    internal func beginSegment(name: String, context: TraceContext, baggage: BaggageContext,
+    internal func beginSegment(name: String, context: TraceContext, baggage: Baggage,
                                startTime: Timestamp = .now(),
                                aws: Segment.AWS? = nil, metadata: Segment.Metadata? = nil) -> Segment
     {
@@ -109,7 +109,7 @@ public class XRayRecorder {
     public func beginSegment(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
                              metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
     {
-        var baggage = BaggageContext()
+        var baggage = Baggage.topLevel // TODO: check
         baggage.xRayContext = context
         return beginSegment(name: name, context: context, baggage: baggage, startTime: startTime, metadata: metadata)
     }
@@ -127,7 +127,7 @@ public class XRayRecorder {
     ///   - startTime: start time, defaults to now
     ///   - metadata: segment metadata
     /// - Returns: new segment
-    public func beginSegment(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
+    public func beginSegment(name: String, baggage: Baggage, startTime: XRayRecorder.Timestamp = .now(),
                              metadata: XRayRecorder.Segment.Metadata? = nil) -> XRayRecorder.Segment
     {
         if let context = baggage.xRayContext {

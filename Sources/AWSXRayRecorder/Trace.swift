@@ -73,7 +73,7 @@ extension XRayRecorder.TraceID {
 
 extension XRayRecorder {
     /// Sampling decision.
-    internal enum SampleDecision: String {
+    enum SampleDecision: String {
         // "?" value not document, spotted in https://github.com/aws/aws-xray-sdk-java/blob/829f4c92f099349dbb14d6efd5c19e8452c3f6bc/aws-xray-recorder-sdk-core/src/main/java/com/amazonaws/xray/entities/TraceHeader.java#L41
         case sampled = "Sampled=1"
         case notSampled = "Sampled=0"
@@ -86,7 +86,7 @@ extension XRayRecorder {
     }
 }
 
-extension XRayRecorder {
+public extension XRayRecorder {
     /// X-Ray Trace Context propagated in a tracing header.
     ///
     /// # Tracing header
@@ -117,7 +117,7 @@ extension XRayRecorder {
     ///
     ///  # References
     /// - [AWS X-Ray concepts - Tracing header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
-    public struct TraceContext {
+    struct TraceContext {
         /// Root trace ID.
         public let traceId: TraceID
         /// Parent segment ID.
@@ -154,12 +154,12 @@ extension XRayRecorder {
     }
 }
 
-extension XRayRecorder.TraceContext {
+public extension XRayRecorder.TraceContext {
     /// Parses and validates string with Tracing Header.
     ///
     /// - Parameter string: string with `TraceContext`.
     /// - Throws: may throw `XRayRecorder.TraceError` if the value is invalid.
-    public init(tracingHeader: String) throws {
+    init(tracingHeader: String) throws {
         let values = tracingHeader.split(separator: ";")
         guard
             values.count >= 1, values.count <= 3,
@@ -205,7 +205,7 @@ extension XRayRecorder.TraceContext {
     }
 
     /// Tracing header value.
-    public var tracingHeader: String {
+    var tracingHeader: String {
         let segments: [String?] = [
             "Root=\(traceId.rawValue)",
             {

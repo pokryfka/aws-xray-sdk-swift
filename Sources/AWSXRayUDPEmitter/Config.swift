@@ -13,9 +13,9 @@
 
 import Logging
 
-extension XRayUDPEmitter {
+public extension XRayUDPEmitter {
     /// `XRayUDPEmitter` configuration.
-    public struct Config {
+    struct Config {
         internal let daemonEndpoint: String
         internal let logLevel: Logger.Level
 

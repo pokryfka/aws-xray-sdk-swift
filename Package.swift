@@ -15,9 +15,9 @@ let package = Package(
         .library(name: "AWSXRayTesting", targets: ["AWSXRayTesting"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.17.0")),
+        .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.33.0")),
         .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.0.0")),
-        .package(name: "swift-baggage-context", url: "https://github.com/slashmo/gsoc-swift-baggage-context.git", .upToNextMinor(from: "0.2.0")),
+        .package(url: "https://github.com/apple/swift-distributed-tracing-baggage", .upToNextMinor(from: "0.2.1")),
         .package(url: "https://github.com/fabianfett/pure-swift-json.git", .upToNextMinor(from: "0.4.0")),
     ],
     targets: [
@@ -39,7 +39,7 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "Baggage", package: "swift-baggage-context"),
+                .product(name: "InstrumentationBaggage", package: "swift-distributed-tracing-baggage"),
             ]
         ),
         .testTarget(

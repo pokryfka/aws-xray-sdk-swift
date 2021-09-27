@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 
-extension XRayRecorder {
+public extension XRayRecorder {
     /// Creates new segment.
     ///
     /// Records thrown `Error`.
@@ -25,22 +25,22 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
-                           metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: (XRayRecorder.Segment) throws -> T)
+    func segment<T>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                    metadata: XRayRecorder.Segment.Metadata? = nil,
+                    body: (XRayRecorder.Segment) throws -> T)
         rethrows -> T
     {
-            let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
-            defer {
-                segment.end()
-            }
-            do {
-                return try body(segment)
-            } catch {
-                segment.addError(error)
-                throw error
-            }
+        let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
+        defer {
+            segment.end()
         }
+        do {
+            return try body(segment)
+        } catch {
+            segment.addError(error)
+            throw error
+        }
+    }
 
     /// Creates new segment.
     ///
@@ -58,22 +58,22 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
-                           metadata: XRayRecorder.Segment.Metadata? = nil,
-                           body: (XRayRecorder.Segment) throws -> T)
+    func segment<T>(name: String, baggage: Baggage, startTime: XRayRecorder.Timestamp = .now(),
+                    metadata: XRayRecorder.Segment.Metadata? = nil,
+                    body: (XRayRecorder.Segment) throws -> T)
         rethrows -> T
     {
-            let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
-            defer {
-                segment.end()
-            }
-            do {
-                return try body(segment)
-            } catch {
-                segment.addError(error)
-                throw error
-            }
+        let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
+        defer {
+            segment.end()
         }
+        do {
+            return try body(segment)
+        } catch {
+            segment.addError(error)
+            throw error
+        }
+    }
 
     /// Creates new segment.
     ///
@@ -86,26 +86,26 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T, E>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
-                              metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (XRayRecorder.Segment) throws -> Result<T, E>)
+    func segment<T, E>(name: String, context: TraceContext, startTime: XRayRecorder.Timestamp = .now(),
+                       metadata: XRayRecorder.Segment.Metadata? = nil,
+                       body: (XRayRecorder.Segment) throws -> Result<T, E>)
         rethrows -> Result<T, E>
     {
-            let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
-            defer {
-                segment.end()
-            }
-            do {
-                let result = try body(segment)
-                if case Result<T, E>.failure(let error) = result {
-                    segment.addError(error)
-                }
-                return result
-            } catch {
-                segment.addError(error)
-                throw error
-            }
+        let segment = beginSegment(name: name, context: context, startTime: startTime, metadata: metadata)
+        defer {
+            segment.end()
         }
+        do {
+            let result = try body(segment)
+            if case Result<T, E>.failure(let error) = result {
+                segment.addError(error)
+            }
+            return result
+        } catch {
+            segment.addError(error)
+            throw error
+        }
+    }
 
     /// Creates new segment.
     ///
@@ -123,29 +123,29 @@ extension XRayRecorder {
     ///   - metadata: segment metadata
     ///   - body: segment body
     @inlinable
-    public func segment<T, E>(name: String, baggage: BaggageContext, startTime: XRayRecorder.Timestamp = .now(),
-                              metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (XRayRecorder.Segment) throws -> Result<T, E>)
+    func segment<T, E>(name: String, baggage: Baggage, startTime: XRayRecorder.Timestamp = .now(),
+                       metadata: XRayRecorder.Segment.Metadata? = nil,
+                       body: (XRayRecorder.Segment) throws -> Result<T, E>)
         rethrows -> Result<T, E>
     {
-            let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
-            defer {
-                segment.end()
-            }
-            do {
-                let result = try body(segment)
-                if case Result<T, E>.failure(let error) = result {
-                    segment.addError(error)
-                }
-                return result
-            } catch {
-                segment.addError(error)
-                throw error
-            }
+        let segment = beginSegment(name: name, baggage: baggage, startTime: startTime, metadata: metadata)
+        defer {
+            segment.end()
         }
+        do {
+            let result = try body(segment)
+            if case Result<T, E>.failure(let error) = result {
+                segment.addError(error)
+            }
+            return result
+        } catch {
+            segment.addError(error)
+            throw error
+        }
+    }
 }
 
-extension XRayRecorder.Segment {
+public extension XRayRecorder.Segment {
     /// Creates new subsegment.
     ///
     /// Records thrown `Error`.
@@ -156,9 +156,9 @@ extension XRayRecorder.Segment {
     ///   - metadata: segment metadata
     ///   - body: subsegment body
     @inlinable
-    public func subsegment<T>(name: String, startTime: XRayRecorder.Timestamp = .now(),
-                              metadata: XRayRecorder.Segment.Metadata? = nil,
-                              body: (XRayRecorder.Segment) throws -> T) rethrows -> T
+    func subsegment<T>(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                       metadata: XRayRecorder.Segment.Metadata? = nil,
+                       body: (XRayRecorder.Segment) throws -> T) rethrows -> T
     {
         let segment = beginSubsegment(name: name, startTime: startTime, metadata: metadata)
         defer {
@@ -182,9 +182,9 @@ extension XRayRecorder.Segment {
     ///   - metadata: segment metadata
     ///   - body: subsegment body
     @inlinable
-    public func subsegment<T, E>(name: String, startTime: XRayRecorder.Timestamp = .now(),
-                                 metadata: XRayRecorder.Segment.Metadata? = nil,
-                                 body: (XRayRecorder.Segment) throws -> Result<T, E>) rethrows -> Result<T, E>
+    func subsegment<T, E>(name: String, startTime: XRayRecorder.Timestamp = .now(),
+                          metadata: XRayRecorder.Segment.Metadata? = nil,
+                          body: (XRayRecorder.Segment) throws -> Result<T, E>) rethrows -> Result<T, E>
     {
         let segment = beginSubsegment(name: name, startTime: startTime, metadata: metadata)
         defer {

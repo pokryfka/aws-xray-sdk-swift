@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import XCTest
 
 @testable import AWSXRayRecorder
@@ -80,7 +80,7 @@ final class SegmentExceptionTests: XCTestCase {
         emitter.reset()
         XCTAssertNil(emitter.segments.first)
         do {
-            var baggage = BaggageContext()
+            var baggage = Baggage.topLevel
             baggage.xRayContext = .init()
             try recorder.segment(name: UUID().uuidString, baggage: baggage) { _ in
                 throw TestError.test
@@ -115,7 +115,7 @@ final class SegmentExceptionTests: XCTestCase {
 
         emitter.reset()
         XCTAssertNil(emitter.segments.first)
-        var baggage = BaggageContext()
+        var baggage = Baggage.topLevel
         baggage.xRayContext = .init()
         _ = recorder.segment(name: UUID().uuidString, baggage: baggage) { _ in
             Result<Void, TestError>.failure(TestError.test)
@@ -220,7 +220,7 @@ final class SegmentExceptionNIOTests: XCTestCase {
 
         let eventLoop = eventLoopGroup.next()
 
-        var baggage = BaggageContext()
+        var baggage = Baggage.topLevel
         baggage.xRayContext = .init()
         try! recorder.segment(name: UUID().uuidString, baggage: baggage) {
             doWork(on: eventLoop)

@@ -11,16 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 
-private enum XRayContextKey: BaggageContextKey {
+private enum XRayContextKey: BaggageKey {
     typealias Value = XRayRecorder.TraceContext
     var name: String { "XRayTraceContext" }
 }
 
-extension BaggageContext {
+public extension Baggage {
     /// Contains `XRayContext`.
-    public var xRayContext: XRayContext? {
+    var xRayContext: XRayContext? {
         get {
             self[XRayContextKey.self]
         }
@@ -30,8 +30,8 @@ extension BaggageContext {
     }
 }
 
-internal extension BaggageContext {
-    func withParent(_ parentId: XRayRecorder.Segment.ID) throws -> BaggageContext {
+internal extension Baggage {
+    func withParent(_ parentId: XRayRecorder.Segment.ID) throws -> Baggage {
         guard var context = xRayContext else { throw XRayRecorder.TraceError.missingContext }
         context.parentId = parentId
         var updated = self
