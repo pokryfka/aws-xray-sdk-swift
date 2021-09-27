@@ -84,7 +84,7 @@ final class SegmentTests: XCTestCase {
     }
 
     func testSubsegmentsInProgress() {
-        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .init())
+        let segment = Segment(id: .init(), name: UUID().uuidString, context: .init(), baggage: .topLevel)
         let subsegmentA = segment.beginSubsegment(name: UUID().uuidString)
         let subsegmentB = segment.beginSubsegment(name: UUID().uuidString)
         let subsegmentA1 = subsegmentA.beginSubsegment(name: UUID().uuidString)

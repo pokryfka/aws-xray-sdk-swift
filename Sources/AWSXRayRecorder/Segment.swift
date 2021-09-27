@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import Logging
 import NIOHTTP1
 
@@ -104,10 +104,10 @@ extension XRayRecorder {
 
         private var state: State { lock.withReaderLock { _state } }
 
-        private let _baggage: BaggageContext
+        private let _baggage: Baggage
 
         /// Context baggage containing `XRayContext`.
-        public var baggage: BaggageContext { lock.withReaderLock { _baggage } }
+        public var baggage: Baggage { lock.withReaderLock { _baggage } }
 
         /// Indicates if the segment is recording information.
         public var isSampled: Bool { true }
@@ -200,7 +200,7 @@ extension XRayRecorder {
         private var _fault: Bool?
 
         /// the exception(s) that caused the error.
-        private var _cause: Cause = Cause()
+        private var _cause = Cause()
 
         /// annotations object with key-value pairs that you want X-Ray to index for search.
         private var _annotations: Annotations
@@ -209,7 +209,7 @@ extension XRayRecorder {
         private var _metadata: Metadata
 
         /// **array** of subsegment objects.
-        private var _subsegments: [Segment] = [Segment]()
+        private var _subsegments = [Segment]()
 
         // MARK: Optional Subsegment Fields
 
@@ -248,7 +248,7 @@ extension XRayRecorder {
             id: ID,
             name: String,
             context: TraceContext,
-            baggage: BaggageContext,
+            baggage: Baggage,
             startTime: Timestamp = Timestamp(),
             subsegment: Bool = false,
             service: Service? = nil, user: String? = nil,
@@ -286,7 +286,7 @@ extension XRayRecorder {
             logger: Logger? = nil,
             callback: StateChangeCallback? = nil
         ) {
-            var baggage = BaggageContext()
+            var baggage = Baggage.topLevel // TODO: check
             baggage.xRayContext = .init(traceId: context.traceId, parentId: id, sampled: context.sampled)
             self.init(id: id, name: name, context: context, baggage: baggage,
                       startTime: startTime, subsegment: subsegment, service: service, user: user,

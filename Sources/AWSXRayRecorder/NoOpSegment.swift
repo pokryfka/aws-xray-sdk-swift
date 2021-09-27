@@ -11,20 +11,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Baggage
+import InstrumentationBaggage
 import Logging
 
 // TODO: reduce allocation by by making Segment an abstract class extended by NoOpSegment and DoOpSegment ?
 
 extension XRayRecorder {
-    internal class NoOpSegment: Segment {
+    class NoOpSegment: Segment {
         override public var isSampled: Bool { false }
 
         override private init(
             id: ID,
             name: String,
             context: TraceContext,
-            baggage: BaggageContext,
+            baggage: Baggage,
             startTime: XRayRecorder.Timestamp = Timestamp(),
             subsegment: Bool = false,
             service: Service? = nil, user: String? = nil,
@@ -36,7 +36,7 @@ extension XRayRecorder {
             fatalError()
         }
 
-        init(id: ID, name: String, baggage: BaggageContext, startTime: Timestamp = .now(), logger: Logger? = nil) {
+        init(id: ID, name: String, baggage: Baggage, startTime: Timestamp = .now(), logger: Logger? = nil) {
             // the context is not of much importance as the segment will not be emitted
             // however pass the baggage which may contain more than just the X-Ray trace
             let context = baggage.xRayContext ?? XRayRecorder.TraceContext()

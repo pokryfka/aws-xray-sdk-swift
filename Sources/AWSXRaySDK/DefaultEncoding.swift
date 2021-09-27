@@ -15,9 +15,9 @@ import AWSXRayUDPEmitter
 import NIO
 import PureSwiftJSON
 
-extension XRayUDPEmitter.SegmentEncoding {
+public extension XRayUDPEmitter.SegmentEncoding {
     /// Default encoding of `XRayRecorder.Segment` to JSON string.
-    public static let `default`: XRayUDPEmitter.SegmentEncoding = {
+    static let `default`: XRayUDPEmitter.SegmentEncoding = {
         let jsonEncoder = PSJSONEncoder()
         return XRayUDPEmitter.SegmentEncoding { segment in
             ByteBuffer(bytes: try jsonEncoder.encode(segment))

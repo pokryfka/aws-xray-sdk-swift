@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 extension XRayRecorder.Segment {
-    internal struct Cause {
+    struct Cause {
         #if false // not used
         /// The full path of the working directory when the exception occurred.
         var workingDirectory: String?
@@ -20,10 +20,10 @@ extension XRayRecorder.Segment {
         var paths: [String]?
         #endif
         /// The **array** of **exception** objects.
-        var exceptions: [Exception] = [Exception]()
+        var exceptions = [Exception]()
     }
 
-    internal struct Exception {
+    struct Exception {
         /// A 64-bit identifier in **16 hexadecimal digits**.
         struct ID: RawRepresentable, Hashable, Encodable, CustomStringConvertible {
             let rawValue: String

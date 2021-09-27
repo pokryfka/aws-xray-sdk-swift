@@ -62,7 +62,7 @@ final class NoOpSegmentTests: XCTestCase {
     func testRecordingWithMissingContext() {
         let recorder = XRayRecorder(emitter: XRayNoOpEmitter(), config: .init(enabled: true))
 
-        let segment = recorder.beginSegment(name: UUID().uuidString, baggage: .init())
+        let segment = recorder.beginSegment(name: UUID().uuidString, baggage: .topLevel)
         XCTAssertFalse(segment.isSampled)
         XCTAssertTrue(segment is NoOpSegment)
 
@@ -147,7 +147,7 @@ final class NoOpSegmentTests: XCTestCase {
         let logHandler = TestLogHandler()
         let logger = Logger(label: "test", factory: { _ in logHandler })
 
-        var segment: Segment? = NoOpSegment(id: .init(), name: UUID().uuidString, baggage: .init(), logger: logger)
+        var segment: Segment? = NoOpSegment(id: .init(), name: UUID().uuidString, baggage: .topLevel, logger: logger)
         XCTAssertFalse(segment!.isSampled)
         XCTAssertTrue(segment is NoOpSegment)
 

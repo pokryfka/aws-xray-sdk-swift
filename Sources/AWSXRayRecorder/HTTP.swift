@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 extension XRayRecorder.Segment {
-    internal enum Namespace: String, Encodable {
+    enum Namespace: String, Encodable {
         /// AWS SDK calls
         case aws
         /// other downstream calls
@@ -28,7 +28,7 @@ extension XRayRecorder.Segment {
     ///
     /// # References
     /// - [AWS X-Ray segment documents - HTTP request data](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-http)
-    internal struct HTTP: Encodable {
+    struct HTTP: Encodable {
         /// Information about a request.
         struct Request: Encodable {
             /// The request method. For example, `GET`.
